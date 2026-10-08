@@ -1,0 +1,130 @@
+import { useEffect, useRef, useState } from 'react';
+import { useRegisterSW } from 'virtual:pwa-register/react';
+import About, { RestoreButton } from './pages/About';
+import MapPage from './pages/MapPage';
+import Play from './pages/Play';
+import { store, useTell, type Snapshot } from './store/store';
+import { InfoIcon, MapIcon, MarkIcon, PlayIcon, download } from './ui';
+
+const TABS = [
+  { route: 'play', href: '#/', label: 'Play', Icon: PlayIcon },
+  { route: 'map', href: '#/map', label: 'Map', Icon: MapIcon },
+  { route: 'about', href: '#/about', label: 'About', Icon: InfoIcon },
+] as const;
+
+/** Hash routing: no server rewrites, works offline from any path. */
+function useRoute() {
+  const read = () => location.hash.replace(/^#\/?/, '') || 'play';
+  const [route, setRoute] = useState(read);
+  useEffect(() => {
+    const onChange = () => setRoute(read());
+    window.addEventListener('hashchange', onChange);
+    return () => window.removeEventListener('hashchange', onChange);
+  }, []);
+  return route;
+}
+
+export default function App() {
+  const snapshot = useTell();
+  const route = useRoute();
+  const main = useRef<HTMLElement>(null);
+  // Only <main> scrolls; every page opens at the top.
+  // Braces matter: Chromium's scrollTo now returns a Promise, which React would take for a cleanup.
+  useEffect(() => {
+    main.current?.scrollTo(0, 0);
+  }, [route]);
+
+  if (snapshot.status === 'refused') return <Recovery snapshot={snapshot} />;
+  const { state, saveError } = snapshot;
+
+  return (
+    <div className="app">
+      {/* The nav comes first for assistive tech; CSS places it at the bottom. */}
+      <nav className="tabbar" aria-label="Primary">
+        {TABS.map(({ route: r, href, label, Icon }) => (
+          <a key={r} className="tab" href={href} aria-current={route === r ? 'page' : undefined}>
+            <Icon />
+            <span>{label}</span>
+          </a>
+        ))}
+      </nav>
+      <header className="app-header">
+        <a className="wordmark" href="#/">
+          <MarkIcon className="mark" />
+          Tell
+        </a>
+      </header>
+      <main className="main" ref={main}>
+        <div className="main-inner stack-lg">
+          {saveError && (
+            <p className="notice" role="alert">
+              {saveError}
+            </p>
+          )}
+          <UpdateNotice />
+          {route === 'map' ? <MapPage state={state} /> : route === 'about' ? <About state={state} /> : <Play state={state} />}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+/** The service worker never reloads the app by itself; it asks. */
+function UpdateNotice() {
+  const {
+    needRefresh: [needRefresh, setNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW();
+  if (!needRefresh) return null;
+  return (
+    <div className="notice round-head" role="status">
+      <span>A new version of Tell is ready.</span>
+      <span className="chips">
+        <button className="link" onClick={() => updateServiceWorker(true)}>
+          Reload
+        </button>
+        <button className="link" onClick={() => setNeedRefresh(false)}>
+          Later
+        </button>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Saved data that can't be trusted is never overwritten. The only ways on:
+ * download it as it is, restore a valid backup, or deliberately start fresh.
+ */
+function Recovery({ snapshot }: { snapshot: Extract<Snapshot, { status: 'refused' }> }) {
+  return (
+    <div className="app">
+      <main className="main">
+        <div className="main-inner stack-lg" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 24px)' }}>
+          <h1 className="title">Tell couldn’t open your saved data</h1>
+          <p>
+            The reason: {snapshot.reason}. Nothing has been changed or deleted.
+          </p>
+          {snapshot.newer && <p className="dim">Update Tell to open it. Your data is waiting, untouched.</p>}
+          {snapshot.raw && (
+            <button className="btn btn-block" onClick={() => download('tell-saved-data.txt', snapshot.raw, 'text/plain')}>
+              Download the saved data as it is
+            </button>
+          )}
+          <RestoreButton />
+          {!snapshot.newer && (
+            <button
+              className="btn btn-ghost btn-block"
+              onClick={() => {
+                if (window.confirm('Start fresh? This deletes the unreadable data on this device. Download it first if you might need it.')) {
+                  store.erase();
+                }
+              }}
+            >
+              Start fresh
+            </button>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}

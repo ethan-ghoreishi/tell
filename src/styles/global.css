@@ -1,0 +1,710 @@
+/* ==========================================================================
+   Tell — design system
+   Calm and curious: paper and ink, one warm accent, serif for scenes.
+   A phone app: one column, only <main> scrolls, large tap targets.
+   Colour pairs are checked by contrast.test.ts; change a token in BOTH
+   palettes and keep it passing.
+   ========================================================================== */
+
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --pill: 999px;
+  --tap: 48px;
+  --column: 520px;
+  --gutter: 20px;
+
+  color-scheme: light dark;
+
+  /* Light */
+  --bg: #f4f1ea;
+  --surface: #fffdf8;
+  --surface-2: #ebe6db;
+  --border: rgba(40, 33, 24, 0.1);
+  --border-strong: rgba(40, 33, 24, 0.2);
+  --text: #211d18;
+  --text-dim: #575047;
+  --text-faint: #6b645a;
+  --accent: #9a4523;
+  --accent-contrast: #fffdf8;
+  --accent-soft: rgba(154, 69, 35, 0.09);
+  --bar-track: #e4ddd0;
+  --bar-fill: #766d61;
+  --shadow: 0 1px 2px rgba(40, 33, 24, 0.06), 0 4px 16px rgba(40, 33, 24, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141317;
+    --surface: #1d1c21;
+    --surface-2: #27252c;
+    --border: rgba(255, 250, 240, 0.08);
+    --border-strong: rgba(255, 250, 240, 0.17);
+    --text: #ede9e1;
+    --text-dim: #b5aea3;
+    --text-faint: #9d968b;
+    --accent: #e3a079;
+    --accent-contrast: #1b120d;
+    --accent-soft: rgba(227, 160, 121, 0.12);
+    --bar-track: #2e2c33;
+    --bar-fill: #9d968b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+figure,
+blockquote {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- Shell: header, scrolling main, bottom tabs ------------------------ */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  max-width: var(--column);
+  margin: 0 auto;
+}
+
+@media (display-mode: standalone) {
+  .app {
+    height: 100vh;
+  }
+}
+
+.app-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(env(safe-area-inset-top) + 12px) var(--gutter) 10px;
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 1.15rem/1 var(--font-serif);
+  letter-spacing: 0.01em;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.mark {
+  width: 24px;
+  height: 24px;
+  color: var(--accent);
+}
+
+.main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.main-inner {
+  padding: 4px var(--gutter) 40px;
+}
+
+/* The nav comes first in the DOM (reached first by assistive tech); it sits at the bottom. */
+.tabbar {
+  order: 3;
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 58px;
+  color: var(--text-faint);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.tab svg {
+  width: 22px;
+  height: 22px;
+}
+
+.tab[aria-current='page'] {
+  color: var(--accent);
+}
+
+/* ---- Type ---------------------------------------------------------------- */
+
+.eyebrow {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.title {
+  font: 600 1.75rem/1.2 var(--font-serif);
+  letter-spacing: -0.005em;
+}
+
+.section-title {
+  font: 600 1.2rem/1.3 var(--font-serif);
+}
+
+.lede {
+  color: var(--text-dim);
+}
+
+.dim {
+  color: var(--text-dim);
+}
+
+.faint {
+  color: var(--text-faint);
+}
+
+.small {
+  font-size: 0.875rem;
+}
+
+.tiny {
+  font-size: 0.78rem;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.stack > * + * {
+  margin-top: 12px;
+}
+
+.stack-lg > * + * {
+  margin-top: 24px;
+}
+
+.stack-xl > * + * {
+  margin-top: 36px;
+}
+
+/* ---- Surfaces ------------------------------------------------------------ */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.card-quiet {
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+/* ---- Buttons ------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--tap);
+  padding: 0 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--pill);
+  background: var(--surface);
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.08s ease;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.btn-block {
+  display: flex;
+  width: 100%;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-dim);
+}
+
+.btn-sm {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 0.875rem;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+}
+
+.link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Segmented choice: pressed state shows by class AND aria-pressed. */
+.segments {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.segment {
+  min-height: 44px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.segment.on {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--pill);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.chip.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ---- Play ---------------------------------------------------------------- */
+
+.round-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dots {
+  display: flex;
+  gap: 6px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bar-track);
+}
+
+.dot.done {
+  background: var(--accent);
+}
+
+.scene {
+  font: 1.22rem/1.5 var(--font-serif);
+  color: var(--text);
+}
+
+.question {
+  font-weight: 600;
+}
+
+.options {
+  display: grid;
+  gap: 10px;
+}
+
+.option {
+  width: 100%;
+  min-height: 56px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: var(--surface);
+  text-align: left;
+  font-size: 1rem;
+  line-height: 1.4;
+  transition:
+    transform 0.08s ease,
+    background 0.15s ease;
+}
+
+.option:active {
+  transform: scale(0.99);
+  background: var(--surface-2);
+}
+
+.outs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+}
+
+.reveal {
+  animation: rise 0.28s ease-out both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.picked {
+  font: 600 1.5rem/1.25 var(--font-serif);
+  color: var(--accent);
+}
+
+.sees {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+}
+
+.sees dt {
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding-top: 2px;
+}
+
+.sees dd {
+  margin: 0;
+}
+
+.added {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.added svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.line {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.line blockquote {
+  flex: 1;
+  font: italic 1.08rem/1.45 var(--font-serif);
+  color: var(--text);
+}
+
+.keep {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--pill);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.keep svg {
+  width: 16px;
+  height: 16px;
+}
+
+.keep.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.then-now {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.then-now > div {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+/* ---- Map ----------------------------------------------------------------- */
+
+.totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+.lens-rows {
+  border-top: 1px solid var(--border);
+}
+
+.lens-row {
+  border-bottom: 1px solid var(--border);
+}
+
+.lens-summary {
+  display: grid;
+  grid-template-columns: 7rem 1fr 3.4rem 10px;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.lens-summary > :nth-child(3) {
+  text-align: right;
+}
+
+.lens-summary::-webkit-details-marker {
+  display: none;
+}
+
+/* A quiet chevron says the row opens onto its rounds. */
+.lens-summary::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--text-faint);
+  border-bottom: 1.5px solid var(--text-faint);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+div.lens-summary {
+  cursor: default;
+}
+
+div.lens-summary::after {
+  border: 0;
+}
+
+details[open] > .lens-summary::after {
+  transform: rotate(45deg);
+}
+
+summary.link {
+  display: inline-block;
+  min-height: 32px;
+  cursor: pointer;
+  list-style: none;
+}
+
+summary.link::-webkit-details-marker {
+  display: none;
+}
+
+.bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bar-track);
+  overflow: hidden;
+}
+
+.bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--bar-fill);
+}
+
+.evidence {
+  padding: 2px 0 14px;
+}
+
+.evidence li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 0.875rem;
+}
+
+.evidence li + li {
+  border-top: 1px dashed var(--border);
+}
+
+.pick-mark {
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.lens-none {
+  grid-column: 2 / 5;
+}
+
+.stack-tight > * + * {
+  margin-top: 4px;
+}
+
+.kept-line blockquote {
+  font: italic 1.05rem/1.45 var(--font-serif);
+}
+
+.notice {
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 0.9rem;
+}
+
+.empty {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+
+/* ---- About --------------------------------------------------------------- */
+
+.rules li {
+  padding-left: 16px;
+  position: relative;
+}
+
+.rules li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.65em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.rules li + li {
+  margin-top: 10px;
+}
+
+.glossary {
+  display: grid;
+  gap: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* A ghost toggle shows its pressed state by class as well as aria-pressed. */
+.btn-ghost.on {
+  color: var(--accent);
+}

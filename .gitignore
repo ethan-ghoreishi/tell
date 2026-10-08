@@ -1,0 +1,10 @@
+node_modules
+dist
+*.local
+*.log
+*.tsbuildinfo
+.DS_Store
+.vscode/*
+.idea
+test-results
+.claude/settings.local.json
