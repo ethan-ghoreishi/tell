@@ -172,7 +172,7 @@ function AreaRecord({ answers, area, disagreed }: { answers: Answer[]; area: Are
       )}
       {differently > 0 && (
         <p className="small dim num">
-          You saw {differently} of these {plural(rounds.length, 'round')} differently from every option on offer.
+          You marked “I see this differently” on {differently} of these {plural(rounds.length, 'reveal')}.
         </p>
       )}
     </section>
@@ -189,7 +189,7 @@ function RoundList({ rounds, lens, disagreed }: { rounds: Answer[]; lens?: Answe
           <li key={a.card}>
             <span>
               {a.title} <span className="faint num">· {shortDate(a.day)}</span>
-              {disagreed.has(a.card) && <span className="faint"> · you saw it differently</span>}
+              {disagreed.has(a.card) && <span className="faint"> · you marked “I see this differently”</span>}
             </span>
             <span className={picked === lens ? 'pick-mark' : 'faint'}>{picked ? lensName(picked) : a.pickText}</span>
           </li>

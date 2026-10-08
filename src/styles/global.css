@@ -557,7 +557,7 @@ button {
 
 .lens-summary {
   display: grid;
-  grid-template-columns: 7rem 1fr 3.4rem 10px;
+  grid-template-columns: 6.6rem 1fr 4.8rem 10px;
   align-items: center;
   gap: 12px;
   min-height: 50px;
@@ -567,6 +567,7 @@ button {
 
 .lens-summary > :nth-child(3) {
   text-align: right;
+  white-space: nowrap;
 }
 
 .lens-summary::-webkit-details-marker {

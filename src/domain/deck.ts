@@ -77,7 +77,7 @@ const WORLD: LensCard[] = [
     id: 'w-inflation',
     title: 'Inflation nobody hurries to fix',
     scene:
-      'Governments say they want low inflation. Yet when it runs above target and public debts are high, they act cautiously.',
+      'A government says it wants low inflation. Yet with prices rising faster than its target and its debts high, it acts cautiously.',
     options: [
       o('incentives', 'Moderate inflation quietly shrinks the real value of government debt.', 'who gains from slow action', 'the risks of acting fast'),
       o('power', 'Central banks, not governments, hold the main lever, and they move carefully.', 'who actually controls the outcome', 'what governments would do if they could'),
@@ -102,7 +102,7 @@ const WORLD: LensCard[] = [
   world({
     id: 'w-view',
     title: 'The queue for the view',
-    scene: 'Thousands queue for the same famous viewpoint, while a similar view two streets away stays empty.',
+    scene: 'A crowd queues for a famous viewpoint, while a similar view two streets away stays empty.',
     options: [
       o('belonging', 'The photo matters partly because others will recognise it.', 'the social value of shared landmarks', 'how people are steered there'),
       o('structure', 'Guidebooks, maps and transport all funnel people to the same spots.', 'how routes create crowds', 'what people actually want from the view'),
@@ -190,13 +190,13 @@ const WORLD: LensCard[] = [
   }),
   world({
     id: 'w-fares',
-    title: 'The fare almost nobody pays',
-    scene: 'Budget airlines advertise fares that almost nobody ends up paying once bags and seats are added.',
+    title: 'The £19 fare',
+    scene: 'A budget airline advertises a £19 fare. With a bag and a seat added, the traveller pays £74.',
     options: [
       o('structure', 'Comparison sites rank by the headline price, so everything else gets split off.', 'how a ranking rewards the wrong number', 'why travellers accept it'),
       o('incentives', 'The low price wins the click; the extras make the money.', 'where the profit actually is', 'how the comparison was set up'),
       o('perception', 'Once a low price is in your head, each extra feels small.', 'how a first number anchors the rest', 'who designed the sequence'),
-      o('power', 'A few airlines dominate most routes, so travellers take the terms.', 'who sets the terms', 'what travellers could compare'),
+      o('power', 'A few airlines dominate the route, so travellers take the terms.', 'who sets the terms', 'what travellers could compare'),
     ],
     line: 'Whoever chooses the number you compare on chooses a lot.',
   }),
@@ -204,11 +204,11 @@ const WORLD: LensCard[] = [
     id: 'w-streak',
     twin: 'k-practice',
     title: 'The streak that never talks',
-    scene: 'Thousands of people keep a daily streak in a language app for years, yet still can’t hold a conversation.',
+    scene: 'Someone has kept a daily streak in a language app for two years, yet still can’t hold a conversation.',
     options: [
-      o('incentives', 'The app rewards showing up, not progress.', 'what the reward actually tracks', 'what learners put in themselves'),
-      o('structure', 'Each lesson is built to be finished in minutes, never to stretch.', 'how the format caps the challenge', 'why learners don’t look elsewhere'),
-      o('identity', 'Keeping the streak becomes part of who people are.', 'how a habit becomes a self-image', 'what the habit is for'),
+      o('incentives', 'The app rewards showing up, not progress.', 'what the reward actually tracks', 'what the learner puts in themselves'),
+      o('structure', 'Each lesson is built to be finished in minutes, never to stretch.', 'how the format caps the challenge', 'why the learner doesn’t look elsewhere'),
+      o('identity', 'Keeping the streak has become part of who they are.', 'how a habit becomes a self-image', 'what the habit is for'),
       o('capacity', 'Real conversation practice takes more energy than most evenings have.', 'the real cost of the harder thing', 'how small the app’s ask is by design'),
     ],
     line: 'What gets counted can quietly replace what was wanted.',
@@ -242,7 +242,7 @@ const WORLD: LensCard[] = [
   world({
     id: 'w-tables',
     title: 'The subjects that quietly disappear',
-    scene: 'Schools judged on exam results begin steering pupils away from the hardest subjects.',
+    scene: 'A school judged on its exam results begins steering pupils away from the hardest subjects.',
     options: [
       o('structure', 'Results are what’s measured, so results are what’s managed.', 'how a measure reshapes the work', 'who sets the measure'),
       o('power', 'Inspectors and rankings can make or break a school.', 'who holds the consequences', 'how schools could push back'),

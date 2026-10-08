@@ -54,7 +54,9 @@ why goes in a dated `DECISIONS.md` entry; deferred ideas go in `FUTURE.md`.
 - Every scene of your own offers at least one plainly practical explanation (setting, routine,
   what the body can take), and sees/misses never moralise. Review rule.
 - New cards are appended, never inserted, so earlier deals and their tests stay put.
-- Scenes are invented and labelled as such: no statistics, no real events.
+- Scenes are invented and labelled as such: no statistics, no real events. Each scene is one
+  invented instance ("A school…", "Someone has…"), never a claim about a class of things
+  ("Schools…", "Thousands of people…"). Review rule.
 - Never reuse a card id for different content. Bump `v` when a card's meaning changes; past
   answers keep their snapshot either way.
 

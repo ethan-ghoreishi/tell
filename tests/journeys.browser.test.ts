@@ -117,7 +117,7 @@ describe.each<[Engine, 'light' | 'dark', typeof PHONE]>([
       expect(await areaTotals(page, 'Work & projects')).toEqual({ picked: 2, offered: 8 });
       // What the app asked you to record, it shows.
       expect(await page.getByRole('region', { name: 'The world', exact: true }).textContent()).toContain(
-        'You saw 1 of these 2 rounds differently',
+        'You marked “I see this differently” on 1 of these 2 reveals.',
       );
       expect(await overflowsSideways(page)).toBe(false);
       await s.shot(`5-map${small}`);

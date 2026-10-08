@@ -42,7 +42,8 @@ export default function About({ state }: { state: TellState }) {
             random picking among four options would do that less than 1 time in 20, even after allowing for the {ANGLES_CHECKED} angles
             checked in each area. With several angles checked, one can still be luck, so each shows its rounds and asks for your view.
             Once something has been called out it stays on your map; if later rounds bring it back under the bar, it is marked and shows
-            both counts.
+            both counts. Because the check runs after every round, the 1 in 20 applies to each check rather than the whole run, so a
+            lucky call-out becomes a little likelier over time. That is why one that falls back is marked rather than hidden.
           </li>
           <li>
             Your view (Fits, Partly, Doesn’t fit, Not sure) is saved as a note with the counts at the time. It never changes the counts
