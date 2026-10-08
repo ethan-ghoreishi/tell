@@ -233,9 +233,8 @@ export const CHANCE = 1 / 4;
 export const ANGLES_CHECKED = LENSES.length;
 export const GATE = 0.05;
 /**
- * At least this many offers before anything is called out. With six offers per
- * angle per area, a call-out shown at 5 of 5 still clears at 5 of 6, so in v1
- * nothing the player has seen called out can quietly disappear.
+ * At least this many offers before anything is called out, so the bar is never
+ * cleared on a handful of rounds (4 of 4 would clear on chance alone).
  */
 export const MIN_OFFERS = 5;
 
@@ -252,26 +251,45 @@ export interface Observation {
   rounds: Answer[];
   /** "5 of 6": the counts a note is filed against. */
   counts: string;
+  /** Whether the current counts still clear the bar. */
+  clears: boolean;
+  /** When the bar was first cleared, and at what counts. */
+  first: { counts: string; day: string };
 }
 
 /**
  * An angle picked far more often than chance would explain. Nothing else
  * becomes an observation: a rarely picked angle is not a blind spot, and a
  * player's verdict never changes whether one is shown.
+ *
+ * Once an angle has cleared the bar it stays, so nothing the player saw slips
+ * away; if later rounds bring it back under, it is marked and shows both counts.
+ * Derived by walking the answer log in order, with lensRecord's counting rules.
  */
 export function observations(answers: Answer[]): Observation[] {
+  const tally = new Map<string, { chosen: number; offered: number }>();
+  const firstCleared = new Map<string, { counts: string; day: string }>();
+  for (const a of answers) {
+    if (a.kind === 'switch') continue;
+    const picked = pickedLens(a);
+    for (const { lens } of a.shown) {
+      if (!lens) continue;
+      const id = `lean:${a.area}:${lens}`;
+      const t = tally.get(id) ?? { chosen: 0, offered: 0 };
+      t.offered += 1;
+      if (picked === lens) t.chosen += 1;
+      tally.set(id, t);
+      if (!firstCleared.has(id) && clearsGate(t.chosen, t.offered)) firstCleared.set(id, { counts: `${t.chosen} of ${t.offered}`, day: a.day });
+    }
+  }
   return (Object.keys(AREAS) as Area[]).flatMap((area) =>
-    lensRecord(answers, area)
-      .filter((r) => clearsGate(r.chosen, r.offered))
-      .map((r) => ({
-        id: `lean:${area}:${r.lens}`,
-        area,
-        lens: r.lens,
-        chosen: r.chosen,
-        offered: r.offered,
-        rounds: r.rounds,
-        counts: `${r.chosen} of ${r.offered}`,
-      })),
+    lensRecord(answers, area).flatMap((r) => {
+      const id = `lean:${area}:${r.lens}`;
+      const first = firstCleared.get(id);
+      if (!first) return [];
+      const counts = `${r.chosen} of ${r.offered}`;
+      return [{ id, area, lens: r.lens, chosen: r.chosen, offered: r.offered, rounds: r.rounds, counts, clears: clearsGate(r.chosen, r.offered), first }];
+    }),
   );
 }
 

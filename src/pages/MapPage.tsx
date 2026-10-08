@@ -85,11 +85,19 @@ function ObservationCard({ state, o, disagreed }: { state: TellState; o: Observa
 
   return (
     <article className="card stack">
+      {!o.clears && <p className="eyebrow">No longer clears the bar</p>}
       <p>{statement}</p>
-      <p className="small dim">
-        Shown because picking at random among four angles would do this less than 1 time in 20, even allowing for the {ANGLES_CHECKED}{' '}
-        angles Tell checks. Could also be: these scenes made {name} the most convincing option.
-      </p>
+      {o.clears ? (
+        <p className="small dim">
+          Shown because picking at random among four angles would do this less than 1 time in 20, even allowing for the {ANGLES_CHECKED}{' '}
+          angles Tell checks. Could also be: these scenes made {name} the most convincing option.
+        </p>
+      ) : (
+        <p className="small dim">
+          It cleared the bar at {o.first.counts} on {shortDate(o.first.day)}. Now at {o.counts}, it no longer would, so it stays here,
+          marked, rather than slipping away. Could also be: those earlier scenes made {name} the most convincing option.
+        </p>
+      )}
       <div className="stack">
         <p className="small" id={`view-${o.id}`}>
           Your view

@@ -26,9 +26,11 @@ why goes in a dated `DECISIONS.md` entry; deferred ideas go in `FUTURE.md`.
   alternative explanation (`MapPage.tsx`).
 - Observations come only from `clearsGate`: at least `MIN_OFFERS` offers, and the binomial tail
   against 1-in-4 chance, multiplied by the number of angles checked, below 0.05 (`engine.ts`,
-  `engine.test.ts`). A call-out must not be able to vanish once shown; with a larger deck, keep
-  it visible and marked instead (`FUTURE.md`). Changing the gate is an owner decision, and
-  About's wording changes in the same commit.
+  `engine.test.ts`). Changing the gate is an owner decision, and About's wording changes in the
+  same commit.
+- A call-out never vanishes. Once an angle has cleared the bar, `observations` keeps it; if later
+  rounds bring it under, it is marked "No longer clears the bar" with both counts. Derived from
+  the log, never stored (test "stays once shown").
 - Anything the app asks the player to record, the Map shows: kept lines, verdict notes, and
   rounds marked "I see this differently" (`MapPage.tsx`; core journey).
 - A verdict (Fits, Partly, Doesn't fit, Not sure) is a note saved with the counts at the time.
@@ -44,8 +46,14 @@ why goes in a dated `DECISIONS.md` entry; deferred ideas go in `FUTURE.md`.
   out (`else`, `unknown`, `notme`).
 - Twins are reciprocal, cross areas and offer the same four angles.
 - Each angle is offered equally often per area (within one).
-- Pair halves share option ids in the same order, differ in one detail, and the second half
-  comes later in the array.
+- Pair halves share identical answers in the same order, the second scene is a minimal edit of
+  the first (word-level diff), and the second half comes later in the array.
+- A consistency pair changes only what carries no information about the outcome (wording,
+  framing, money already lost or spent). Anything that could legitimately matter is a
+  trade-off pair. Review rule: the test can't judge meaning.
+- Every scene of your own offers at least one plainly practical explanation (setting, routine,
+  what the body can take), and sees/misses never moralise. Review rule.
+- New cards are appended, never inserted, so earlier deals and their tests stay put.
 - Scenes are invented and labelled as such: no statistics, no real events.
 - Never reuse a card id for different content. Bump `v` when a card's meaning changes; past
   answers keep their snapshot either way.

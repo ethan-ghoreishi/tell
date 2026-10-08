@@ -1,8 +1,9 @@
 import type { Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { DECK } from '../src/domain/deck';
-import { OUTS, type Card, type Out } from '../src/domain/types';
-import { PHONE, SMALL_PHONE, openApp, overflowsSideways, startApp, type Engine, type Session } from './browser';
+import { DECK, PAIRS } from '../src/domain/deck';
+import { matchedPairs, observations, pairResults } from '../src/domain/engine';
+import { OUTS, type Card, type Out, type TellState } from '../src/domain/types';
+import { PHONE, SHOTS, SMALL_PHONE, openApp, overflowsSideways, startApp, type Engine, type Session } from './browser';
 
 // The real app in real engines at phone size, driven by role and name. Days
 // pass through Playwright's clock: no test hooks exist in the app.
@@ -128,50 +129,78 @@ describe.each<[Engine, 'light' | 'dark', typeof PHONE]>([
   });
 });
 
-describe('accumulation over days (chromium)', () => {
-  it('builds matched pairs, paired choices and a gated observation, and files a verdict as a note', async () => {
+describe('accumulation over the whole deck (chromium)', () => {
+  it('builds matched pairs, paired choices and call-outs that stay once shown, and files a verdict as a note', async () => {
     const s = await openApp('chromium', app.url, { time: day(1) });
     try {
       const { page } = s;
-      // Prefer Identity wherever it's offered; change the workshop answer when it comes back.
-      const choose = (c: Card) =>
-        c.kind === 'switch'
-          ? c.id === 's-workshop-b'
-            ? 'stay'
-            : c.options[0].id
-          : (c.options.find((o) => o.lens === 'identity') ?? c.options[0]).id;
+      // The world: always lean on Incentives. Your own work: lean on Identity
+      // until it is picked five times, then avoid it, so its call-out clears and
+      // later falls back under the bar. The workshop answer changes when it returns.
+      let identityPicks = 0;
+      const choose = (c: Card) => {
+        if (c.kind === 'switch') return c.id === 's-workshop-b' ? 'stay' : c.options[0].id;
+        if (c.area === 'world') return (c.options.find((o) => o.lens === 'incentives') ?? c.options[0]).id;
+        const identity = c.options.find((o) => o.lens === 'identity');
+        if (identity && identityPicks < 5) {
+          identityPicks += 1;
+          return identity.id;
+        }
+        return c.options.find((o) => o.lens !== 'identity')!.id;
+      };
       const shootPairs = async (c: Card) => {
         if (c.id === 's-workshop-b') await s.shot('6-pair-reveal');
       };
+      const stored = async (): Promise<TellState> => JSON.parse((await page.evaluate(() => localStorage.getItem('tell')))!);
 
       await page.getByRole('heading', { name: 'Today’s set' }).waitFor();
       await playSet(page, choose, 'Mix');
-      for (let d = 2; d <= 7; d++) {
+      for (let d = 2; d <= 40 && (await stored()).answers.length < DECK.length; d++) {
         await nextDay(page, d);
-        const area = d === 2 ? 'Mix' : 'Work & projects';
-        await page.getByRole('button', { name: area, exact: true }).click();
-        if ((await page.getByRole('button', { name: /^Start/ }).count()) === 0) continue;
-        await playSet(page, choose, area, shootPairs);
+        const preferred = d === 2 ? 'Mix' : d % 2 ? 'Work & projects' : 'The world';
+        for (const area of [preferred, 'Mix']) {
+          await page.getByRole('button', { name: area, exact: true }).click();
+          if ((await page.getByRole('button', { name: /^Start/ }).count()) === 0) continue;
+          await playSet(page, choose, area, shootPairs);
+          break;
+        }
       }
+      const state = await stored();
+      expect(state.answers).toHaveLength(DECK.length);
 
       await page.getByRole('link', { name: 'Map', exact: true }).click();
       await page.getByRole('heading', { name: 'Your map' }).waitFor();
-
       const explore = page.getByRole('region', { name: 'Something to explore' });
-      expect(await explore.textContent()).toContain('Identity felt closest to your experience in 6 of the 6 rounds where it was offered');
-      await explore.getByRole('button', { name: 'Partly' }).click();
-      expect(await explore.getByRole('button', { name: 'Partly' }).getAttribute('aria-pressed')).toBe('true');
-      expect(await explore.textContent()).toContain('at 6 of 6. A note, not evidence');
+
+      // A call-out that still clears, with a verdict filed against its counts.
+      const world = observations(state.answers).find((o) => o.id === 'lean:world:incentives')!;
+      expect(world.clears).toBe(true);
+      const worldCard = explore.getByRole('article').filter({ hasText: 'you looked first at Incentives' });
+      expect(await worldCard.textContent()).toContain(`in ${world.chosen} of the ${world.offered} rounds where it was offered`);
+      await worldCard.getByRole('button', { name: 'Partly' }).click();
+      expect(await worldCard.getByRole('button', { name: 'Partly' }).getAttribute('aria-pressed')).toBe('true');
+      expect(await worldCard.textContent()).toContain(`at ${world.counts}. A note, not evidence`);
+
+      // A call-out that cleared and later fell back stays, marked, with both counts.
+      const work = observations(state.answers).find((o) => o.id === 'lean:work:identity')!;
+      expect(work).toMatchObject({ clears: false, first: { counts: '5 of 5' } });
+      const workCard = explore.getByRole('article').filter({ hasText: 'Identity felt closest' });
+      expect(await workCard.textContent()).toContain('No longer clears the bar');
+      expect(await workCard.textContent()).toContain(`It cleared the bar at 5 of 5`);
+      expect(await workCard.textContent()).toContain(`Now at ${work.counts}`);
 
       const matched = page.getByRole('region', { name: 'The world vs me', exact: true });
-      expect(await matched.textContent()).toContain('2 matched pairs answered on both sides');
+      expect(await matched.textContent()).toContain(`${matchedPairs(state.answers).length} matched pairs answered on both sides`);
 
+      const done = pairResults(state.answers, PAIRS).filter((r) => r.second);
+      expect(done).toHaveLength(PAIRS.length);
       const pairs = page.getByRole('region', { name: 'Paired choices' });
-      expect(await pairs.textContent()).toContain('Your answer changed in 1 of 3 pairs.');
+      expect(await pairs.textContent()).toContain(`Your answer changed in ${done.filter((r) => r.changed).length} of ${done.length} pairs.`);
 
+      await explore.screenshot({ path: `${SHOTS}/chromium-light-7-call-outs.png`, animations: 'disabled' });
       // Only <main> scrolls, so a tall viewport is how the whole map fits one picture.
-      await page.setViewportSize({ width: PHONE.width, height: 4200 });
-      await s.shot('7-map-after-a-week');
+      await page.setViewportSize({ width: PHONE.width, height: 9000 });
+      await s.shot('8-map-after-the-deck');
 
       expect(s.errors).toEqual([]);
     } finally {

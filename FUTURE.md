@@ -28,12 +28,6 @@ Once the deck has enough twins for a paired test to clear the gate after allowin
 angles (roughly a dozen or more pairs answered), add an observation for a consistent world-versus-self
 difference. Until then, side-by-side rows only.
 
-## Call-outs that stay visible
-
-In v1 a call-out can't drop below the bar once shown (six offers per angle per area). With a
-larger deck it could. Before adding cards, keep earlier call-outs and their notes on the Map,
-marked "no longer clears the bar" with the current counts, so nothing the player saw slips away.
-
 ## Gentle accumulation extras
 
 - A weekly "what added up", three lines at most, built from counts.

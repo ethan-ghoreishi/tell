@@ -40,8 +40,9 @@ export default function About({ state }: { state: TellState }) {
           <li>
             An angle is called out only once it has been offered at least {MIN_OFFERS} times, and only when you picked it so often that
             random picking among four options would do that less than 1 time in 20, even after allowing for the {ANGLES_CHECKED} angles
-            checked in each area. Call-outs are rechecked after every round. With several angles checked, one can still be luck, so each
-            shows its rounds and asks for your view.
+            checked in each area. With several angles checked, one can still be luck, so each shows its rounds and asks for your view.
+            Once something has been called out it stays on your map; if later rounds bring it back under the bar, it is marked and shows
+            both counts.
           </li>
           <li>
             Your view (Fits, Partly, Doesn’t fit, Not sure) is saved as a note with the counts at the time. It never changes the counts

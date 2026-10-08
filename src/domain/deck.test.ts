@@ -9,6 +9,17 @@ const lensCards = DECK.filter((c): c is LensCard => c.kind !== 'switch');
 const halves = DECK.filter((c): c is SwitchCard => c.kind === 'switch');
 const byId = new Map(DECK.map((c) => [c.id, c]));
 const filled = (s: string) => s.trim().length > 0;
+const words = (s: string) => s.split(/\s+/);
+
+/** Words outside the longest common subsequence, on each side: a word-level diff. */
+function changedWords(a: string, b: string): [number, number] {
+  const [x, y] = [words(a), words(b)];
+  const lcs = Array.from({ length: x.length + 1 }, () => new Array<number>(y.length + 1).fill(0));
+  for (let i = x.length - 1; i >= 0; i--) {
+    for (let j = y.length - 1; j >= 0; j--) lcs[i][j] = x[i] === y[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+  }
+  return [x.length - lcs[0][0], y.length - lcs[0][0]];
+}
 
 describe('deck', () => {
   it('has unique round ids and complete text', () => {
@@ -55,16 +66,27 @@ describe('deck', () => {
     }
   });
 
-  it('gives every pair exactly two halves, a then b, with the same answers in the same order', () => {
+  it('gives every pair exactly two halves, a then b, with identical answers in the same order', () => {
     for (const pair of PAIRS) {
       const [a, b] = ['a', 'b'].map((v) => halves.filter((h) => h.pair === pair.id && h.variant === v));
       expect(a, pair.id).toHaveLength(1);
       expect(b, pair.id).toHaveLength(1);
-      expect(b[0].options.map((o) => o.id), pair.id).toEqual(a[0].options.map((o) => o.id));
+      expect(b[0].options, pair.id).toEqual(a[0].options);
       expect(b[0].scene, pair.id).not.toBe(a[0].scene);
       expect(DECK.indexOf(b[0]), pair.id).toBeGreaterThan(DECK.indexOf(a[0]));
       expect(filled(pair.changed) && filled(pair.note), pair.id).toBe(true);
     }
     for (const h of halves) expect(PAIRS.some((p) => p.id === h.pair), h.id).toBe(true);
+  });
+
+  it('writes each second half as a minimal edit of the first, so “only one thing differed” is literal', () => {
+    for (const pair of PAIRS) {
+      const [a, b] = ['a', 'b'].map((v) => halves.find((h) => h.pair === pair.id && h.variant === v)!.scene);
+      const [changedA, changedB] = changedWords(a, b);
+      const longest = Math.max(words(a).length, words(b).length);
+      expect(Math.max(changedA, changedB), `${pair.id}: ${changedA}/${changedB} of ${longest} words differ`).toBeLessThanOrEqual(
+        Math.max(3, Math.floor(longest * 0.35)),
+      );
+    }
   });
 });

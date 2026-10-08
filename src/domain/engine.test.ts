@@ -20,7 +20,7 @@ import {
   toggleDisagree,
   toggleKeep,
 } from './engine';
-import type { Card, LensCard, LensId, TellState } from './types';
+import type { Answer, Card, LensCard, LensId, TellState } from './types';
 
 const on = (d: number, h = 9) => new Date(2026, 9, d, h, 0, 0); // October 2026, local time
 const seeded = (seed = 1) => () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
@@ -60,11 +60,6 @@ describe('binomial gate', () => {
     expect(clearsGate(5, 8)).toBe(false);
     expect(clearsGate(5, 5)).toBe(true); // 0.00098 × 8 = 0.0078
     expect(clearsGate(4, 4)).toBe(false); // would clear on chance alone, but fewer than five offers
-  });
-
-  it('never withdraws a call-out within one area of the v1 deck once shown', () => {
-    // Six offers per angle per area: shown at 5 of 5, it must still clear at 5 of 6.
-    expect(clearsGate(5, 5) && clearsGate(5, 6)).toBe(true);
   });
 });
 
@@ -107,11 +102,12 @@ describe('dealing', () => {
     expect(deal(s, DECK, on(2), 'mix').cards.map((c) => c.id)).toContain('w-newsroom');
   });
 
-  it('deals nothing once every round is answered', () => {
+  it('eventually deals every round, then nothing', () => {
+    // A guard against twin or pair rules stranding a card.
     let s = emptyState();
-    for (let d = 1; d <= 20; d++) s = playDay(s, on(d), first);
+    for (let d = 1; d <= 60; d++) s = playDay(s, on(d), first);
     expect(s.answers).toHaveLength(DECK.length);
-    expect(deal(s, DECK, on(21), 'mix').cards).toEqual([]);
+    expect(deal(s, DECK, on(61), 'mix').cards).toEqual([]);
   });
 });
 
@@ -203,19 +199,56 @@ describe('counting', () => {
 });
 
 describe('observations', () => {
+  /** Play every round in an area, preferring one angle wherever it's offered. */
   const playAll = (lens: LensId, area: 'world' | 'work') => {
     let s = emptyState();
-    for (let d = 1; d <= 6; d++) s = playDay(s, on(d), prefer(lens), area);
+    for (let d = 1; d <= 30; d++) s = playDay(s, on(d), prefer(lens), area);
     return s;
   };
+  /** How many lens rounds in an area offer this angle: the deck's own number, not a constant. */
+  const offersIn = (lens: LensId, area: 'world' | 'work') =>
+    DECK.filter((c) => c.kind !== 'switch' && c.area === area && c.options.some((o) => (o as LensCard['options'][number]).lens === lens)).length;
+
+  /** A synthetic lens round answered on `day`, offering Identity, Power, Capacity and Structure. */
+  const round = (i: number, pick: string, day: string): Answer => ({
+    card: `x-${i}`,
+    v: 1,
+    kind: 'mirror',
+    area: 'work',
+    title: `Scene ${i}`,
+    at: `${day}T08:00:00.000Z`,
+    day,
+    shown: (['identity', 'power', 'capacity', 'structure'] as const).map((lens) => ({ id: lens, lens })),
+    pick,
+    pickText: pick,
+  });
 
   it('appears only when an angle clears the published bar', () => {
     const s = playAll('identity', 'work');
-    const row = lensRecord(s.answers, 'work').find((r) => r.lens === 'identity')!;
-    expect(row).toMatchObject({ offered: 6, chosen: 6 });
-    const obs = observations(s.answers);
-    expect(obs.map((o) => o.id)).toContain('lean:work:identity');
-    expect(obs.find((o) => o.id === 'lean:work:identity')!.counts).toBe('6 of 6');
+    const n = offersIn('identity', 'work');
+    expect(lensRecord(s.answers, 'work').find((r) => r.lens === 'identity')).toMatchObject({ offered: n, chosen: n });
+    const obs = observations(s.answers).find((o) => o.id === 'lean:work:identity')!;
+    expect(obs).toMatchObject({ counts: `${n} of ${n}`, clears: true });
+  });
+
+  it('stays once shown, marked with both counts, when later rounds bring it under the bar', () => {
+    const answers = [1, 2, 3, 4, 5].map((i) => round(i, 'identity', `2026-10-0${i}`));
+    expect(observations(answers)).toEqual([
+      expect.objectContaining({ id: 'lean:work:identity', counts: '5 of 5', clears: true, first: { counts: '5 of 5', day: '2026-10-05' } }),
+    ]);
+    const later = [...answers, round(6, 'power', '2026-10-06'), round(7, 'capacity', '2026-10-07')];
+    expect(observations(later)).toEqual([
+      expect.objectContaining({ id: 'lean:work:identity', counts: '5 of 7', clears: false, first: { counts: '5 of 5', day: '2026-10-05' } }),
+    ]);
+  });
+
+  it('counts its walk exactly as the record does, ways out and all', () => {
+    // Cleared on the very last answer, so the walk's counts at that moment are its final counts.
+    const answers = [round(1, 'else', '2026-10-01'), ...[2, 3, 4, 5, 6].map((i) => round(i, 'identity', `2026-10-0${i}`))];
+    const obs = observations(answers)[0];
+    const row = lensRecord(answers, 'work').find((r) => r.lens === 'identity')!;
+    expect(obs.first.counts).toBe(`${row.chosen} of ${row.offered}`);
+    expect(obs.counts).toBe('5 of 6');
   });
 
   it('does not appear for an angle picked at chance-like rates', () => {

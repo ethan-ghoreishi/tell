@@ -2,6 +2,33 @@
 
 Durable record of non-obvious choices. Newest first.
 
+## A 60-card deck, and call-outs that stay (2026-10-08)
+
+**Deck doubled to 60** (owner: "Proceed", on the recommendation to write more cards before
+Decide). 24 world scenes, 24 of your own, 6 paired choices; each angle is offered 12 times per
+area; 12 twin pairs. A simulation of daily Mix play runs 16 days before the deck is spent, which
+covers a two-week pilot. New cards were appended, so earlier deals are unchanged. Each new scene
+of your own offers at least one plainly practical explanation (the setting, the routine, what
+your body can take); the gym scene offers physical limits as a real option.
+
+**Call-outs stay once shown.** With 12 offers per angle, an angle shown at 5 of 5 could fall to
+5 of 7 and stop clearing, which would make the Map feel like sand through fingers. So
+`observations` walks the answer log in order, records when each angle first cleared, and keeps
+it: if later rounds bring it under the bar, the card is marked "No longer clears the bar" and
+shows both counts. Derived, not stored: no schema change, and notes keep their ids. This
+supersedes the v1 note below that a call-out couldn't vanish, which held only for 30 cards.
+
+**Paired choices are literal.** Both halves share identical answers, and the second is a minimal
+word-level edit of the first (`deck.test.ts`). A consistency pair changes only something that
+carries no information about the outcome: wording, framing, or money already lost or spent.
+Anything that could legitimately matter is a trade-off pair. Rejected for that reason: "who
+suggested it" and "a tool you already use" as consistency checks. Messenger and switching cost
+are real information. The framing pair was rewritten so its halves differ minimally.
+
+**Still no world-versus-me call-out.** Each angle sits in only about six of the twelve twin
+pairs, so a paired test can't clear the bar after allowing for eight angles. The side-by-side
+rows remain the honest view.
+
 ## v1 foundations (2026-10-08)
 
 **What v1 is.** Play and Map for two areas, The world and Work & projects: the areas where the
@@ -51,7 +78,8 @@ times eight (the angles checked per area), is below 0.05. In practice that means
 or 6 of 8. Strict on purpose: "don't manufacture patterns". About states the rule, and that
 several checks mean a call-out can still be luck. The five-offer floor exists so a call-out
 can't vanish: 4 of 4 clears on chance alone but falls to 4 of 5 on the next miss. With six
-offers per angle per area in v1, anything shown at 5 of 5 still clears at 5 of 6.
+offers per angle per area in v1, anything shown at 5 of 5 still clears at 5 of 6. (True for
+the 30-card deck only; see "call-outs stay" above.)
 
 **No world-versus-me call-out in v1.** With six twin pairs, a paired test can never clear any
 honest bar after allowing for eight angles. The Map shows the matched rows side by side with
