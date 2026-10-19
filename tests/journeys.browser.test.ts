@@ -108,7 +108,7 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       await ending(page).waitFor();
       const article = page.locator('article');
       expect(await article.textContent()).toContain('First answer: “The app: the most people might use it”.');
-      expect(await page.getByRole('region', { name: 'Possible readings' }).textContent()).toContain('relied, at least in part, on the work reaching people');
+      expect(await page.getByRole('region', { name: 'Possible readings' }).textContent()).toContain('Something your first answer relied on, perhaps the work reaching people, was gone');
       expect(await page.getByRole('region', { name: 'Still unknown' }).textContent()).toContain('How many people any of the three would actually reach.');
       await sound(s, `3-ending${t}`);
 
@@ -139,6 +139,17 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       expect(await page.locator('article .eyebrow').first().textContent()).toBe('Invented story · Purpose · replay 1');
       expect(await page.getByRole('region', { name: 'Earlier plays of this story' }).textContent()).toContain('1 Oct: first “The app: the most people might use it”, then “The stories: they’re closest to done”.');
       expect((await stored(page)).plays.map((p) => p.replay)).toEqual([0, 1]);
+
+      // From an ending to a real choice: the story's question comes along, its question already picked.
+      await page.getByRole('link', { name: 'Try it on a real choice' }).click();
+      await page.getByLabel('The choice, in a few words').fill('Which project gets my evenings');
+      await button(page, 'Next').click();
+      expect(await button(page, /^What I’m really trying to get out of it/).getAttribute('aria-pressed')).toBe('true');
+      await page.getByText('A question from a story: If the outcome you’re hoping for were ruled out, would you still choose the same way?').waitFor();
+      await button(page, 'Next').click();
+      await heading(page, 'Purpose').waitFor();
+      await page.getByText(/^A question from a story:/).waitFor();
+      await sound(s, `5-routed${t}`);
 
       // The map: what was kept, with its evidence; revised and retired without losing either.
       await page.getByRole('link', { name: 'Map', exact: true }).click();

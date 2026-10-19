@@ -43,8 +43,12 @@ why goes in a dated `DECISIONS.md` entry; deferred ideas go in `FUTURE.md`.
   something the app does by itself.
 - One shape: setup, first answer (with "Not sure"), one move (twist, widen, Cut, Peek or Slide),
   second answer, ending. The ending separates what was answered (fixed sentences filled from the
-  record, `playView`), possible readings (at least two each way, the second starting "Or"), and
-  what stays unknown.
+  record, `playView`), possible readings, and what stays unknown.
+- Every reading shown must be true for the path taken: readings for staying, switching, moving to
+  an added option, and following or going against a Slide's own line; fixed lines for paths an
+  episode can't anticipate (test "shows readings that are true for the path taken", which walks
+  every reachable path; `PATHS_FILE=… npx vitest run tests/paths.test.ts` prints them for review).
+  The second reading in each set starts "Or".
 - Invented facts are marked "In this story" (or "Suppose"). No psychology vocabulary, no
   sentences that describe the player, no currency symbols, length limits, no near-duplicates.
 - No concealed philosophy: across the library, no move (asking, testing, widening, waiting) is the

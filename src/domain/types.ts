@@ -61,10 +61,9 @@ export type Feature =
   | 'shape-keep'
   | 'shape-ask'
   | 'several'
-  | 'next-trial'
-  | 'next-find-out'
-  | 'next-wait'
-  | 'next-leave'
+  | 'find-trial'
+  | 'find-ask'
+  | 'find-wait'
   | 'deadline'
   | 'undo'
   | 'public'
@@ -81,10 +80,9 @@ export const FEATURES: Record<Feature, { label: string; group: 'structure' | 'ci
   'shape-keep': { label: 'keeping things as they are among the options', group: 'structure' },
   'shape-ask': { label: 'asking someone among the options', group: 'structure' },
   several: { label: 'three or more options', group: 'structure' },
-  'next-trial': { label: 'a small trial as the next move', group: 'structure' },
-  'next-find-out': { label: 'finding something out as the next move', group: 'structure' },
-  'next-wait': { label: 'waiting as the next move', group: 'structure' },
-  'next-leave': { label: 'leaving it for now as the next move', group: 'structure' },
+  'find-trial': { label: 'an unknown that a small trial could answer', group: 'structure' },
+  'find-ask': { label: 'an unknown that asking or looking up could answer', group: 'structure' },
+  'find-wait': { label: 'an unknown that only time will answer', group: 'structure' },
   deadline: { label: 'a deadline', group: 'circumstance' },
   undo: { label: 'something hard to undo', group: 'circumstance' },
   public: { label: 'others seeing it', group: 'circumstance' },
@@ -134,6 +132,11 @@ export interface Episode {
     changed: string[];
     /** Possible readings when it is the same. */
     stayed: string[];
+    /** When the second answer is an option the move added (a twist's new option, or one picked to consider). */
+    added?: string[];
+    /** For a Slide with a revealed value: the second answer followed the player's own line, or went against it. */
+    followed?: string[];
+    against?: string[];
     unknown: string;
     /** A question to take to a real choice. */
     apply: string;

@@ -94,7 +94,8 @@ export default function About({ state }: { state: TellState }) {
         <ul className="rules">
           <li>
             During a choice, Tell may show up to {MATCH_MAX} things from your record: takeaways you kept and your other saved choices. It compares only what you
-            marked: the kinds of option, the next move and the circumstances. It never reads your words.
+            marked: the kinds of option, how an unknown that matters could be found out, assumptions you marked, and the circumstances. It never
+            reads your words.
           </li>
           <li>
             An example appears only when it shares at least {MATCH_MIN} of those, and at least one is about the choice’s structure rather than its circumstances.

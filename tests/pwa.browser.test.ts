@@ -25,8 +25,10 @@ afterAll(async () => {
 
 describe.each([
   ['chromium', PHONE],
+  ['chromium', SMALL_PHONE],
+  ['webkit', PHONE],
   ['webkit', SMALL_PHONE],
-] as const)('production build (%s)', (engine, viewport) => {
+] as const)('production build (%s, %o)', (engine, viewport) => {
   it('runs under its CSP, works offline where it can, and round-trips a backup', async () => {
     const browser = await (engine === 'chromium' ? chromium : webkit).launch();
     try {

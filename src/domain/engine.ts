@@ -226,7 +226,43 @@ export function playView(play: Play): PlayView {
     }
   }
   observed.push(`Second answer: ${say(play.final)}${changed ? '.' : ', the same as your first.'}`);
-  return { point: e.ending.point, observed, readings: changed ? e.ending.changed : e.ending.stayed, unknown: e.ending.unknown, apply: e.ending.apply, changed };
+  return { point: e.ending.point, observed, readings: readingsFor(play), unknown: e.ending.unknown, apply: e.ending.apply, changed };
+}
+
+/** Readings that hold whatever the episode: for paths its own readings weren't written for. */
+export const GENERIC_READINGS = {
+  settled: ['Something in the story settled it: what changed, or what you were asked along the way.', 'Or the second question was easier to answer than the first, without anything being settled.'],
+  open: ['The story didn’t settle it, and that is an answer too.', 'Or what would settle it isn’t in this story at all.'],
+  unsettled: ['The change unsettled an answer that had seemed clear.', 'Or the first answer was looser than it looked, and the second question showed it.'],
+  unopenedSame: ['You didn’t need any of the hidden facts to stay where you were.', 'Or none of them looked likely to change anything, which is a judgement about the facts too.'],
+  unopenedChanged: ['You changed your answer without opening a fact: being asked again was enough.', 'Or your first answer was loose, and a second look settled it.'],
+  leanReturned: ['Your lean moved along the way and came back: the facts pulled, but not far enough.', 'Or, weighed together at the end, they pointed back to where you began.'],
+  leanLate: ['Your lean held while you opened facts, then changed when you chose: together they may have mattered more than any one.', 'Or the second question, not the facts, did the moving.'],
+};
+
+/** The readings that are true for the path this play took. */
+function readingsFor(play: Play): string[] {
+  const e = play.shown;
+  const end = e.ending;
+  const b = e.beat;
+  const x = play.beat;
+  const g = GENERIC_READINGS;
+  if (play.first === UNSURE) return play.final === UNSURE ? g.open : g.settled;
+  if (play.final === UNSURE) return g.unsettled;
+  const same = play.first === play.final;
+  if (b.kind === 'peek' && x.kind === 'peek') {
+    if (x.opened.length === 0) return same ? g.unopenedSame : g.unopenedChanged;
+    // An episode's own Peek readings assume the lean and the answer moved together.
+    const wavered = x.opened.some((o) => o.lean !== play.first);
+    if (same && wavered) return g.leanReturned;
+    if (!same && !wavered) return g.leanLate;
+  }
+  if (b.kind === 'slide' && b.actual && x.kind === 'slide' && end.followed && end.against) {
+    const says = lineSays(b.steps, b.rises, x.outcome, b.actual.value);
+    if (says !== null) return play.final === e.options[says === 'a' ? 0 : 1].id ? end.followed : end.against;
+  }
+  if (end.added && !e.options.some((o) => o.id === play.final)) return end.added;
+  return same ? end.stayed : end.changed;
 }
 
 /** Earlier plays of the same episode, so a replay is shown as one. */
@@ -422,7 +458,12 @@ export function choiceFeatures(c: ChoiceContent): Feature[] {
   const f = new Set<Feature>();
   for (const o of c.options) if (o.shape) f.add(`shape-${o.shape}`);
   if (c.options.length >= 3) f.add('several');
-  if (c.next && ['trial', 'find-out', 'wait', 'leave'].includes(c.next.kind)) f.add(`next-${c.next.kind}` as Feature);
+  // How an unknown that matters could be found out: answered before past examples are offered.
+  for (const u of c.unknowns.filter((x) => x.changes === 'yes')) {
+    if (u.how === 'try') f.add('find-trial');
+    if (u.how === 'ask' || u.how === 'look') f.add('find-ask');
+    if (u.how === 'wait') f.add('find-wait');
+  }
   for (const k of c.circumstances) f.add(k);
   if (c.criteria.some((x) => x.must)) f.add('must');
   if (c.unknowns.some((u) => u.changes === 'yes')) f.add('unknown');

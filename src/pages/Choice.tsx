@@ -484,8 +484,8 @@ function Examples({ state, id, c, pool }: { state: TellState; id: string; c: Cho
   return (
     <>
       <p className="small dim">
-        Tell compares the shape of choices: the kinds of option, the next move and the circumstances you marked. It never reads your words, and a shared question
-        alone is never enough. At most two appear; whether one applies is your call.
+        Tell compares the shape of choices: the kinds of option, how an unknown could be found out, assumptions and the circumstances you marked. It never
+        reads your words, and a shared question alone is never enough. At most two appear; whether one applies is your call.
       </p>
       {offered.map((e) => (
         <ExampleCard key={`${e.ref.kind}:${e.ref.id}`} state={state} id={id} e={e} />

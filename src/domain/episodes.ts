@@ -37,7 +37,7 @@ export const EPISODES: Episode[] = [
     ending: {
       point: 'Taking one hoped-for outcome off the table shows whether a choice was resting on it.',
       changed: [
-        'Your first answer relied, at least in part, on the work reaching people. Without that, a different reason took over.',
+        'Something your first answer relied on, perhaps the work reaching people, was gone, and a different reason took over.',
         'Or the thought experiment is far enough from your real situation that the second answer says little about it.',
       ],
       stayed: [
@@ -169,6 +169,10 @@ export const EPISODES: Episode[] = [
     ending: {
       point: 'Rewrite or not is two ends of a range: there are options in between, and one outside it.',
       changed: [
+        'Seeing the range made the other end look more reasonable than it did at first.',
+        'Or the extra options didn’t appeal, and turning them down settled which end you’d defend.',
+      ],
+      added: [
         'One of the in-between options suited this story better than either end.',
         'Or a new option appealed because it puts off the hard part. It might be a real option or a postponement, and the story can’t tell which.',
       ],
@@ -209,12 +213,16 @@ export const EPISODES: Episode[] = [
     ending: {
       point: 'Two options are sometimes not exclusive, but a combined option has costs of its own, not just the best of both.',
       changed: [
+        'Hearing a third route made the original two compare differently.',
+        'Or setting the combined route aside made it clearer which of the two you’d actually defend.',
+      ],
+      added: [
         'The combined route kept something from each that mattered more than its extra cost.',
         'Or the new option was attractive partly because it was new and hadn’t been examined like the others.',
       ],
       stayed: [
         'The cost of doing both outweighed what it kept.',
-        'Or the eight songs belong together, and splitting them is a loss neither route repairs.',
+        'Or doing both splits the songs and your attention, a cost neither original route has.',
       ],
       unknown: 'Whether the split would keep the songs’ sense as a set, and what two releases would really take.',
       apply: 'Could you do part of each option? What would that cost that neither does alone?',
@@ -257,11 +265,11 @@ export const EPISODES: Episode[] = [
       point: 'Leaving things as they are is an option with its own costs and benefits, not only the absence of a decision.',
       changed: [
         'A fact you opened changed how one option looked, for better or worse.',
-        'Or the fact that tipped you arrived last; in a different order, another might have.',
+        'Or the order mattered: the facts arrived one at a time, and in another order a different one might have tipped you.',
       ],
       stayed: [
         'Nothing you opened moved you away from your first lean.',
-        'Or you had already weighed those things before the facts confirmed them.',
+        'Or you had already weighed those things before you opened them.',
       ],
       unknown: 'What the facts you didn’t open would have done, and how the newsletter would actually grow under any option.',
       apply: 'If you changed nothing for two months, what would happen? Is that one of your options?',
@@ -306,7 +314,15 @@ export const EPISODES: Episode[] = [
       ],
       stayed: [
         'What you learned didn’t outweigh what drew you to your first answer.',
-        'Or the line you drew while sliding was a guess, and the real detail sat differently with you than the number did.',
+        'Or the count mattered less than the details you imagined behind it.',
+      ],
+      followed: [
+        'The line you drew decided it once the story’s number arrived.',
+        'Or the number agreed with what you’d have chosen anyway, so the line wasn’t really tested.',
+      ],
+      against: [
+        'The detail behind the number, two days late or a month late, mattered more than the count.',
+        'Or the line was a guess about a person, and guesses about people move when the details arrive.',
       ],
       unknown: 'How Sam and Ali would actually work with you. Past deadlines with others are only a partial guide.',
       apply: 'In your real choice, how much of one good thing would you give up for the other before switching?',
@@ -452,7 +468,7 @@ export const EPISODES: Episode[] = [
       unknown: 'What the unopened facts would have done, and whether real versions of these facts would be as clear.',
       apply: 'Which unknown in your real choice could actually change what you do, and which wouldn’t?',
     },
-    features: ['shape-wait', 'next-find-out'],
+    features: ['shape-wait', 'find-ask'],
     rationale: {
       distinction: 'The value of information: whether a fact would change the action, rather than whether it is interesting.',
       alternatives: 'Making the mug and not making it are both reasonable; two facts lean each way.',
@@ -486,17 +502,25 @@ export const EPISODES: Episode[] = [
     ending: {
       point: 'Setting the bar before seeing the result makes it visible when the result, or something beside it, changes the decision.',
       changed: [
-        'The result moved you from where you started, which is what a bar set in advance is for.',
-        'Or the comment about one hint mattered more than the count, and it pointed to a smaller fix than a month.',
+        'Something in the result, the count or the comment beside it, moved you.',
+        'Or your first lean was loose, and any result would have moved it.',
       ],
       stayed: [
         'The result didn’t give you a reason to move from where you started.',
         'Or a week of testing was never likely to change this choice, and launching and learning from players is a test too.',
       ],
+      followed: [
+        'The bar you set in advance did its job: the result decided it.',
+        'Or the result agreed with what you’d have done anyway, so the bar wasn’t really tested.',
+      ],
+      against: [
+        'Something beside the number, like the comment about one hint, outweighed the bar you set.',
+        'Or the bar was set quickly, and a real result showed it was in the wrong place.',
+      ],
       unknown: 'Whether 20 testers in one week say much about everyone who would play it.',
       apply: 'Before you find something out for your real choice, what result would make you act differently?',
     },
-    features: ['next-trial', 'public'],
+    features: ['find-trial', 'public'],
     rationale: {
       distinction: 'A bar set before the evidence and then compared with it: deciding in advance what would count.',
       alternatives: 'Launching now is fully defensible, and the hint comment opens a third path (add a hint) the player may think of.',
@@ -525,17 +549,17 @@ export const EPISODES: Episode[] = [
     ending: {
       point: 'A limit someone set and a guess about what they’d want can feel the same until you look at where each came from.',
       changed: [
-        'The “requirement” turned out to be an assumption, and without it the other option looked better.',
+        'Learning the limit was an assumption changed how the two options compared.',
         'Or the message made the café seem relaxed, which changed what felt fitting. That is a different thing from removing a rule.',
       ],
       stayed: [
         'You preferred your first option for its own sake, not because you thought it was required.',
-        'Or an open message can still hide an expectation, and you chose not to bet against it.',
+        'Or the message changed nothing that mattered to this choice.',
       ],
       unknown: 'What the café actually hopes for. The message is all the story gives.',
       apply: 'Which limits in your real choice did someone actually set, and which are you assuming?',
     },
-    features: ['assumption', 'public'],
+    features: ['assumption', 'find-ask', 'public'],
     rationale: {
       distinction: 'A constraint someone set versus an assumption about what they want.',
       alternatives: 'Large prints stay a strong choice for their own sake; the grid is cheaper and quicker. Neither is the intended answer.',

@@ -56,7 +56,12 @@ export function episodeProblem(e: unknown): string | null {
   if (!unique(all) || all.includes(UNSURE)) return 'repeats an option id';
   const end = e.ending;
   if (!isObj(end) || !isStr(end.point) || !isStr(end.unknown) || !isStr(end.apply)) return 'has a malformed ending';
-  if (!listOf(end.changed, isStr) || !listOf(end.stayed, isStr) || (end.changed as unknown[]).length < 2 || (end.stayed as unknown[]).length < 2) return 'needs at least two readings each way';
+  const readings = (r: unknown) => listOf(r, isStr) && (r as unknown[]).length >= 2;
+  if (!readings(end.changed) || !readings(end.stayed)) return 'needs at least two readings each way';
+  for (const k of ['added', 'followed', 'against']) if (end[k] !== undefined && !readings(end[k])) return `has malformed ${k} readings`;
+  // Every path needs readings written for it.
+  if ((b.kind === 'widen' || (b.kind === 'twist' && b.adds)) && end.added === undefined) return 'needs readings for an added option';
+  if (b.kind === 'slide' && b.actual && (end.followed === undefined || end.against === undefined)) return 'needs readings for following the line and going against it';
   if (!listOf(e.features, (f) => oneOf(f, keys(FEATURES)))) return 'has an unknown feature';
   return null;
 }
@@ -114,6 +119,7 @@ function choiceProblem(c: unknown): string | null {
     oneOf(o.lesson, ['none', 'kept', 'revised']) &&
     isStr(o.takeaway);
   if (!listOf(c.outcomes, outcome)) return 'has a malformed outcome';
+  if (!c.draft && (c.saves as unknown[]).length === 0) return 'is marked saved but has no save';
   return null;
 }
 
@@ -182,5 +188,14 @@ export function validateState(x: unknown, now: Date): Validation {
     each('takeaway', x.takeaways, takeawayProblem) ??
     (listOf(x.archive, (a) => isObj(a) && isInt(a.schema) && isTime(a.at) && isObj(a.doc)) ? null : 'the archive is malformed');
   if (problem) return fail(problem);
-  return { ok: true, state: x as unknown as TellState };
+  // Evidence must point at something that exists, or the Map couldn't show it.
+  const state = x as unknown as TellState;
+  for (const [i, t] of state.takeaways.entries()) {
+    const s = t.source;
+    const c = s.kind === 'choice' || s.kind === 'outcome' ? state.choices.find((y) => y.id === s.choice) : undefined;
+    const found =
+      s.kind === 'play' ? state.plays.some((p) => p.id === s.play) : s.kind === 'choice' ? !!c?.saves[s.save] : s.kind === 'outcome' ? !!c?.outcomes.some((o) => o.id === s.outcome) : true;
+    if (!found) return fail(`takeaway ${i + 1} points at a record that isn’t there`);
+  }
+  return { ok: true, state };
 }

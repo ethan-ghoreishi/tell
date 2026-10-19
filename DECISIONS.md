@@ -42,19 +42,27 @@ and write episodes, not as a validated theory, user categories or a score.
   migration coverage, and a recovery screen in front of a usable app helped nobody.
 - *Matching is deliberately narrow.* A past example (a kept takeaway or another saved choice)
   shows only when it shares at least two specific features, at least one about structure (option
-  shapes such as waiting or a smaller trial, the next move, a marked assumption), the rest
-  circumstances. The backbone question is never a feature; must-haves and unknowns are shown but
+  shapes such as waiting or a smaller trial; how an unknown that matters could be found out: a
+  trial, asking or looking it up, or waiting; a marked assumption), the rest circumstances. The
+  next move is not a feature: it is chosen in the summary, after examples are offered, so it could
+  never match. The backbone question is never a feature; must-haves and unknowns are shown but
   never count, because nearly every choice has them (tested: two unrelated choices sharing only
   those never match). At most two. Free text is never read. Rejected: counting shared parts,
-  keyword overlap (pretends to understand words).
+  keyword overlap (pretends to understand words). Coverage, counted: eight of the twelve stories
+  can be offered automatically. Four (Six evenings, The wedding reading, Two writers, The
+  journaling app) only by hand, because what they turn on (a purpose, a trade-off between two
+  goods) can't be compared without reading words. Accepted rather than invented features.
 - *Evidence is never double-counted.* Replays of one story fold into one example; a choice and a
   takeaway kept from it are one example, the takeaway carrying the choice's outcomes as exceptions.
 - *Provenance is per snapshot.* A takeaway points at the play, the save or the outcome it came
   from; a match keeps the example's words as offered. Revising either never rewrites evidence.
-- *Endings key on whether the answer changed.* Two authored readings each way, the second always
-  an alternative ("Or…"), plus what stays unknown. The observed lines are fixed sentences filled
-  from the record; for a Slide with a revealed value, whether the second answer followed the
-  player's own line.
+- *Every reading must be true for the path taken.* Episodes write readings for staying, for
+  switching between the original options, for moving to an option the move added, and, for a
+  Slide with a revealed value, for following or going against the player's own line. Paths an
+  episode can't anticipate (a "Not sure" answer, a Peek with nothing opened, a lean that wavered
+  and came back, or held and then changed) get fixed lines in code. The second reading is always
+  an alternative ("Or…"). A test walks all 320 reachable paths; their readings were read for
+  meaning. The observed lines are fixed sentences filled from the record.
 - *Follow-up is voluntary.* No due dates, reminders or "due back" cards; an expectation's date is
   a note. "Too early", "plans changed", settled or still open, and no lesson are all first-class.
 - *Three tabs* (Home, Map, About). Home holds both triggers and the library, so neither is a

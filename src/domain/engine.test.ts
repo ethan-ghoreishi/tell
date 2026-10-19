@@ -155,7 +155,7 @@ describe('takeaways', () => {
   it('keeps one from a play, revises it without losing the original, and retires and restores it', () => {
     let s = play(emptyState(), 'ev-cafe');
     s = keep(s, 't1', '  Check where a limit came from  ', { kind: 'play', play: s.plays[0].id }, on(1));
-    expect(s.takeaways[0]).toMatchObject({ versions: [{ text: 'Check where a limit came from' }], features: ['assumption', 'public'], retired: '' });
+    expect(s.takeaways[0]).toMatchObject({ versions: [{ text: 'Check where a limit came from' }], features: ['assumption', 'find-ask', 'public'], retired: '' });
     s = revise(s, 't1', 'Check where a limit came from before paying for it', on(3));
     s = revise(s, 't1', 'Check where a limit came from before paying for it', on(4)); // same words: no new version
     expect(s.takeaways[0].versions.map((v) => v.text)).toEqual(['Check where a limit came from', 'Check where a limit came from before paying for it']);
@@ -260,7 +260,12 @@ describe('evidence keeps its provenance', () => {
 });
 
 describe('outcomes', () => {
-  const base = (): TellState => choice(emptyState(), 'c1', { next: { kind: 'trial', text: 'Run one session' }, expectation: { text: 'Eight people come', by: '2026-11-01' } });
+  const base = (): TellState =>
+    choice(emptyState(), 'c1', {
+      unknowns: [{ id: 'u1', text: 'Whether people come', kind: 'fact', changes: 'yes', how: 'try' }],
+      next: { kind: 'trial', text: 'Run one session' },
+      expectation: { text: 'Eight people come', by: '2026-11-01' },
+    });
   const input = (o: Partial<OutcomeInput>): OutcomeInput => ({ state: 'happened', compared: '', what: '', surprise: '', settled: false, lesson: { kind: 'none' }, ...o });
 
   it('records too early, plans changed and what happened against the expectation as it stood', () => {
@@ -279,7 +284,7 @@ describe('outcomes', () => {
   it('allows no lesson, a new takeaway, or a revised one', () => {
     let s = base();
     s = addOutcome(s, 'c1', 'o1', input({ lesson: { kind: 'kept', id: 't1', text: 'Small rooms fill' } }), on(20));
-    expect(s.takeaways[0]).toMatchObject({ source: { kind: 'outcome', choice: 'c1', outcome: 'o1' }, features: ['next-trial'] });
+    expect(s.takeaways[0]).toMatchObject({ source: { kind: 'outcome', choice: 'c1', outcome: 'o1' }, features: ['find-trial', 'unknown'] });
     s = addOutcome(s, 'c1', 'o2', input({ lesson: { kind: 'revised', takeaway: 't1', text: 'Small rooms fill, if the date suits' } }), on(25));
     expect(s.takeaways[0].versions).toHaveLength(2);
     expect(s.choices[0].outcomes.map((o) => [o.lesson, o.takeaway])).toEqual([

@@ -36,8 +36,10 @@ like it." No reminders from anyone during the two weeks; that would contaminate 
 ## 3. Does reusing past evidence help?
 
 - **Do:** only after a pilot has kept at least two takeaways and saved one choice, ask them to
-  bring a second real choice. Note whether past examples appear, whether the "why it appeared"
-  line makes sense, and whether they answer "Applies", "Doesn't apply" or pick one themselves.
+  bring a second real choice. Eight of the twelve stories can be offered automatically; takeaways
+  from the other four appear only under "Pick one yourself", so note whether pilots look there.
+  Note whether past examples appear, whether the "why it appeared" line makes sense, and whether
+  they answer "Applies", "Doesn't apply" or pick one themselves.
 - **Ask:** Was any example useful? Did any feel irrelevant despite the reason given? Did the
   "exception" lines change how you weighed an example?
 - **Holds if:** when an example appears, pilots can say why it does or doesn't apply, and at least

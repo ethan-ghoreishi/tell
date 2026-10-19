@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { GENERIC_READINGS } from './engine';
 import { EPISODES, START } from './episodes';
 import { PART_ORDER, type Episode } from './types';
 import { episodeProblem } from './validate';
@@ -21,7 +22,9 @@ function texts(e: Episode): string[] {
           ? [b.text, b.measure, b.actual?.text ?? '']
           : [b.prompt, ...b.items.map((i) => i.text)];
   const r = e.rationale;
-  return [e.title, e.project, e.setup, e.ask, ...e.options.map((o) => o.text), ...beat, e.reask, e.ending.point, ...e.ending.changed, ...e.ending.stayed, e.ending.unknown, e.ending.apply, r.distinction, r.alternatives, r.limits, r.relevance].filter(Boolean);
+  const end = e.ending;
+  const readings = [...end.changed, ...end.stayed, ...(end.added ?? []), ...(end.followed ?? []), ...(end.against ?? [])];
+  return [e.title, e.project, e.setup, e.ask, ...e.options.map((o) => o.text), ...beat, e.reask, end.point, ...readings, end.unknown, end.apply, r.distinction, r.alternatives, r.limits, r.relevance].filter(Boolean);
 }
 
 /** Words that would turn a story into a verdict on the person. */
@@ -76,12 +79,16 @@ describe('every episode', () => {
     }
   });
 
-  it('offers readings both ways, so no answer is the intended one', () => {
-    for (const e of EPISODES) {
-      expect(e.ending.changed.length, e.id).toBeGreaterThanOrEqual(2);
-      expect(e.ending.stayed.length, e.id).toBeGreaterThanOrEqual(2);
-      // The second reading each way is an alternative, introduced as one.
-      for (const r of [e.ending.changed[1], e.ending.stayed[1]]) expect(r, `${e.id}: ${r}`).toMatch(/^Or\b/);
+  it('offers readings for every path, so no answer is the intended one', () => {
+    const sets = (e: Episode) => [e.ending.changed, e.ending.stayed, e.ending.added, e.ending.followed, e.ending.against].filter((x): x is string[] => !!x);
+    for (const set of [...EPISODES.flatMap(sets), ...Object.values(GENERIC_READINGS)]) {
+      expect(set.length, set[0]).toBeGreaterThanOrEqual(2);
+      // The second reading is an alternative, introduced as one.
+      expect(set[1], set[1]).toMatch(/^Or\b/);
+      for (const r of set) {
+        expect(r, r).not.toMatch(PSYCHOLOGY);
+        expect(r, r).not.toMatch(DESCRIBES_YOU);
+      }
     }
   });
 
@@ -99,7 +106,8 @@ describe('every episode', () => {
     for (const e of EPISODES) {
       expect(words(e.setup), e.id).toBeLessThanOrEqual(55);
       for (const o of e.options) expect(words(o.text), `${e.id}: ${o.text}`).toBeLessThanOrEqual(10);
-      for (const r of [e.ending.point, ...e.ending.changed, ...e.ending.stayed, e.ending.unknown]) expect(words(r), `${e.id}: ${r}`).toBeLessThanOrEqual(32);
+      const end = e.ending;
+      for (const r of [end.point, ...end.changed, ...end.stayed, ...(end.added ?? []), ...(end.followed ?? []), ...(end.against ?? []), end.unknown]) expect(words(r), `${e.id}: ${r}`).toBeLessThanOrEqual(32);
       const b = e.beat;
       if (b.kind === 'peek') for (const f of b.facts) expect(words(f.text), `${e.id}: ${f.text}`).toBeLessThanOrEqual(25);
     }

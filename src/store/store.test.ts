@@ -151,6 +151,14 @@ describe('store', () => {
     ]);
   });
 
+  it('refuses evidence that points at a record that isn’t there', () => {
+    const s = everything();
+    const orphan = { ...s, plays: [] };
+    expect(validateState(JSON.parse(JSON.stringify(orphan)), now)).toMatchObject({ ok: false, error: expect.stringMatching(/takeaway \d+ points at a record that isn’t there/) });
+    const unsaved = { ...s, choices: s.choices.map((c) => ({ ...c, saves: [] })) };
+    expect(validateState(JSON.parse(JSON.stringify(unsaved)), now)).toMatchObject({ ok: false, error: 'choice 1 is marked saved but has no save' });
+  });
+
   it('validates an import completely and changes nothing on refusal', () => {
     const store = createStore(memory());
     store.update(played);
