@@ -334,17 +334,17 @@ export const CONNECTIONS: Connection[] = [
       { situation: 'boat', v: 1, step: 'keep', classes: { waited: ['summer', 'club'], decided: ['sell', 'always'] } },
       { situation: 'beans', v: 1, step: 'rows', classes: { sowed: ['few', 'many'], waited: ['none'] } },
     ],
-    link: 'Both weigh something possible later against something sure now. The boat could wait, for a fee, while the lessons answered the question. The beans can’t wait like that: each year in the packet, fewer will sprout.',
+    link: 'Both weigh something possible later against something sure now. The boat could wait, at a price, while the lessons answered the question. The beans can’t wait like that: each year in the packet, fewer will sprout.',
     differs: 'what each cost to keep, and what was at stake',
     notes: {
       'waited+sowed':
-        'You waited with the boat and sowed the beans: opposite moves. Waiting kept the boat’s question open at the price of a fee; sowing kept the beans going at the price of rows. Neither way of keeping something possible was free.',
+        'You waited with the boat and sowed the beans: opposite moves. Waiting kept the boat’s question open at the price of fees or a loan to the club; sowing kept the beans going at the price of rows. Neither way of keeping something possible was free.',
       'waited+waited':
         'You waited both times. With the boat, waiting kept every option open until autumn. With the beans, waiting is the one move that slowly closes the door. The same move, opposite effects.',
       'decided+sowed':
         'You settled the boat now and gave rows to the beans. Settling the boat meant deciding before the lessons could answer. Sowing the beans was the only way to get the beans’ answer at all.',
       'decided+waited':
-        'You settled the boat now and kept the beans in their packet. The boat would have waited, for a fee. The beans wait for free, but they don’t wait whole: each spring a few more won’t come up.',
+        'You settled the boat now and kept the beans in their packet. The boat would have waited, at a price. The beans wait for free, but they don’t wait whole: each spring a few more won’t come up.',
     },
     question: 'If you wait, does this stay open, or slowly close?',
   },
