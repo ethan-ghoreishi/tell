@@ -1,119 +1,56 @@
-import { capitalise, interval, plural, shortInterval, value } from './text';
+import { START } from './episodes';
+import { list, lower, shortDate, value } from './text';
 import {
-  CONTEXTS,
-  FACTORS,
-  MECHANICS,
+  CIRCUMSTANCES,
+  FEATURES,
+  HOW,
+  NEXT,
+  PART_ORDER,
+  PARTS,
   SCHEMA,
-  TAGS,
-  factorName,
-  type Answer3,
-  type Call,
-  type Card,
-  type Currency,
-  type CutRun,
-  type Factor,
-  type Kind,
-  type Lean,
-  type Lesson,
-  type Mechanic,
-  type Mattered,
-  type PeekRun,
-  type Rating,
-  type Run,
-  type Session,
+  UNSURE,
+  type BeatAnswer,
+  type Choice,
+  type ChoiceContent,
+  type Episode,
+  type Feature,
+  type FlowStep,
+  type Match,
+  type Option,
+  type Outcome,
+  type Answer,
+  type Play,
+  type Ref,
   type Side,
-  type SlideCard,
-  type SlideOutcome,
-  type SlideRun,
-  type Step,
-  type Tag,
+  type Source,
+  type Takeaway,
   type TellState,
-  type Verdict,
-  type Went,
+  type Unit,
 } from './types';
 
 // Pure domain logic. Nothing here reads a clock or touches storage: callers
-// pass `now` and get new state back. Every number the app shows is derived
-// from the run and call snapshots, never from the current content.
+// pass `now` and get new state back. Everything shown about the past is read
+// from snapshots (plays, saves, outcomes, match texts), never from today's
+// content, so revising one thing never rewrites the evidence for another.
 
-/** Experiments in a set, not counting ones added by "It depends". */
-export const SET_SIZE = 3;
-/** A result can be retested once it is this old. */
-export const RETEST_DAYS = 21;
-/** A repeated choice is shown once it happened at least this often… */
-export const REPEAT_MIN = 3;
-/** …and in at least this share of the chances it had. */
-export const REPEAT_SHARE = 0.75;
-/** Two Slide results count as different only this many intervals apart. */
-export const CHANGE_GAP = 2;
-/** Shared lessons show an item only once this many shared calls report it. */
-export const POOL_MIN = 3;
-export const COINS = 10;
-export const PEEKS = 3;
-/** The probe's mechanic rotates; Slide, the signature, comes every other set. */
-export const ROTATION: Mechanic[] = ['slide', 'cut', 'slide', 'peek', 'slide', 'spend'];
-
-export const emptyState = (): TellState => ({
-  schema: SCHEMA,
-  currency: 'GBP',
-  runs: [],
-  session: null,
-  calls: [],
-  notes: [],
-  principles: [],
-  ratings: [],
-  pool: [],
-});
-
-// ---- Calendar ------------------------------------------------------------
+export const emptyState = (): TellState => ({ schema: SCHEMA, plays: [], choices: [], takeaways: [], archive: [] });
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
 /** The local calendar day, YYYY-MM-DD. A day is the player's day, not UTC's. */
 export const localDay = (now: Date) => `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
-const dayNumber = (day: string) => {
-  const [y, m, d] = day.split('-').map(Number);
-  return Date.UTC(y, m - 1, d) / 86_400_000;
-};
+const copy = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 
-/** Whole calendar days from `from` to `to`; DST cannot skew it. */
-export const daysBetween = (from: string, to: string) => dayNumber(to) - dayNumber(from);
+/** The next free id like "o3" in a list that uses ids like "o1", "o2". */
+export const freshId = (prefix: string, items: { id: string }[]) =>
+  `${prefix}${Math.max(0, ...items.map((i) => Number(i.id.slice(prefix.length)) || 0)) + 1}`;
 
-export const addDays = (day: string, n: number) => new Date((dayNumber(day) + n) * 86_400_000).toISOString().slice(0, 10);
-
-// ---- Experiments -----------------------------------------------------------
-
-const isSlide = (c: Card | undefined): c is SlideCard => c?.mechanic === 'slide';
-const find = (cards: Card[], id: string) => cards.find((c) => c.id === id);
-
-/** What a Slide trades: the amount that changes, then what it is traded for. */
-export const tradeoffOf = (c: SlideCard): [Factor, Factor] => [c.dial.factor, (c.dial.rises === 'a' ? c.b : c.a).gives];
-const key = (t: [Factor, Factor]) => t.join('/');
-export const tradeoffName = (t: [Factor, Factor]) => `${factorName(t[0])} for ${factorName(t[1]).toLowerCase()}`;
-
-/** The factors an experiment touches. */
-export const factorsOf = (c: Card): Factor[] =>
-  c.mechanic === 'slide'
-    ? tradeoffOf(c)
-    : c.mechanic === 'cut'
-      ? c.items.map((i) => i.factor)
-      : c.mechanic === 'spend'
-        ? c.features.map((f) => f.factor)
-        : c.facts.map((f) => f.factor);
-
-/** Item and fact order rotates by one each time a mechanic is played, so no position is favoured. */
-export function rotation(state: TellState, mechanic: Mechanic): number {
-  return state.runs.filter((r) => r.mechanic === mechanic).length % 5;
-}
-export const rotate = <T>(items: T[], by: number): T[] => [...items.slice(by), ...items.slice(0, by)];
-
-// ---- Slide: the adjusting-amount procedure --------------------------------
+// ---- Slide: one value changes, halving the gap each time ------------------
 
 /**
- * Halving over the steps. `at` is the first step where the rising option wins,
- * somewhere in lo..hi (hi = steps.length means it never does). Seven steps
- * are settled in three choices.
+ * `at` is the first step where the rising option wins, somewhere in lo..hi
+ * (hi = steps.length means it never does). Seven steps settle in three choices.
  */
 export function bracket(n: number, rises: Side, asked: { step: number; pick: Side }[]): { lo: number; hi: number } {
   let lo = 0;
@@ -125,795 +62,550 @@ export function bracket(n: number, rises: Side, asked: { step: number; pick: Sid
   return { lo, hi };
 }
 
-/** The next step to ask, or null when the switch point is settled. */
+/** The next step to ask, or null once the switch point is settled. */
 export function nextAsk(n: number, rises: Side, asked: { step: number; pick: Side }[]): number | null {
   const { lo, hi } = bracket(n, rises, asked);
   return lo < hi ? Math.floor((lo + hi) / 2) : null;
 }
 
-/** The dial a step plays, and the value held fixed on the other one. */
-export function slideSetup(card: SlideCard, step: Pick<Step, 'dial' | 'hold'>) {
-  if (step.dial === 'alt' && card.alt) {
-    const { factor, unit, steps, rises, measure } = card.alt;
-    const dial = { factor, unit, steps, rises, measure };
-    const other: Side = rises === 'a' ? 'b' : 'a';
-    return { dial, tradeoff: [card.alt.factor, card[other].gives] as [Factor, Factor], x: card.dial.steps[step.hold ?? 3], y: undefined };
+// ---- Plays: hypothetical answers to invented stories ----------------------
+
+export interface PlayAnswers {
+  first: Answer;
+  beat: BeatAnswer;
+  final: Answer;
+}
+
+type Shown = Play['shown'];
+
+/** The options on offer at the second question: a twist or a widen can add some. */
+export function secondOptions(e: Shown, beat: BeatAnswer): Option[] {
+  if (e.beat.kind === 'twist' && e.beat.adds) return [...e.options, e.beat.adds];
+  if (e.beat.kind === 'widen' && beat.kind === 'widen') return [...e.options, ...e.beat.items.filter((i) => beat.picked.includes(i.id))];
+  return e.options;
+}
+
+const distinct = (xs: unknown[]) => new Set(xs).size === xs.length;
+
+/** Snapshot a finished play. Refuses answers that aren't what the episode asked. */
+export function recordPlay(state: TellState, episodes: Episode[], id: string, a: PlayAnswers, now: Date): TellState {
+  const e = episodes.find((x) => x.id === id);
+  if (!e) throw new Error(`There is no episode “${id}”`);
+  const ids = (os: Option[]) => [...os.map((o) => o.id), UNSURE];
+  if (!ids(e.options).includes(a.first)) throw new Error('The first answer isn’t one of the options');
+  const b = e.beat;
+  const x = a.beat;
+  if (b.kind !== x.kind) throw new Error('That answer doesn’t fit this episode');
+  if (b.kind === 'cut' && x.kind === 'cut') {
+    const items = b.items.map((i) => i.id);
+    if (x.order.length !== items.length - 1 || !distinct(x.order) || !x.order.every((o) => items.includes(o))) throw new Error('A Cut drops all but one');
   }
-  return { dial: card.dial, tradeoff: tradeoffOf(card), x: undefined, y: card.alt ? card.alt.steps[card.alt.at] : undefined };
-}
-
-export function slideRange(run: Pick<SlideRun, 'steps' | 'unit' | 'outcome'>, currency: Currency): string {
-  const o = run.outcome;
-  if (o.kind === 'close') return `about ${value(run.unit, run.steps[o.at], currency)}`;
-  if (o.kind === 'switch') return interval(run.steps, run.unit, o.at, currency);
-  return 'it depends';
-}
-
-/** A Slide's result for a table cell. */
-export function slideShort(run: Pick<SlideRun, 'steps' | 'unit' | 'outcome'>, currency: Currency): string {
-  const o = run.outcome;
-  if (o.kind === 'close') return `≈ ${value(run.unit, run.steps[o.at], currency)}`;
-  if (o.kind === 'switch') return shortInterval(run.steps, run.unit, o.at, currency);
-  return 'it depends';
-}
-
-const dependsWhat = (o: Extract<SlideOutcome, { kind: 'depends' }>) =>
-  o.on === 'else' ? 'something else' : (o.label ?? (o.factor ? factorName(o.factor).toLowerCase() : TAGS[o.tag!]));
-
-/** Whether a Slide's guess landed on its result. */
-export function guessMatched(run: SlideRun): boolean | undefined {
-  if (run.guess === undefined || run.outcome.kind === 'depends') return undefined;
-  return run.outcome.kind === 'switch' ? run.guess === run.outcome.at : run.guess === run.outcome.at || run.guess === run.outcome.at + 1;
-}
-
-// ---- Spend: clashes test the stated order link by link --------------------
-
-/** Features ranked by coins (ties keep their order), then each adjacent pair clashes. */
-export function clashPairs(coins: number[]): { a: number; b: number }[] {
-  const ranked = coins.map((c, i) => ({ c, i })).sort((x, y) => y.c - x.c || x.i - y.i);
-  return ranked.slice(1).map((r, k) => ({ a: ranked[k].i, b: r.i }));
-}
-
-// ---- Sets: one a day, planned one step at a time ---------------------------
-
-export const todaysSession = (state: TellState, now: Date): Session | null =>
-  state.session?.day === localDay(now) ? state.session : null;
-
-const runOf = (state: TellState, session: Session, index: number) => state.runs.find((r) => r.id === `${session.id}-${index}`);
-
-/** The first step of today's set not yet played, or null. */
-export function currentStep(state: TellState, now: Date): { step: Step; index: number } | null {
-  const s = todaysSession(state, now);
-  if (!s || s.done) return null;
-  const index = s.steps.findIndex((_, i) => !runOf(state, s, i));
-  return index === -1 ? null : { step: s.steps[index], index };
-}
-
-/** Latest main-dial run per (experiment, with condition?). */
-function cells(runs: Run[]) {
-  const latest = new Map<string, Run>();
-  for (const r of runs) {
-    if (r.mechanic === 'slide' && r.dial !== 'main') continue;
-    latest.set(`${r.card}:${r.mechanic === 'slide' && r.condition ? 1 : 0}`, r);
+  if (b.kind === 'widen' && x.kind === 'widen') {
+    if (!distinct(x.picked) || !x.picked.every((p) => b.items.some((i) => i.id === p))) throw new Error('Those aren’t the options on offer');
   }
-  return latest;
-}
-
-const openEnded = (r: SlideRun) => r.outcome.kind === 'depends' || (r.outcome.kind === 'switch' && (r.outcome.at === 0 || r.outcome.at === r.steps.length));
-
-interface Pick_ {
-  card: Card;
-  condition: boolean;
-  reason: string;
-}
-
-/** The probe for a mechanic, by the published tiers. */
-function probeFor(state: TellState, cards: Card[], mechanic: Mechanic, today: string, exclude: Set<string>): Pick_ | null {
-  const played = cells(state.runs);
-  const pool = cards.filter((c) => c.mechanic === mechanic && !exclude.has(c.id));
-  const unplayed = pool.filter((c) => !played.has(`${c.id}:0`));
-  const due = pool.filter((c) => {
-    const r = played.get(`${c.id}:0`);
-    return r && daysBetween(r.day, today) >= RETEST_DAYS;
-  });
-  const retest = (c: Card | undefined): Pick_ | null =>
-    c ? { card: c, condition: false, reason: `You last played this ${daysBetween(played.get(`${c.id}:0`)!.day, today)} days ago. A retest shows whether your answer has moved.` } : null;
-
-  if (mechanic !== 'slide') {
-    const c = unplayed[0];
-    const first = !state.runs.some((r) => r.mechanic === mechanic);
-    if (c) return { card: c, condition: false, reason: first ? `You haven’t played a ${MECHANICS[mechanic].name} yet.` : `The next ${MECHANICS[mechanic].name} you haven’t played.` };
-    return retest(due[0]);
+  if (b.kind === 'peek' && x.kind === 'peek') {
+    const facts = x.opened.map((o) => o.fact);
+    const inRange = (f: number) => Number.isInteger(f) && f >= 0 && f < b.facts.length;
+    if (facts.length > b.opens || !distinct(facts) || !facts.every(inRange)) throw new Error(`Open at most ${b.opens} different facts`);
+    if (!x.opened.every((o) => ids(e.options).includes(o.lean))) throw new Error('A lean isn’t one of the options');
+    if (!distinct(x.wouldHave) || !x.wouldHave.every((f) => inRange(f) && !facts.includes(f))) throw new Error('Only facts left closed can be marked');
   }
-
-  const slides = unplayed.filter(isSlide);
-  const slideRuns = state.runs.filter((r): r is SlideRun => r.mechanic === 'slide' && r.dial === 'main');
-
-  // 1. Something an open call depends on.
-  for (const call of state.calls.filter((c) => !c.follow)) {
-    const kept = call.items.filter((i) => i.id === call.winner || i.id === call.order.at(-1)).map((i) => i.factor);
-    const c = slides.find((s) => tradeoffOf(s).some((f) => kept.includes(f)));
-    if (c) {
-      const f = tradeoffOf(c).find((x) => kept.includes(x))!;
-      return { card: c, condition: false, reason: `Your open call “${call.title}” protects ${factorName(f).toLowerCase()}. This puts a price on it.` };
-    }
-  }
-  // 2. A condition that changed an answer once, checked in another setting.
-  const once = [...changeTags(state.runs)].filter(([, n]) => n === 1).map(([t]) => t);
-  const check = slides.find((s) => once.includes(s.condition.tag));
-  if (check) return { card: check, condition: false, reason: `Having ${TAGS[check.condition.tag]} changed one of your answers. This checks it in another setting.` };
-  // 3. A trade-off never tested.
-  const tested = new Set(slideRuns.map((r) => key(r.tradeoff)));
-  const untested = slides.find((s) => !tested.has(key(tradeoffOf(s))));
-  if (untested) return { card: untested, condition: false, reason: `You haven’t tested ${tradeoffName(tradeoffOf(untested)).toLowerCase()} yet.` };
-  // 4. A trade-off whose latest result was open-ended.
-  const latest = new Map(slideRuns.map((r) => [key(r.tradeoff), r]));
-  const loose = slides.find((s) => {
-    const r = latest.get(key(tradeoffOf(s)));
-    return r && openEnded(r);
-  });
-  if (loose) return { card: loose, condition: false, reason: `Your last ${tradeoffName(tradeoffOf(loose)).toLowerCase()} result was open-ended. This tries it in another setting.` };
-  // 5. A result due for a retest. 6. Anything not played yet.
-  const dueSlide = retest(due[0]);
-  if (dueSlide) return dueSlide;
-  const next = slides[0];
-  return next ? { card: next, condition: false, reason: 'The next Slide in Tell’s list.' } : null;
-}
-
-function probe(state: TellState, cards: Card[], today: string): Pick_ | null {
-  const done = state.runs.filter((r) => r.role === 'probe').length;
-  for (let i = 0; i < ROTATION.length; i++) {
-    const p = probeFor(state, cards, ROTATION[(done + i) % ROTATION.length], today, new Set());
-    if (p) return p;
-  }
-  return null;
-}
-
-/** The factor a non-Slide probe surfaced, for the stress-test to price. */
-function surfaced(run: Run): { factor: Factor; why: string } | null {
-  if (run.mechanic === 'cut') {
-    const f = run.items.find((i) => i.id === run.winner)!.factor;
-    return { factor: f, why: `You kept ${factorName(f).toLowerCase()} to the end.` };
-  }
-  if (run.mechanic === 'peek') {
-    const moved = movedFacts(run)[0] ?? run.opened[0]?.fact;
-    if (moved === undefined) return null;
-    const f = run.facts[moved].factor;
-    return { factor: f, why: `A fact about ${factorName(f).toLowerCase()} ${movedFacts(run).length ? 'moved your lean' : 'was the first you opened'}.` };
-  }
-  if (run.mechanic === 'spend') {
-    const rev = run.clashes.find((c) => run.coins[c.a] > run.coins[c.b] && c.pick === c.b);
-    const i = rev ? rev.b : run.coins.indexOf(Math.max(...run.coins));
-    const f = run.features[i].factor;
-    return { factor: f, why: rev ? `Your choices favoured ${factorName(f).toLowerCase()} over your coins.` : `You spent most on ${factorName(f).toLowerCase()}.` };
-  }
-  return null;
-}
-
-function stress(state: TellState, cards: Card[], session: Session, today: string): Pick_ | null {
-  const used = new Set(session.steps.map((s) => s.card));
-  const first = runOf(state, session, 0)!;
-  if (first.mechanic === 'slide') {
-    const c = find(cards, first.card);
-    const doneWith = session.steps.some((s, i) => s.card === first.card && s.condition && runOf(state, session, i));
-    if (isSlide(c) && !first.condition && !doneWith) return { card: c, condition: true, reason: `The same choice, with one thing changed: ${c.condition.label}.` };
-  } else {
-    const s = surfaced(first);
-    if (s) {
-      const played = cells(state.runs);
-      const pricing = cards.filter((c): c is SlideCard => isSlide(c) && !used.has(c.id) && tradeoffOf(c).includes(s.factor));
-      const pending = pricing.find((c) => played.has(`${c.id}:0`) && !played.has(`${c.id}:1`));
-      if (pending) return { card: pending, condition: true, reason: `${s.why} This puts a price on it, with ${pending.condition.label}.` };
-      const fresh = pricing.find((c) => !played.has(`${c.id}:0`));
-      if (fresh) return { card: fresh, condition: false, reason: `${s.why} This puts a price on it.` };
-    }
-  }
-  return probeFor(state, cards, 'slide', today, used);
-}
-
-function connect(state: TellState, cards: Card[], session: Session, today: string): Pick_ | null {
-  const used = new Set(session.steps.map((s) => s.card));
-  const last = session.steps.map((_, i) => runOf(state, session, i)).filter((r): r is SlideRun => r?.mechanic === 'slide' && r.dial === 'main').at(-1);
-  if (last) {
-    const played = cells(state.runs);
-    const same = cards.filter((c): c is SlideCard => isSlide(c) && !used.has(c.id) && key(tradeoffOf(c)) === key(last.tradeoff) && c.context !== last.context);
-    const fresh = same.find((c) => !played.has(`${c.id}:0`));
-    const due = same.find((c) => daysBetween(played.get(`${c.id}:0`)?.day ?? today, today) >= RETEST_DAYS);
-    const c = fresh ?? due;
-    if (c) return { card: c, condition: false, reason: `The same trade-off in ${CONTEXTS[c.context].toLowerCase()} instead of ${CONTEXTS[last.context].toLowerCase()}.` };
-  }
-  return probeFor(state, cards, 'slide', today, used);
-}
-
-const asStep = (p: Pick_, role: Step['role']): Step => ({ card: p.card.id, role, condition: p.condition, dial: 'main', reason: p.reason });
-
-/** Whether today's set can start, and why not. */
-export function setStatus(state: TellState, cards: Card[], now: Date): 'ready' | 'playing' | 'done' | 'empty' {
-  const s = todaysSession(state, now);
-  if (s) return s.done ? 'done' : 'playing';
-  return probe(state, cards, localDay(now)) ? 'ready' : 'empty';
-}
-
-/** Start today's set: the probe is planned now, the rest as each experiment ends. */
-export function startSet(state: TellState, cards: Card[], now: Date): TellState {
-  const day = localDay(now);
-  if (todaysSession(state, now)) throw new Error('Today’s set has already started');
-  const p = probe(state, cards, day);
-  if (!p) throw new Error('Nothing is ready to play');
-  return { ...state, session: { id: day, day, steps: [asStep(p, 'probe')], done: false } };
-}
-
-function planNext(state: TellState, cards: Card[], session: Session, today: string): Step | null {
-  const normal = session.steps.filter((s) => s.role !== 'depends').length;
-  if (normal >= SET_SIZE) return null;
-  const p = normal === 1 ? stress(state, cards, session, today) : connect(state, cards, session, today);
-  return p ? asStep(p, normal === 1 ? 'stress' : 'connect') : null;
-}
-
-// ---- Recording ------------------------------------------------------------
-
-export type Play =
-  | { mechanic: 'slide'; guess?: number; asked: { step: number; pick: Side }[]; outcome: SlideOutcome }
-  | { mechanic: 'cut'; order: string[] }
-  | { mechanic: 'spend'; coins: number[]; clashes: { a: number; b: number; pick: number }[] }
-  | { mechanic: 'peek'; before: Lean; opened: { fact: number; lean: Lean }[]; pick: Side; wouldHave: number[] };
-
-/** Snapshot one finished experiment from what was shown and answered, then plan the next step. */
-export function record(state: TellState, cards: Card[], play: Play, now: Date): TellState {
-  const current = currentStep(state, now);
-  if (!current) throw new Error('No experiment is waiting in today’s set');
-  const session = state.session!;
-  const { step, index } = current;
-  const c = find(cards, step.card);
-  if (!c || c.mechanic !== play.mechanic) throw new Error(`“${step.card}” is not a ${play.mechanic}`);
-  const base = { id: `${session.id}-${index}`, session: session.id, role: step.role, card: c.id, v: c.v, context: c.context, title: c.title, at: now.toISOString(), day: localDay(now) };
-  const by = rotation(state, c.mechanic);
-  let run: Run;
-
-  if (c.mechanic === 'slide' && play.mechanic === 'slide') {
-    const { dial, tradeoff } = slideSetup(c, step);
-    const n = dial.steps.length;
+  if (b.kind === 'slide' && x.kind === 'slide') {
+    const n = b.steps.length;
     // The record must be the halving it claims to be.
-    play.asked.forEach((a, i) => {
-      if (a.step !== nextAsk(n, dial.rises, play.asked.slice(0, i))) throw new Error('The Slide’s answers are out of order');
+    x.asked.forEach((q, i) => {
+      if (q.step !== nextAsk(n, b.rises, x.asked.slice(0, i))) throw new Error('The Slide’s answers are out of order');
     });
-    let o = play.outcome;
-    if (o.kind === 'switch' && (nextAsk(n, dial.rises, play.asked) !== null || o.at !== bracket(n, dial.rises, play.asked).lo)) throw new Error('The Slide is not settled');
-    if (o.kind !== 'switch' && nextAsk(n, dial.rises, play.asked) !== o.at) throw new Error('A Slide can only stop at the step being asked');
-    if (o.kind === 'depends') {
-      // What it depended on comes from the experiment, never from the caller.
-      if (o.on === 'alt' && (!c.alt || step.dial === 'alt')) throw new Error('This Slide has nothing else to slide');
-      if (o.on === 'condition' && step.condition) throw new Error('The condition is already on');
-      o =
-        o.on === 'alt'
-          ? { kind: 'depends', at: o.at, on: 'alt', factor: c.alt!.factor, label: c.alt!.label }
-          : o.on === 'condition'
-            ? { kind: 'depends', at: o.at, on: 'condition', tag: c.condition.tag, label: c.condition.label }
-            : { kind: 'depends', at: o.at, on: 'else' };
-    }
-    if (play.guess !== undefined && (play.guess < 0 || play.guess > n)) throw new Error('The guess is out of range');
-    run = {
-      ...base,
-      mechanic: 'slide',
-      tradeoff,
-      dial: step.dial,
-      measure: dial.measure,
-      unit: dial.unit,
-      steps: dial.steps,
-      rises: dial.rises,
-      ...(step.condition ? { condition: { tag: c.condition.tag, label: c.condition.label } } : {}),
-      ...(play.guess !== undefined ? { guess: play.guess } : {}),
-      asked: play.asked,
-      outcome: o,
-    };
-  } else if (c.mechanic === 'cut' && play.mechanic === 'cut') {
-    const items = rotate(c.items, by);
-    const ids = items.map((i) => i.id);
-    if (play.order.length !== 4 || new Set(play.order).size !== 4 || !play.order.every((id) => ids.includes(id))) throw new Error('A Cut drops four of its five');
-    run = { ...base, mechanic: 'cut', items, order: play.order, winner: ids.find((id) => !play.order.includes(id))! };
-  } else if (c.mechanic === 'spend' && play.mechanic === 'spend') {
-    const { coins, clashes } = play;
-    if (coins.length !== 5 || coins.some((x) => !Number.isInteger(x) || x < 0) || coins.reduce((a, b) => a + b, 0) !== COINS) throw new Error('Spend all 10 coins');
-    const pairs = clashPairs(coins);
-    if (clashes.length !== pairs.length || clashes.some((x, i) => x.a !== pairs[i].a || x.b !== pairs[i].b || (x.pick !== x.a && x.pick !== x.b))) throw new Error('The clashes don’t match the coins');
-    run = { ...base, mechanic: 'spend', features: c.features.map(({ id, factor, label }) => ({ id, factor, label })), coins, clashes };
-  } else if (c.mechanic === 'peek' && play.mechanic === 'peek') {
-    const facts = rotate(c.facts, by).map(({ id, factor, label }) => ({ id, factor, label }));
-    const opened = play.opened.map((o) => o.fact);
-    if (opened.length > PEEKS || new Set(opened).size !== opened.length || opened.some((f) => f < 0 || f > 4)) throw new Error('Open at most three different facts');
-    if (play.wouldHave.some((f) => opened.includes(f) || f < 0 || f > 4)) throw new Error('Only unopened facts can be marked');
-    run = { ...base, mechanic: 'peek', a: c.a, b: c.b, facts, before: play.before, opened: play.opened, pick: play.pick, wouldHave: play.wouldHave };
-  } else {
-    throw new Error('That play doesn’t fit this experiment');
+    const o = x.outcome;
+    if (o.kind === 'switch' && (nextAsk(n, b.rises, x.asked) !== null || o.at !== bracket(n, b.rises, x.asked).lo)) throw new Error('The Slide isn’t settled');
+    if (o.kind === 'close' && nextAsk(n, b.rises, x.asked) !== o.at) throw new Error('A Slide can only stop at the step being asked');
   }
+  if (!ids(secondOptions(e, x)).includes(a.final)) throw new Error('The second answer isn’t one of the options');
 
-  const runs = [...state.runs, run];
-  const steps = [...session.steps];
-  const next = { ...state, runs };
-  // "It depends" on something testable: test it next, inside this set.
-  if (run.mechanic === 'slide' && run.outcome.kind === 'depends' && step.role !== 'depends' && run.outcome.on !== 'else') {
-    const alt = run.outcome.on === 'alt';
-    steps.splice(index + 1, 0, {
-      card: c.id,
-      role: 'depends',
-      condition: alt ? step.condition : true,
-      dial: alt ? 'alt' : 'main',
-      ...(alt ? { hold: run.outcome.at } : {}),
-      reason: `You said it depends on ${alt ? (c as SlideCard).alt!.label : (c as SlideCard).condition.label}. This tests it.`,
-    });
-    return { ...next, session: { ...session, steps } };
-  }
-  const planned = planNext(next, cards, { ...session, steps }, localDay(now));
-  return { ...next, session: { ...session, steps: planned ? [...steps, planned] : steps, done: !planned } };
+  const { rationale: _, ...shown } = e;
+  const play: Play = {
+    id: `p${state.plays.length + 1}-${now.getTime()}`,
+    episode: e.id,
+    v: e.v,
+    at: now.toISOString(),
+    day: localDay(now),
+    replay: state.plays.filter((p) => p.episode === e.id).length,
+    shown: copy(shown),
+    first: a.first,
+    beat: copy(a.beat),
+    final: a.final,
+  };
+  return { ...state, plays: [...state.plays, play] };
 }
 
-// ---- What a run shows ------------------------------------------------------
+/** Any option's words, including ones added by the episode's move. */
+export function optionText(e: Shown, id: Answer): string {
+  if (id === UNSURE) return 'Not sure';
+  const extra = e.beat.kind === 'twist' && e.beat.adds ? [e.beat.adds] : e.beat.kind === 'widen' ? e.beat.items : [];
+  return [...e.options, ...extra].find((o) => o.id === id)?.text ?? id;
+}
 
-/** Peek facts (indexes) whose opening changed the lean. */
-export function movedFacts(run: PeekRun): number[] {
-  let lean = run.before;
-  return run.opened.flatMap((o) => {
-    const moved = o.lean !== lean;
-    lean = o.lean;
-    return moved ? [o.fact] : [];
+/** The interval a Slide settled, in words, from its value list. */
+export function slideLine(steps: number[], unit: Unit, o: Extract<BeatAnswer, { kind: 'slide' }>['outcome']) {
+  const v = (i: number) => value(unit, steps[i]);
+  if (o.kind === 'close') return `about ${v(o.at)}`;
+  if (o.at <= 0) return `${v(0)} or fewer`;
+  if (o.at >= steps.length) return `more than ${v(steps.length - 1)}`;
+  return `between ${v(o.at - 1)} and ${v(o.at)}`;
+}
+
+/** Which side a Slide's own line points to at a value, or null when the line can't say. */
+export function lineSays(steps: number[], rises: Side, o: Extract<BeatAnswer, { kind: 'slide' }>['outcome'], x: number): Side | null {
+  const other: Side = rises === 'a' ? 'b' : 'a';
+  if (o.kind === 'close') return x === steps[o.at] ? null : x > steps[o.at] ? rises : other;
+  if (o.at < steps.length && x >= steps[o.at]) return rises;
+  if (o.at > 0 && x <= steps[o.at - 1]) return other;
+  return null;
+}
+
+export interface PlayView {
+  point: string;
+  /** What was answered, as fixed sentences filled from the record. */
+  observed: string[];
+  /** Possible readings, authored, chosen by whether the answer changed. */
+  readings: string[];
+  unknown: string;
+  apply: string;
+  changed: boolean;
+}
+
+export function playView(play: Play): PlayView {
+  const e = play.shown;
+  const say = (id: Answer) => (id === UNSURE ? 'not sure yet' : `“${optionText(e, id)}”`);
+  const changed = play.first !== play.final;
+  const observed = [`First answer: ${say(play.first)}.`];
+  const b = e.beat;
+  const x = play.beat;
+  if (b.kind === 'twist' && b.adds) observed.push(`A new option appeared: “${b.adds.text}”.`);
+  if (b.kind === 'widen' && x.kind === 'widen') {
+    observed.push(x.picked.length ? `Of the other options, you’d seriously consider ${list(x.picked.map(say))}.` : 'You wouldn’t seriously consider any of the other options.');
+  }
+  if (b.kind === 'cut' && x.kind === 'cut') {
+    const text = (id: string) => `“${b.items.find((i) => i.id === id)!.text}”`;
+    const kept = b.items.find((i) => !x.order.includes(i.id))!.id;
+    observed.push(`Last one standing: ${text(kept)}. First to go: ${text(x.order[0])}.`);
+  }
+  if (b.kind === 'peek' && x.kind === 'peek') {
+    const label = (f: number) => lower(b.facts[f].label);
+    if (x.opened.length === 0) observed.push('You chose without opening a fact.');
+    else {
+      observed.push(`You opened ${list(x.opened.map((o) => label(o.fact)))}.`);
+      let lean = play.first;
+      const moved = x.opened.flatMap((o) => {
+        const m = o.lean !== lean;
+        lean = o.lean;
+        return m ? [label(o.fact)] : [];
+      });
+      observed.push(moved.length ? `Your lean moved after ${list(moved)}.` : 'None of them moved your lean.');
+    }
+    const closed = b.facts.length - x.opened.length;
+    if (closed > 0) {
+      observed.push(
+        x.wouldHave.length
+          ? `Of the facts you left closed, you said ${list(x.wouldHave.map(label))} would have changed your answer.`
+          : 'You said none of the facts you left closed would have changed your answer.',
+      );
+    }
+  }
+  if (b.kind === 'slide' && x.kind === 'slide') {
+    observed.push(`${b.measure}: ${slideLine(b.steps, b.unit, x.outcome)}.`);
+    if (b.actual) {
+      const says = lineSays(b.steps, b.rises, x.outcome, b.actual.value);
+      const side = (s: Side) => e.options[s === 'a' ? 0 : 1].id;
+      observed.push(
+        says === null
+          ? `The story’s number was ${value(b.unit, b.actual.value)}, which falls where your line doesn’t say either way.`
+          : `The story’s number was ${value(b.unit, b.actual.value)}. By your line, that points to ${say(side(says))}.` +
+              (play.final === UNSURE ? '' : play.final === side(says) ? ' Your second answer followed it.' : ' Your second answer went the other way.'),
+      );
+    }
+  }
+  observed.push(`Second answer: ${say(play.final)}${changed ? '.' : ', the same as your first.'}`);
+  return { point: e.ending.point, observed, readings: changed ? e.ending.changed : e.ending.stayed, unknown: e.ending.unknown, apply: e.ending.apply, changed };
+}
+
+/** Earlier plays of the same episode, so a replay is shown as one. */
+export const earlierPlays = (state: TellState, play: Play) => state.plays.filter((p) => p.episode === play.episode && p.at < play.at);
+
+/** The library: every episode, in order, with its plays. Finite and inspectable. */
+export const library = (state: TellState, episodes: Episode[]) => episodes.map((episode) => ({ episode, plays: state.plays.filter((p) => p.episode === episode.id) }));
+
+/** What to offer next: the recommended start, then the next unplayed episode. Null once all are played. */
+export function suggestion(state: TellState, episodes: Episode[]): { episode: Episode; reason: string } | null {
+  const played = new Set(state.plays.map((p) => p.episode));
+  const start = episodes.find((e) => e.id === START);
+  if (start && !played.has(start.id)) return { episode: start, reason: 'Start here' };
+  const next = episodes.find((e) => !played.has(e.id));
+  return next ? { episode: next, reason: 'Not played yet' } : null;
+}
+
+// ---- Takeaways: interpretations the player chose to keep -------------------
+
+export const wording = (t: Takeaway) => t.versions.at(-1)!.text;
+
+function sourceExists(state: TellState, s: Source): boolean {
+  if (s.kind === 'play') return state.plays.some((p) => p.id === s.play);
+  if (s.kind === 'choice') return !!state.choices.find((c) => c.id === s.choice)?.saves[s.save];
+  if (s.kind === 'outcome') return !!state.choices.find((c) => c.id === s.choice)?.outcomes.some((o) => o.id === s.outcome);
+  return true;
+}
+
+/** The features a takeaway carries for matching, from its source as it was. */
+function featuresOf(state: TellState, s: Source): Feature[] {
+  if (s.kind === 'play') return [...state.plays.find((p) => p.id === s.play)!.shown.features];
+  const c = s.kind === 'choice' || s.kind === 'outcome' ? state.choices.find((x) => x.id === s.choice)! : null;
+  if (s.kind === 'choice') return choiceFeatures(c!.saves[s.save].content);
+  if (s.kind === 'outcome' && c && c.saves.length) return choiceFeatures(c.saves.at(-1)!.content);
+  return [];
+}
+
+export function keep(state: TellState, id: string, text: string, source: Source, now: Date): TellState {
+  const t = text.trim();
+  if (!t) throw new Error('A takeaway needs words');
+  if (state.takeaways.some((x) => x.id === id)) throw new Error('That takeaway already exists');
+  if (!sourceExists(state, source)) throw new Error('A takeaway must point at something that exists');
+  const at = now.toISOString();
+  return { ...state, takeaways: [...state.takeaways, { id, at, source, versions: [{ at, text: t }], features: featuresOf(state, source), retired: '' }] };
+}
+
+const changeTakeaway = (state: TellState, id: string, f: (t: Takeaway) => Takeaway): TellState => {
+  if (!state.takeaways.some((t) => t.id === id)) throw new Error('That takeaway doesn’t exist');
+  return { ...state, takeaways: state.takeaways.map((t) => (t.id === id ? f(t) : t)) };
+};
+
+/** A revision adds a wording; the earlier ones, and the evidence, stay. */
+export const revise = (state: TellState, id: string, text: string, now: Date): TellState =>
+  changeTakeaway(state, id, (t) => {
+    const next = text.trim();
+    return !next || next === wording(t) ? t : { ...t, versions: [...t.versions, { at: now.toISOString(), text: next }] };
+  });
+
+export const retire = (state: TellState, id: string, now: Date) => changeTakeaway(state, id, (t) => ({ ...t, retired: now.toISOString() }));
+export const restore = (state: TellState, id: string) => changeTakeaway(state, id, (t) => ({ ...t, retired: '' }));
+
+/** Where a takeaway came from, labelled by kind of record. */
+export function sourceLabel(state: TellState, s: Source): string {
+  if (s.kind === 'play') {
+    const p = state.plays.find((x) => x.id === s.play);
+    return p ? `From an invented story, “${p.shown.title}”, ${shortDate(p.day)}${p.replay ? ` (replay ${p.replay})` : ''}` : 'From an invented story';
+  }
+  if (s.kind === 'choice' || s.kind === 'outcome') {
+    const c = state.choices.find((x) => x.id === s.choice);
+    const title = c?.saves.at(-1)?.content.title ?? c?.title ?? 'a choice';
+    if (s.kind === 'choice') return `From your choice “${title}”, as saved ${c?.saves[s.save] ? shortDate(c.saves[s.save].at) : ''}`.trim();
+    const o = c?.outcomes.find((x) => x.id === s.outcome);
+    return `From what happened with “${title}”${o ? `, ${shortDate(o.at)}` : ''}`;
+  }
+  if (s.kind === 'earlier') return 'Written by you in an earlier version of Tell';
+  return 'Written by you';
+}
+
+// ---- Choices: what the player says about a real choice --------------------
+
+export const emptyContent = (): ChoiceContent => ({
+  title: '',
+  situation: '',
+  circumstances: [],
+  parts: [],
+  unsure: false,
+  prompt: '',
+  worth: '',
+  notWorth: '',
+  options: [],
+  lean: '',
+  criteria: [],
+  top: '',
+  ruledOut: [],
+  unknowns: [],
+  matches: [],
+  clearer: '',
+  unresolved: '',
+  next: null,
+  expectation: null,
+});
+
+const CONTENT_KEYS = Object.keys(emptyContent()) as (keyof ChoiceContent)[];
+
+export const contentOf = (c: Choice): ChoiceContent => copy(Object.fromEntries(CONTENT_KEYS.map((k) => [k, c[k]])) as unknown as ChoiceContent);
+
+export function createChoice(state: TellState, id: string, now: Date, init: Partial<ChoiceContent> = {}): TellState {
+  if (state.choices.some((c) => c.id === id)) throw new Error('That choice already exists');
+  const at = now.toISOString();
+  const choice: Choice = { ...emptyContent(), ...copy(init), id, created: at, updated: at, draft: true, step: 'start', saves: [], outcomes: [] };
+  return { ...state, choices: [...state.choices, choice] };
+}
+
+const changeChoice = (state: TellState, id: string, f: (c: Choice) => Choice): TellState => {
+  if (!state.choices.some((c) => c.id === id)) throw new Error('That choice doesn’t exist');
+  return { ...state, choices: state.choices.map((c) => (c.id === id ? f(c) : c)) };
+};
+
+/** Edit a draft: a choice being written or revised. Saved words change only through a new save. */
+export const editChoice = (state: TellState, id: string, patch: Partial<ChoiceContent> & { step?: FlowStep }, now: Date): TellState =>
+  changeChoice(state, id, (c) => {
+    if (!c.draft) throw new Error('Revise a saved choice before editing it');
+    return { ...c, ...copy(patch), updated: now.toISOString() };
+  });
+
+/** Save adds a snapshot; earlier saves stay as they were. */
+export const saveChoice = (state: TellState, id: string, now: Date): TellState =>
+  changeChoice(state, id, (c) => {
+    if (!c.title.trim()) throw new Error('A choice needs a title');
+    const at = now.toISOString();
+    return { ...c, draft: false, updated: at, saves: [...c.saves, { at, content: contentOf(c) }] };
+  });
+
+export const reviseChoice = (state: TellState, id: string, now: Date): TellState =>
+  changeChoice(state, id, (c) => ({ ...c, draft: true, step: 'summary', updated: now.toISOString() }));
+
+/** Throw away a draft: one never saved goes; one being revised goes back to its last save. */
+export function discardDraft(state: TellState, id: string): TellState {
+  const c = state.choices.find((x) => x.id === id);
+  if (!c?.draft) throw new Error('Only a draft can be discarded');
+  if (!c.saves.length) return { ...state, choices: state.choices.filter((x) => x.id !== id) };
+  return changeChoice(state, id, (x) => ({ ...x, ...copy(x.saves.at(-1)!.content), draft: false }));
+}
+
+/** A choice is current until the player says it's settled. */
+export const isCurrent = (c: Choice) => c.draft || !c.outcomes.at(-1)?.settled;
+
+/** The steps of Bring a choice: only the parts that feel unresolved, all four when unsure. */
+export function flowSteps(content: ChoiceContent, examples: boolean): FlowStep[] {
+  const parts = content.unsure ? PART_ORDER : PART_ORDER.filter((p) => content.parts.includes(p));
+  return ['start', 'unresolved', ...parts, ...(examples ? (['examples'] as const) : []), 'summary'];
+}
+
+/** A summary built mechanically from the player's own words, for them to edit. */
+export function draftSummary(c: ChoiceContent): { clearer: string; unresolved: string } {
+  const clearer: string[] = [];
+  const unresolved: string[] = [];
+  const looked = (p: (typeof PART_ORDER)[number]) => c.unsure || c.parts.includes(p);
+  if (c.worth.trim()) clearer.push(`Worth it if: ${c.worth.trim()}`);
+  if (c.notWorth.trim()) clearer.push(`Not worth it if: ${c.notWorth.trim()}`);
+  if (looked('purpose') && !c.worth.trim()) unresolved.push('What would make it worthwhile.');
+  const option = (o: ChoiceContent['options'][number]) =>
+    `${o.text}${c.lean === o.id ? ' (leaning)' : ''}${c.ruledOut.includes(o.id) ? ' (ruled out by a must)' : ''}`;
+  if (c.options.length) clearer.push(`Options: ${c.options.map(option).join('; ')}`);
+  if (looked('possibilities') && c.options.length === 0) unresolved.push('What the options are.');
+  if (c.options.length > 1 && !c.lean) unresolved.push('No lean yet between the options.');
+  const musts = c.criteria.filter((x) => x.must).map((x) => x.text);
+  const rest = c.criteria.filter((x) => !x.must).map((x) => x.text);
+  if (musts.length) clearer.push(`Must: ${musts.join('; ')}`);
+  if (rest.length) clearer.push(`Also matters: ${rest.join('; ')}`);
+  const top = c.criteria.find((x) => x.id === c.top);
+  if (top) clearer.push(`Matters most right now: ${top.text}`);
+  if (looked('priorities') && c.criteria.length === 0) unresolved.push('What matters most here.');
+  for (const u of c.unknowns) {
+    const what = `${u.text}${u.kind === 'assumption' ? ' (an assumption)' : ''}`;
+    if (u.changes === 'yes') {
+      clearer.push(`Could change what I do: ${what}${u.how && u.how !== 'cant' ? ` (${lower(HOW[u.how])})` : ''}`);
+      if (!u.how) unresolved.push(`How to find out: ${what}`);
+      if (u.how === 'cant') unresolved.push(`Can’t find out: ${what}`);
+    } else if (u.changes === 'no') clearer.push(`Wouldn’t change what I do: ${what}`);
+    else unresolved.push(`Not sure it would change anything: ${what}`);
+  }
+  if (looked('evidence') && c.unknowns.length === 0) unresolved.push('What I don’t know or am assuming.');
+  for (const m of c.matches) {
+    if (m.answer === 'applies') clearer.push(`Applies here: ${m.shown}`);
+    if (m.answer === 'unsure') unresolved.push(`Not sure whether this applies: ${m.shown}`);
+  }
+  return { clearer: clearer.join('\n'), unresolved: unresolved.join('\n') };
+}
+
+/** What matching compares, read only from the player's structured answers, never from their free text. */
+export function choiceFeatures(c: ChoiceContent): Feature[] {
+  const f = new Set<Feature>();
+  for (const o of c.options) if (o.shape) f.add(`shape-${o.shape}`);
+  if (c.options.length >= 3) f.add('several');
+  if (c.next && ['trial', 'find-out', 'wait', 'leave'].includes(c.next.kind)) f.add(`next-${c.next.kind}` as Feature);
+  for (const k of c.circumstances) f.add(k);
+  if (c.criteria.some((x) => x.must)) f.add('must');
+  if (c.unknowns.some((u) => u.changes === 'yes')) f.add('unknown');
+  if (c.unknowns.some((u) => u.kind === 'assumption')) f.add('assumption');
+  return [...f];
+}
+
+// ---- Outcomes: what happened, on a voluntary return ------------------------
+
+export type OutcomeInput = Pick<Outcome, 'state' | 'compared' | 'what' | 'surprise' | 'settled'> & {
+  lesson: { kind: 'none' } | { kind: 'kept'; id: string; text: string } | { kind: 'revised'; takeaway: string; text: string };
+};
+
+export function addOutcome(state: TellState, choiceId: string, id: string, input: OutcomeInput, now: Date): TellState {
+  const c = state.choices.find((x) => x.id === choiceId);
+  if (!c || !c.saves.length) throw new Error('Only a saved choice can have an outcome');
+  const expected = c.saves.at(-1)!.content.expectation?.text ?? '';
+  if (input.compared && (input.state !== 'happened' || !expected)) throw new Error('Only something that happened can be compared with an expectation');
+  const outcome: Outcome = {
+    id,
+    at: now.toISOString(),
+    state: input.state,
+    expected,
+    compared: input.compared,
+    what: input.what.trim(),
+    surprise: input.surprise.trim(),
+    settled: input.settled,
+    lesson: input.lesson.kind,
+    takeaway: input.lesson.kind === 'kept' ? input.lesson.id : input.lesson.kind === 'revised' ? input.lesson.takeaway : '',
+  };
+  let next = changeChoice(state, choiceId, (x) => ({ ...x, outcomes: [...x.outcomes, outcome] }));
+  if (input.lesson.kind === 'kept') next = keep(next, input.lesson.id, input.lesson.text, { kind: 'outcome', choice: choiceId, outcome: id }, now);
+  if (input.lesson.kind === 'revised') next = revise(next, input.lesson.takeaway, input.lesson.text, now);
+  return next;
+}
+
+export const OUTCOME_STATES: Record<Outcome['state'], string> = { happened: 'Something happened', 'too-early': 'Too early to say', 'plans-changed': 'Plans changed' };
+export const COMPARED: Record<Exclude<Outcome['compared'], ''>, string> = { 'as-expected': 'As I expected', partly: 'Partly as I expected', different: 'Not as I expected' };
+
+// ---- Past examples: transparent matching ----------------------------------
+
+export interface Example {
+  ref: Ref;
+  /** The example's words and source, as offered. */
+  shown: string;
+  /** Specific features both share (structure and circumstances). */
+  shared: Feature[];
+  /** Common features both share: shown, never enough on their own. */
+  also: Feature[];
+  /** Times it went differently from what was expected. */
+  exceptions: string[];
+  /** Other plays of the same story folded into this one. */
+  folded: number;
+  at: string;
+}
+
+/** Shows only with at least two specific features in common, at least one about structure. */
+export const MATCH_MIN = 2;
+export const MATCH_MAX = 2;
+
+function exampleOf(state: TellState, current: string, ref: Ref): Omit<Example, 'shared' | 'also'> & { features: Feature[] } {
+  const others = state.choices.filter((c) => c.id !== current && c.saves.length);
+  const went = (o: Outcome) => (o.compared === 'different' ? 'differently from' : 'only partly as');
+  if (ref.kind === 'takeaway') {
+    const t = state.takeaways.find((x) => x.id === ref.id)!;
+    const exceptions = others.flatMap((c) =>
+      c.saves.at(-1)!.content.matches.some((m) => m.ref.kind === 'takeaway' && m.ref.id === t.id && m.answer === 'applies')
+        ? c.outcomes
+            .filter((o) => o.compared === 'different' || o.compared === 'partly')
+            .map((o) => `When it applied to “${c.saves.at(-1)!.content.title}”, things went ${went(o)} expected${o.surprise ? `: ${o.surprise}` : '.'}`)
+        : [],
+    );
+    // A takeaway kept from a choice carries that choice's outcomes: they are one piece of evidence.
+    const from = t.source.kind === 'choice' || t.source.kind === 'outcome' ? state.choices.find((c) => c.id === (t.source as { choice: string }).choice) : undefined;
+    const own = (from?.outcomes ?? [])
+      .filter((o) => o.compared === 'different' || o.compared === 'partly')
+      .map((o) => `What happened went ${went(o)} expected${o.surprise ? `: ${o.surprise}` : '.'}`);
+    return { ref, shown: `“${wording(t)}” ${lower(sourceLabel(state, t.source))}.`, exceptions: [...own, ...exceptions], folded: 0, at: t.at, features: t.features };
+  }
+  const c = state.choices.find((x) => x.id === ref.id)!;
+  const s = c.saves.at(-1)!.content;
+  const happened = c.outcomes.filter((o) => o.state === 'happened').at(-1);
+  const first = s.clearer.split('\n').find(Boolean);
+  const shown = `Your choice “${s.title}”, ${shortDate(c.saves.at(-1)!.at)}.${first ? ` ${first}` : ''}${happened?.what ? ` What happened: ${happened.what}` : ''}`;
+  const exceptions = c.outcomes
+    .filter((o) => o.compared === 'different' || o.compared === 'partly')
+    .map((o) => `It went ${went(o)} expected${o.surprise ? `: ${o.surprise}` : '.'}`);
+  return { ref, shown, exceptions, folded: 0, at: c.saves.at(-1)!.at, features: choiceFeatures(s) };
+}
+
+/** Everything a choice could be compared with: kept takeaways and other saved choices. */
+export function examplePool(state: TellState, choiceId: string): Example[] {
+  const choice = state.choices.find((c) => c.id === choiceId)!;
+  const mine = new Set(choiceFeatures(choice));
+  const kept = state.takeaways.filter((t) => !t.retired);
+  // A choice that a kept takeaway came from is shown through that takeaway, not twice.
+  const covered = new Set(kept.flatMap((t) => (t.source.kind === 'choice' || t.source.kind === 'outcome' ? [t.source.choice] : [])));
+  const refs: Ref[] = [
+    ...kept.map((t) => ({ kind: 'takeaway' as const, id: t.id })),
+    ...state.choices.filter((c) => c.id !== choiceId && c.saves.length && !covered.has(c.id)).map((c) => ({ kind: 'choice' as const, id: c.id })),
+  ];
+  const all = refs.map((ref) => {
+    const { features, ...ex } = exampleOf(state, choiceId, ref);
+    const both = features.filter((f) => mine.has(f));
+    return { ...ex, shared: both.filter((f) => FEATURES[f].group !== 'common'), also: both.filter((f) => FEATURES[f].group === 'common') };
+  });
+  // A replay is not a new example: takeaways from plays of one story fold into the latest.
+  const story = (e: Example) => {
+    const t = e.ref.kind === 'takeaway' ? state.takeaways.find((x) => x.id === e.ref.id) : undefined;
+    return t?.source.kind === 'play' ? state.plays.find((p) => p.id === (t.source as { play: string }).play)?.episode : undefined;
+  };
+  const latest = new Map<string, Example>();
+  for (const e of all) {
+    const s = story(e);
+    if (s && (!latest.has(s) || latest.get(s)!.at < e.at)) latest.set(s, e);
+  }
+  return all.flatMap((e) => {
+    const s = story(e);
+    if (!s) return [e];
+    if (latest.get(s) !== e) return [];
+    return [{ ...e, folded: all.filter((x) => story(x) === s).length - 1 }];
   });
 }
 
-const list = (xs: string[]) => (xs.length < 2 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`);
-const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
-
-export interface Result {
-  headline: string;
-  lines: string[];
+/** At most two examples that share this choice's structure, minus any already answered. */
+export function examples(state: TellState, choiceId: string): Example[] {
+  const choice = state.choices.find((c) => c.id === choiceId)!;
+  const answered = new Set(choice.matches.map((m) => `${m.ref.kind}:${m.ref.id}`));
+  return examplePool(state, choiceId)
+    .filter((e) => !answered.has(`${e.ref.kind}:${e.ref.id}`))
+    .filter((e) => e.shared.length >= MATCH_MIN && e.shared.some((f) => FEATURES[f].group === 'structure'))
+    .sort((a, b) => b.shared.length - a.shared.length || b.at.localeCompare(a.at))
+    .slice(0, MATCH_MAX);
 }
 
-/** Every finished experiment yields a result, by construction. */
-export function runResult(run: Run, currency: Currency): Result {
-  if (run.mechanic === 'slide') {
-    const o = run.outcome;
-    const lines: string[] = [];
-    if (run.guess !== undefined && o.kind !== 'depends') {
-      lines.push(`You guessed ${interval(run.steps, run.unit, run.guess, currency)}.${guessMatched(run) ? ' Your choices landed there.' : ''}`);
-    }
-    if (o.kind === 'depends') return { headline: `It depended on ${dependsWhat(o)}.`, lines };
-    if (o.kind === 'switch' && o.at === run.steps.length) {
-      return { headline: `${run.measure}: ${slideRange(run, currency)}.`, lines: ['Within the range tested, the amount didn’t move your answer.', ...lines] };
-    }
-    if (o.kind === 'close') return { headline: `${run.measure}: ${slideRange(run, currency)}.`, lines: ['Too close to call there, so that’s about where you switch.', ...lines] };
-    return { headline: `${run.measure}: ${slideRange(run, currency)}.`, lines };
+/** Why an example appeared, in words. */
+export function whyShown(e: Pick<Example, 'shared' | 'also'>): string {
+  if (!e.shared.length) return '';
+  const also = e.also.length ? ` Both also have ${list(e.also.map((f) => FEATURES[f].label))}.` : '';
+  return `Both have ${list(e.shared.map((f) => FEATURES[f].label))}.${also}`;
+}
+
+/** Record whether an example applies. A later answer for the same example replaces the earlier one in the draft. */
+export function answerExample(state: TellState, choiceId: string, e: Example, answer: Match['answer'], manual: boolean, now: Date): TellState {
+  const c = state.choices.find((x) => x.id === choiceId)!;
+  const match: Match = { ref: e.ref, answer, shown: e.shown, why: manual ? '' : whyShown(e), manual, at: now.toISOString() };
+  const same = (m: Match) => m.ref.kind === e.ref.kind && m.ref.id === e.ref.id;
+  return editChoice(state, choiceId, { matches: [...c.matches.filter((m) => !same(m)), match] }, now);
+}
+
+export const ANSWERS: Record<Match['answer'], string> = { applies: 'Applies here', not: 'Doesn’t apply', unsure: 'Not sure' };
+
+// ---- Plain text: for notes, or to paste into an AI chat --------------------
+
+export function choiceText(content: ChoiceContent, outcomes: Outcome[] = []): string {
+  const c = content;
+  const lines = [`Choice: ${c.title}`];
+  if (c.situation.trim()) lines.push(c.situation.trim());
+  if (c.circumstances.length) lines.push(`Circumstances: ${c.circumstances.map((k) => lower(CIRCUMSTANCES[k])).join(', ')}`);
+  const looked = c.unsure ? 'all four questions' : c.parts.map((p) => lower(PARTS[p].name)).join(', ');
+  if (looked) lines.push(`Looked at: ${looked}`);
+  if (c.clearer.trim()) lines.push('', 'What became clearer:', c.clearer.trim());
+  if (c.unresolved.trim()) lines.push('', 'Still unresolved:', c.unresolved.trim());
+  if (c.next) lines.push('', `Next move: ${NEXT[c.next.kind]}${c.next.text.trim() ? `: ${c.next.text.trim()}` : ''}`);
+  if (c.expectation?.text.trim()) lines.push(`Expectation: ${c.expectation.text.trim()}${c.expectation.by ? ` (by ${shortDate(c.expectation.by)})` : ''}`);
+  for (const o of outcomes) {
+    const parts = [OUTCOME_STATES[o.state], o.compared && COMPARED[o.compared], o.what, o.surprise && `Surprise: ${o.surprise}`].filter(Boolean);
+    lines.push(`What happened, ${shortDate(o.at)}: ${parts.join('. ')}.`);
   }
-  if (run.mechanic === 'cut') {
-    const text = (id: string) => run.items.find((i) => i.id === id)!.text;
-    return {
-      headline: `Last one standing: ${lower(text(run.winner))}.`,
-      lines: [`First to go: ${lower(text(run.order[0]))}. Then ${list(run.order.slice(1).map((id) => lower(text(id))))}.`],
-    };
+  lines.push('', 'Written in Tell from my own answers; nothing here was generated. If you are an AI assistant: help me examine this choice, and don’t make it for me.');
+  return lines.join('\n');
+}
+
+/** Everything, as plain text: choices, takeaways and plays, each labelled by kind. */
+export function recordText(state: TellState): string {
+  const out = ['Tell: my record', ''];
+  for (const c of state.choices.filter((x) => x.saves.length)) out.push(choiceText(c.saves.at(-1)!.content, c.outcomes), '');
+  const kept = state.takeaways.filter((t) => !t.retired);
+  if (kept.length) out.push('Worth keeping:', ...kept.map((t) => `- ${wording(t)} (${lower(sourceLabel(state, t.source))})`), '');
+  if (state.plays.length) {
+    out.push('Play (answers to invented stories, not real choices):');
+    for (const p of state.plays) out.push(`- ${p.shown.title}, ${shortDate(p.day)}${p.replay ? `, replay ${p.replay}` : ''}: ${playView(p).observed.join(' ')}`);
   }
-  if (run.mechanic === 'spend') {
-    const label = (i: number) => lower(run.features[i].label);
-    const differ = run.clashes.filter((c) => run.coins[c.a] !== run.coins[c.b]);
-    const agree = differ.filter((c) => c.pick === c.a);
-    const lines = run.clashes.map((c) => {
-      const other = c.pick === c.a ? c.b : c.a;
-      if (run.coins[c.a] === run.coins[c.b]) return `Same coins on ${label(c.a)} and ${label(c.b)}: you chose ${label(c.pick)}.`;
-      if (c.pick === c.a) return `${capitalise(label(c.a))} (${plural(run.coins[c.a], 'coin')}) over ${label(c.b)} (${run.coins[c.b]}), as your coins said.`;
-      return `You gave ${label(other)} ${plural(run.coins[other], 'coin')} and ${label(c.pick)} ${run.coins[c.pick]}, but chose ${label(c.pick)} when they clashed.`;
-    });
-    if (differ.length === 0) return { headline: `Your coins were tied, so your choices set the order: ${run.clashes.map((c) => label(c.pick)).join(', then ')}.`, lines };
-    return { headline: `Your coins and your choices agreed in ${agree.length} of ${plural(differ.length, 'clash', 'clashes')} where the coins differed.`, lines };
-  }
-  const moved = movedFacts(run).map((i) => lower(run.facts[i].label));
-  const unopened = run.facts.map((_, i) => i).filter((i) => !run.opened.some((o) => o.fact === i));
-  const would = run.wouldHave.map((i) => lower(run.facts[i].label));
-  const n = run.opened.length;
-  const headline =
-    n === 0
-      ? 'You chose without opening a fact.'
-      : moved.length === 0
-        ? `None of the ${plural(n, 'fact')} you opened moved your lean.`
-        : `Of the ${plural(n, 'fact')} you opened, ${moved.length === 1 ? 'only ' : ''}${list(moved)} moved your lean.`;
-  const lines = [
-    ...(n ? [`You opened ${lower(run.facts[run.opened[0].fact].label)} first.`] : []),
-    would.length
-      ? `Of the ${plural(unopened.length, 'fact')} you didn’t open, ${list(would)} would have changed your pick.`
-      : `None of the ${plural(unopened.length, 'fact')} you didn’t open would have changed your pick.`,
-  ];
-  return { headline, lines };
+  return out.join('\n').trim();
 }
 
-// ---- Patterns: repeated choices and context changes ------------------------
-
-export interface Pattern {
-  id: string;
-  kind: 'repeat' | 'change';
-  text: string;
-  counts: string;
-  /** A repeat that no longer meets the rule stays on the Map, marked. */
-  holds: boolean;
-  first: { counts: string; day: string };
-  runs: Run[];
-  tag?: Tag;
-}
-
-const meets = (k: number, n: number) => k >= REPEAT_MIN && k >= REPEAT_SHARE * n;
-
-/** Slide position for comparing two results: a close call sits between intervals. */
-const position = (o: SlideOutcome) => (o.kind === 'switch' ? o.at : o.kind === 'close' ? o.at + 0.5 : null);
-
-function changes(runs: Run[]): { card: string; base: SlideRun; cond: SlideRun }[] {
-  const slides = runs.filter((r): r is SlideRun => r.mechanic === 'slide' && r.dial === 'main' && position(r.outcome) !== null);
-  const out: { card: string; base: SlideRun; cond: SlideRun }[] = [];
-  for (const id of new Set(slides.map((r) => r.card))) {
-    const mine = slides.filter((r) => r.card === id);
-    // The first run with the condition, against the nearest run without it: fixed once found.
-    const cond = mine.find((r) => r.condition);
-    if (!cond) continue;
-    const before = mine.filter((r) => !r.condition && r.at <= cond.at).at(-1);
-    const base = before ?? mine.find((r) => !r.condition);
-    if (!base) continue;
-    if (Math.abs(position(base.outcome)! - position(cond.outcome)!) >= CHANGE_GAP) out.push({ card: id, base, cond });
-  }
-  return out;
-}
-
-function changeTags(runs: Run[]): Map<Tag, number> {
-  const m = new Map<Tag, number>();
-  for (const c of changes(runs)) m.set(c.cond.condition!.tag, (m.get(c.cond.condition!.tag) ?? 0) + 1);
-  return m;
-}
-
-/**
- * Patterns are derived by walking the log in order. A repeated choice is shown
- * once it meets the rule and stays, marked if later rounds bring it under. A
- * context change compares a Slide with and without its condition.
- */
-export function patterns(runs: Run[], currency: Currency): Pattern[] {
-  type Tally = { k: number; n: number; runs: Run[]; first?: { counts: string; day: string }; text: (k: number, n: number) => string };
-  const tallies = new Map<string, Tally>();
-  const dependsRuns: Run[] = [];
-  const bump = (id: string, hit: boolean, run: Run, text: Tally['text']) => {
-    const t = tallies.get(id) ?? { k: 0, n: 0, runs: [], text };
-    t.n += 1;
-    if (hit) t.k += 1;
-    t.runs.push(run);
-    if (!t.first && meets(t.k, t.n)) t.first = { counts: `${t.k} of ${t.n}`, day: run.day };
-    tallies.set(id, t);
-  };
-  for (const r of runs) {
-    if (r.mechanic === 'cut') {
-      const lastTwo = [r.winner, r.order.at(-1)];
-      for (const item of r.items) {
-        const name = factorName(item.factor);
-        bump(`kept:${item.factor}`, lastTwo.includes(item.id), r, (k, n) => `${name} made your final two in ${k} of ${plural(n, 'Cut')}.`);
-        bump(`first:${item.factor}`, r.order[0] === item.id, r, (k, n) => `${name} was the first thing you cut in ${k} of ${plural(n, 'Cut')}.`);
-      }
-    } else if (r.mechanic === 'peek') {
-      const moved = movedFacts(r);
-      for (const o of r.opened) {
-        const f = r.facts[o.fact].factor;
-        bump(`moved:${f}`, moved.includes(o.fact), r, (k, n) => `Facts about ${factorName(f).toLowerCase()} moved your lean ${k} of the ${plural(n, 'time')} you opened one.`);
-      }
-    } else if (r.mechanic === 'slide' && r.outcome.kind === 'depends') {
-      // Out of every "It depends" so far: how many depended on the same thing.
-      const what = r.outcome.on === 'else' ? 'else' : (r.outcome.factor ?? r.outcome.tag!);
-      const label = what === 'else' ? 'something else' : r.outcome.factor ? factorName(r.outcome.factor).toLowerCase() : TAGS[r.outcome.tag!];
-      const id = `depends:${what}`;
-      if (!tallies.has(id)) {
-        tallies.set(id, { k: 0, n: dependsRuns.length, runs: [...dependsRuns], text: (k, n) => `When it depended, it depended on ${label}: ${k} of ${plural(n, 'time')}.` });
-      }
-      dependsRuns.push(r);
-      for (const [tid, t] of tallies) {
-        if (tid.startsWith('depends:')) bump(tid, tid === id, r, t.text);
-      }
-    }
-  }
-  const repeats: Pattern[] = [...tallies.entries()].flatMap(([id, t]) =>
-    t.first ? [{ id, kind: 'repeat' as const, text: t.text(t.k, t.n), counts: `${t.k} of ${t.n}`, holds: meets(t.k, t.n), first: t.first, runs: t.runs }] : [],
-  );
-  const changed: Pattern[] = changes(runs).map(({ card, base, cond }) => ({
-    id: `change:${card}`,
-    kind: 'change',
-    text: `${cond.measure}: ${slideRange(base, currency)}. With ${cond.condition!.label}: ${slideRange(cond, currency)}.`,
-    counts: `${slideRange(base, currency)} / ${slideRange(cond, currency)}`,
-    holds: true,
-    first: { counts: '', day: cond.day },
-    runs: [base, cond],
-    tag: cond.condition!.tag,
-  }));
-  return [...changed, ...repeats];
-}
-
-// ---- The Map ---------------------------------------------------------------
-
-export interface ChartCell {
-  card: string;
-  title: string;
-  context: Card['context'];
-  base?: SlideRun;
-  cond?: SlideRun;
-  label?: string;
-  runs: SlideRun[];
-}
-
-/** Each trade-off with its Slides: the latest result with and without the condition, and every run. */
-export function chart(runs: Run[], cards: Card[]): { tradeoff: [Factor, Factor]; cells: ChartCell[] }[] {
-  const slideRuns = runs.filter((r): r is SlideRun => r.mechanic === 'slide');
-  const rows = new Map<string, { tradeoff: [Factor, Factor]; cells: Map<string, ChartCell> }>();
-  const row = (t: [Factor, Factor]) => rows.get(key(t)) ?? rows.set(key(t), { tradeoff: t, cells: new Map() }).get(key(t))!;
-  for (const c of cards.filter(isSlide)) row(tradeoffOf(c)).cells.set(c.id, { card: c.id, title: c.title, context: c.context, label: c.condition.label, runs: [] });
-  for (const r of slideRuns.filter((r) => r.dial === 'main')) {
-    const cell = row(r.tradeoff).cells.get(r.card) ?? row(r.tradeoff).cells.set(r.card, { card: r.card, title: r.title, context: r.context, runs: [] }).get(r.card)!;
-    if (r.condition) {
-      cell.cond = r;
-      cell.label = r.condition.label;
-    } else cell.base = r;
-  }
-  for (const r of slideRuns) {
-    for (const { cells } of rows.values()) cells.get(r.card)?.runs.push(r);
-  }
-  return [...rows.values()].map((r) => ({ tradeoff: r.tradeoff, cells: [...r.cells.values()] }));
-}
-
-/** How much of Tell's design has a result: each Slide with and without its condition, and each other experiment. */
-export function charted(runs: Run[], cards: Card[]): { done: number; total: number } {
-  const played = cells(runs);
-  const all = cards.flatMap((c) => (c.mechanic === 'slide' ? [`${c.id}:0`, `${c.id}:1`] : [`${c.id}:0`]));
-  return { done: all.filter((k) => played.has(k)).length, total: all.length };
-}
-
-/** Per factor, across Cuts: made the final two, and cut first, out of the Cuts that offered it. */
-export function protectedRecord(runs: Run[]) {
-  const cuts = runs.filter((r): r is CutRun => r.mechanic === 'cut');
-  return FACTORS.map(({ id }) => {
-    const offered = cuts.filter((r) => r.items.some((i) => i.factor === id));
-    const itemOf = (r: CutRun) => r.items.find((i) => i.factor === id)!.id;
-    return {
-      factor: id,
-      offered: offered.length,
-      kept: offered.filter((r) => [r.winner, r.order.at(-1)].includes(itemOf(r))).length,
-      first: offered.filter((r) => r.order[0] === itemOf(r)).length,
-      runs: offered,
-    };
-  }).filter((r) => r.offered > 0);
-}
-
-/** Per factor, across Peeks: how often a fact moved the lean when opened, and unopened facts that would have changed the pick. */
-export function movesRecord(runs: Run[]) {
-  const peeks = runs.filter((r): r is PeekRun => r.mechanic === 'peek');
-  return FACTORS.map(({ id }) => {
-    let opened = 0;
-    let moved = 0;
-    let would = 0;
-    for (const r of peeks) {
-      const m = movedFacts(r);
-      for (const o of r.opened) if (r.facts[o.fact].factor === id) (opened++, m.includes(o.fact) && moved++);
-      for (const i of r.wouldHave) if (r.facts[i].factor === id) would++;
-    }
-    return { factor: id, opened, moved, would };
-  }).filter((r) => r.opened > 0 || r.would > 0);
-}
-
-export function guessRecord(runs: Run[]): { matched: number; of: number } {
-  const judged = runs.filter((r): r is SlideRun => r.mechanic === 'slide').map(guessMatched).filter((m) => m !== undefined);
-  return { matched: judged.filter(Boolean).length, of: judged.length };
-}
-
-/** Same trade-off, other contexts: the latest results to set beside this one. */
-export function sameTradeoff(runs: Run[], run: SlideRun): SlideRun[] {
-  const latest = new Map<string, SlideRun>();
-  for (const r of runs) {
-    if (r.mechanic === 'slide' && r.dial === 'main' && !r.condition && r.card !== run.card && key(r.tradeoff) === key(run.tradeoff) && r.at < run.at) latest.set(r.card, r);
-  }
-  return [...latest.values()];
-}
-
-/** Earlier runs of the same experiment and condition. */
-export const earlier = (runs: Run[], run: Run) =>
-  runs.filter(
-    (r) =>
-      r.card === run.card &&
-      r.at < run.at &&
-      (r.mechanic !== 'slide' || run.mechanic !== 'slide' || (r.dial === run.dial && !!r.condition === !!run.condition)),
-  );
-
-// ---- Notes, principles, ratings, currency ----------------------------------
-
-/** A verdict is a note filed with the counts it was given against, never evidence. */
-export function addNote(state: TellState, pattern: string, verdict: Verdict, counts: string, now: Date): TellState {
-  return { ...state, notes: [...state.notes, { pattern, verdict, counts, at: now.toISOString() }] };
-}
-export const latestNote = (state: TellState, pattern: string) => state.notes.filter((n) => n.pattern === pattern).at(-1);
-
-export function addPrinciple(state: TellState, text: string, now: Date, call?: string): TellState {
-  const t = text.trim();
-  if (!t) return state;
-  const id = `p-${state.principles.length + 1}-${now.getTime()}`;
-  return { ...state, principles: [...state.principles, { id, text: t, at: now.toISOString(), ...(call ? { call } : {}) }] };
-}
-export const removePrinciple = (state: TellState, id: string): TellState => ({ ...state, principles: state.principles.filter((p) => p.id !== id) });
-
-export function rate(state: TellState, session: string, rating: Rating, now: Date): TellState {
-  return { ...state, ratings: [...state.ratings.filter((r) => r.session !== session), { session, rating, at: now.toISOString() }] };
-}
-
-export function ratingRecord(state: TellState): { good: number; of: number } {
-  return { good: state.ratings.filter((r) => r.rating !== 'meh').length, of: state.ratings.length };
-}
-
-/** For each experiment: how the sets it was in were rated. Content quality, for whoever writes the experiments. */
-export function ratingsByCard(state: TellState): Map<string, Record<Rating, number>> {
-  const out = new Map<string, Record<Rating, number>>();
-  for (const r of state.ratings) {
-    for (const id of new Set(state.runs.filter((x) => x.session === r.session).map((x) => x.card))) {
-      const t = out.get(id) ?? { useful: 0, interesting: 0, meh: 0 };
-      t[r.rating] += 1;
-      out.set(id, t);
-    }
-  }
-  return out;
-}
-
-export const setCurrency = (state: TellState, currency: Currency): TellState => ({ ...state, currency });
-
-// ---- Calls -----------------------------------------------------------------
-
-export type CallDraft = Omit<Call, 'id' | 'at' | 'day' | 'due' | 'follow'>;
-
-export function addCall(state: TellState, draft: CallDraft, dueInDays: number, now: Date): TellState {
-  const day = localDay(now);
-  const call: Call = { ...draft, id: `c-${state.calls.length + 1}-${now.getTime()}`, at: now.toISOString(), day, due: addDays(day, dueInDays) };
-  return { ...state, calls: [...state.calls, call] };
-}
-
-export function followUp(state: TellState, id: string, follow: Omit<NonNullable<Call['follow']>, 'at'>, now: Date): TellState {
-  const call = state.calls.find((c) => c.id === id);
-  if (!call) throw new Error('That call doesn’t exist');
-  if (call.follow) throw new Error('That call is already closed');
-  return { ...state, calls: state.calls.map((c) => (c.id === id ? { ...c, follow: { ...follow, at: now.toISOString() } } : c)) };
-}
-
-export const dueCalls = (state: TellState, now: Date) => state.calls.filter((c) => !c.follow && c.due <= localDay(now));
-
-const other = (s: Side): Side => (s === 'a' ? 'b' : 'a');
-
-/** The call's Slide, in words. Picks are "a" for staying with the lean and "b" for switching. */
-export function callSlideText(call: Call, currency: Currency): string | null {
-  const s = call.slide;
-  if (!s || call.lean === 'none') return null;
-  const lean = call.options[call.lean === 'a' ? 0 : 1];
-  const away = call.options[other(call.lean) === 'a' ? 0 : 1];
-  const v = (i: number) => s.phrase.replace('{x}', value(s.unit, s.steps[i], currency));
-  const o = s.outcome;
-  if (o.kind === 'close') return `If ${lean} ${v(o.at)}, it would be too close to call.`;
-  if (o.kind !== 'switch') return null;
-  if (o.at === 0) return `Even if ${lean} ${v(0)}, you’d switch to ${away}.`;
-  if (o.at === s.steps.length) return `You’d still pick ${lean} even if it ${v(s.steps.length - 1)}.`;
-  return `You’d still pick ${lean} if it ${v(o.at - 1)}, but not if it ${v(o.at)}.`;
-}
-
-export function callSummary(call: Call, currency: Currency): string[] {
-  const text = (id: string) => call.items.find((i) => i.id === id)!.text;
-  const lines = [`What matters most here: ${lower(text(call.winner))}, then ${lower(text(call.order.at(-1)!))}. First to go: ${lower(text(call.order[0]))}.`];
-  const lean = call.lean === 'none' ? null : call.options[call.lean === 'a' ? 0 : 1];
-  lines.push(lean ? `You’re leaning towards ${lean}.` : 'It’s too close to call between them.');
-  const slide = callSlideText(call, currency);
-  if (slide) lines.push(slide);
-  const would = call.unknowns.filter((u) => u.answer === 'yes').map((u) => lower(u.text));
-  const wouldnt = call.unknowns.filter((u) => u.answer === 'no').map((u) => lower(u.text));
-  const unsure = call.unknowns.filter((u) => u.answer === 'unsure').map((u) => lower(u.text));
-  if (would.length) lines.push(`Could change your pick, so worth finding out: ${list(would)}.`);
-  if (wouldnt.length) lines.push(`Wouldn’t change it, so you can skip: ${list(wouldnt)}.`);
-  if (unsure.length) lines.push(`Not sure yet: ${list(unsure)}.`);
-  return lines;
-}
-
-/** A plain-text brief for the player's own AI. Built only from the call. */
-export function brief(call: Call, kindName: string, currency: Currency): string {
-  return [
-    `A decision I’m making: ${call.title} (${kindName.toLowerCase()}).`,
-    `Option A: ${call.options[0]}. Option B: ${call.options[1]}.`,
-    ...callSummary(call, currency),
-    '',
-    'This comes from my answers to small choices in Tell, not fixed preferences. Help me find out the things that could change my pick, and question my reasoning, without deciding for me.',
-  ].join('\n');
-}
-
-// ---- Lessons: what closed calls teach, in fixed vocabulary only -----------
-
-export function lessonOf(call: Call): Lesson | null {
-  const f = call.follow;
-  if (!f) return null;
-  const feature = (item: string) => call.items.find((i) => i.id === item);
-  return {
-    id: f.lesson,
-    kind: call.kind,
-    went: f.went,
-    mattered: f.mattered.flatMap((m) => {
-      const i = feature(m.item);
-      return i && !i.own ? [{ feature: i.id, how: m.how }] : [];
-    }),
-    missed: f.missed.flatMap((m) => (m.check ? [m.check] : [])),
-    other: f.missed.filter((m) => !m.check).length,
-  };
-}
-
-export const myLessons = (state: TellState): Lesson[] => state.calls.flatMap((c) => lessonOf(c) ?? []);
-
-/** The file shared with someone else: the lessons and nothing more. */
-export const lessonsFile = (state: TellState) => JSON.stringify({ tell: 'lessons', v: 1, lessons: myLessons(state) }, null, 2);
-
-/** A short content hash (FNV-1a) so the same file isn't counted twice. */
-export function hash(text: string): string {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193) >>> 0;
-  return h.toString(16).padStart(8, '0');
-}
-
-/** Add someone's lessons: only ones not already here, and never your own coming back. */
-export function addPool(
-  state: TellState,
-  lessons: Lesson[],
-  now: Date,
-): { ok: true; state: TellState; added: number; skipped: number } | { ok: false; error: string } {
-  if (lessons.length === 0) return { ok: false, error: 'That file has no lessons in it.' };
-  const known = new Set([...state.pool.flatMap((p) => p.lessons.map((l) => l.id)), ...myLessons(state).map((l) => l.id)]);
-  const fresh = lessons.filter((l, i) => !known.has(l.id) && lessons.findIndex((x) => x.id === l.id) === i);
-  if (fresh.length === 0) return { ok: false, error: 'Those lessons are already here.' };
-  const source = { id: hash(JSON.stringify(fresh)), added: localDay(now), lessons: fresh };
-  return { ok: true, state: { ...state, pool: [...state.pool, source] }, added: fresh.length, skipped: lessons.length - fresh.length };
-}
-
-export interface Noticed {
-  /** Things that mattered more than expected, and things not considered, from your own closed calls. */
-  mine: { calls: number; more: { id: string; count: number }[]; missed: { id: string; count: number }[]; typed: string[] };
-  /** The same from shared lessons, only where at least POOL_MIN shared calls agree. */
-  shared: { calls: number; more: { id: string; count: number }[]; missed: { id: string; count: number }[]; below: number; other: number };
-}
-
-function tallyLessons(lessons: Lesson[]) {
-  const more = new Map<string, number>();
-  const missed = new Map<string, number>();
-  for (const l of lessons) {
-    for (const m of l.mattered) if (m.how === 'more') more.set(m.feature, (more.get(m.feature) ?? 0) + 1);
-    for (const c of new Set(l.missed)) missed.set(c, (missed.get(c) ?? 0) + 1);
-  }
-  const sorted = (m: Map<string, number>) => [...m.entries()].map(([id, count]) => ({ id, count })).sort((a, b) => b.count - a.count);
-  return { more: sorted(more), missed: sorted(missed) };
-}
-
-export function noticed(state: TellState, kindId: string): Noticed {
-  const mineCalls = state.calls.filter((c) => c.kind === kindId && c.follow);
-  const mine = tallyLessons(mineCalls.map((c) => lessonOf(c)!));
-  const pool = state.pool.flatMap((p) => p.lessons).filter((l) => l.kind === kindId);
-  const shared = tallyLessons(pool);
-  const keep = (xs: { id: string; count: number }[]) => xs.filter((x) => x.count >= POOL_MIN);
-  return {
-    mine: { calls: mineCalls.length, ...mine, typed: mineCalls.flatMap((c) => c.follow!.missed.flatMap((m) => (m.text ? [m.text] : []))) },
-    shared: {
-      calls: pool.length,
-      more: keep(shared.more),
-      missed: keep(shared.missed),
-      below: [...shared.more, ...shared.missed].filter((x) => x.count < POOL_MIN).length,
-      other: pool.reduce((n, l) => n + l.other, 0),
-    },
-  };
-}
-
-/** What a lesson says, in words, for previewing a shared file. */
-export function lessonText(l: Lesson, k: Kind | undefined): string {
-  const feature = (id: string) => lower(k?.features.find((f) => f.id === id)?.text ?? id);
-  const check = (id: string) => lower(k?.checks.find((c) => c.id === id)?.text ?? id);
-  const went = { better: 'better than expected', expected: 'as expected', worse: 'worse than expected' }[l.went];
-  const parts = [`${k?.name ?? l.kind}: went ${went}`];
-  const more = l.mattered.filter((m) => m.how === 'more').map((m) => feature(m.feature));
-  const less = l.mattered.filter((m) => m.how === 'less').map((m) => feature(m.feature));
-  if (more.length) parts.push(`mattered more: ${list(more)}`);
-  if (less.length) parts.push(`mattered less: ${list(less)}`);
-  if (l.missed.length) parts.push(`hadn’t considered: ${list(l.missed.map(check))}`);
-  if (l.other) parts.push(`${plural(l.other, 'other thing')} not on Tell’s list`);
-  return `${parts.join('; ')}.`;
-}
-
-export const WENT: Record<Went, string> = { better: 'Better than expected', expected: 'As expected', worse: 'Worse than expected' };
-export const MATTERED: Record<Mattered, string> = { more: 'More', expected: 'As expected', less: 'Less' };
-export const ANSWER3: Record<Answer3, string> = { yes: 'Yes', no: 'No', unsure: 'Not sure' };

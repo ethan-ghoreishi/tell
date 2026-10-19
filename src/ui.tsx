@@ -1,6 +1,6 @@
-import { useEffect, useState, type SVGProps } from 'react';
+import type { SVGProps } from 'react';
 
-// Small shared pieces: icons, the clock, dates, file download.
+// Small shared pieces: icons, dates, file download, clipboard, ids.
 
 type IconProps = SVGProps<SVGSVGElement>;
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
@@ -37,38 +37,7 @@ export const AddedIcon = (p: IconProps) => (
   </svg>
 );
 
-/** The current time, refreshed each minute and whenever the app comes back into view. */
-export function useNow(): Date {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const tick = () => setNow(new Date());
-    const id = window.setInterval(tick, 60_000);
-    document.addEventListener('visibilitychange', tick);
-    return () => {
-      window.clearInterval(id);
-      document.removeEventListener('visibilitychange', tick);
-    };
-  }, []);
-  return now;
-}
-
-const dayFormat = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-const shortFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
-
-/** "Thursday 8 October" for a Date or a YYYY-MM-DD day. */
-export const longDate = (d: Date | string) => dayFormat.format(typeof d === 'string' ? fromDay(d) : d);
-/** "8 Oct" for a Date, ISO time or YYYY-MM-DD day. */
-export const shortDate = (d: Date | string) => shortFormat.format(typeof d === 'string' ? fromDay(d) : d);
-
-function fromDay(s: string): Date {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    const [y, m, d] = s.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  }
-  return new Date(s);
-}
-
-export { plural } from './domain/text';
+export { longDate, plural, shortDate } from './domain/text';
 
 export function download(filename: string, text: string, type = 'application/json') {
   const url = URL.createObjectURL(new Blob([text], { type }));

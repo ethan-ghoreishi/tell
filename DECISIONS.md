@@ -2,7 +2,82 @@
 
 Durable record of non-obvious choices. Newest first.
 
-## Tell v2: choice experiments (2026-10-14)
+## Tell 2.0: a choice workshop (2026-10-19)
+
+**What changed, and why.** The owner's brief (2026-10-19) redefined Tell: a playful choice
+workshop for people making creative work and independent projects, with the promise "See what
+would make a choice clearer". Two triggers: "I keep circling this choice; before more research,
+revision or deliberation, what would actually help?" and "give me something interesting to think
+through for a few minutes". The choice-experiments rebuild (2026-10-14, below) was never
+committed; it was committed unchanged as a checkpoint (`d41ae97`) and then rebuilt on, reusing its
+architecture, store, validation door, Slide and Cut, test harness and design.
+
+**Owner-authorised changes** (each explicitly authorised by the brief):
+1. *The daily set, its cap and midnight expiry are replaced* by a finite, inspectable library of
+   twelve episodes with a recommended start, explicit endings and user-initiated play and replay.
+   No lock, expiry, replenishment or completion pressure.
+2. *"Four mechanics are the only formats" is replaced* by episodes of one fixed shape (situation,
+   first answer, one move, second answer, ending). The moves: twist, widen, Cut, Peek (now any
+   number of options, single-text facts) and Slide (with an optional revealed value). Spend and
+   "It depends" are retired.
+3. *Fixed factor vocabulary and ranking requirements are replaced.* Real choices use the player's
+   own words: no compulsory five-item ranking, no factor classification, no money/time dial.
+4. *Automatic pattern gates are replaced* by takeaways the player chooses to keep, revise or
+   retire. Tell makes no automatic claims (REPEAT_MIN, CHANGE_GAP, verdict notes are gone).
+5. *Removed from the main experience:* factor dashboards, patterns, Spend agreement scoring,
+   shared-lesson exchange (to `FUTURE.md`) and the AI-first brief. A plain-text export stays, for
+   notes or pasting into an AI chat.
+
+**The backbone.** Purpose, Possibilities, Priorities, Evidence: a light adaptation of SDG's
+decision-quality elements (frame, alternatives, information, values and trade-offs) and Keeney's
+value-focused thinking (start from objectives, then create alternatives). Used to choose questions
+and write episodes, not as a validated theory, user categories or a score.
+
+**Builder decisions (routine, within the brief).**
+- *Older data is migrated, not refused.* Schemas 1 and 2 are carried into schema 3 with the whole
+  original document kept in `archive` (deep-equal, tested) and downloadable from the Map; version
+  2's principles (the player's own words) become takeaways. Version 1's kept lines described the
+  player, so they stay in the archive only. The migrated document is validated before it is
+  written. Unreadable and newer data are still refused untouched. Reason: the brief asks for
+  migration coverage, and a recovery screen in front of a usable app helped nobody.
+- *Matching is deliberately narrow.* A past example (a kept takeaway or another saved choice)
+  shows only when it shares at least two specific features, at least one about structure (option
+  shapes such as waiting or a smaller trial, the next move, a marked assumption), the rest
+  circumstances. The backbone question is never a feature; must-haves and unknowns are shown but
+  never count, because nearly every choice has them (tested: two unrelated choices sharing only
+  those never match). At most two. Free text is never read. Rejected: counting shared parts,
+  keyword overlap (pretends to understand words).
+- *Evidence is never double-counted.* Replays of one story fold into one example; a choice and a
+  takeaway kept from it are one example, the takeaway carrying the choice's outcomes as exceptions.
+- *Provenance is per snapshot.* A takeaway points at the play, the save or the outcome it came
+  from; a match keeps the example's words as offered. Revising either never rewrites evidence.
+- *Endings key on whether the answer changed.* Two authored readings each way, the second always
+  an alternative ("Or…"), plus what stays unknown. The observed lines are fixed sentences filled
+  from the record; for a Slide with a revealed value, whether the second answer followed the
+  player's own line.
+- *Follow-up is voluntary.* No due dates, reminders or "due back" cards; an expectation's date is
+  a note. "Too early", "plans changed", settled or still open, and no lesson are all first-class.
+- *Three tabs* (Home, Map, About). Home holds both triggers and the library, so neither is a
+  second-class path. A draft lives on Home until saved; a saved choice on the Map.
+- *Currency is gone*: no episode or choice needs money formatting.
+- *Recommended start: "Six evenings"*, a quick twist about several side projects that most
+  independent makers recognise, and that shows the full ending in about two minutes.
+- *Tap targets are 44px everywhere* (chips and small buttons were 40px), checked on every screen
+  by the journeys, with sideways overflow and page scrolling.
+
+**Editorial review.** Every episode was read for meaning against its rationale (shown in the app
+under "About this story"). Prescriptive endings ("only the first kind needs obeying") were
+rewritten as distinctions. Across the twelve, at least one reading defends committing without
+more information wherever an episode features asking, testing or widening. No story fact
+describes the player; every invented fact is marked "In this story".
+
+**Untested product hypotheses**, for the pilot (`PILOT.md`): that the stories are enjoyable
+enough to play unprompted; that a session leaves a real choice clearer; that past examples help
+more than they distract.
+
+---
+
+## Tell v2: choice experiments (2026-10-14; never shipped, superseded by 2.0)
 
 **What changed, and why.** v1 asked players to pick the cause of a scene (eight angles) and
 counted picks against a binomial gate. That is the structure of a personality inventory, the
@@ -63,7 +138,7 @@ never overwritten; with one player's data, a migration wasn't worth writing.
 
 ---
 
-*Below: v1 decisions, kept as history. Superseded by the entry above where they conflict.*
+*Below: earlier decisions, kept as history. Superseded by newer entries where they conflict.*
 
 ## A 60-card deck, and call-outs that stay (2026-10-08)
 

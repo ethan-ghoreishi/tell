@@ -10,28 +10,30 @@ import { validateState } from '../domain/validate';
 // Data safety: a document that can't be read (not JSON, malformed, or from a
 // newer Tell) is REFUSED. Nothing is written over it; the app offers its raw
 // text for download, Restore from a backup, or an explicit Start fresh. A
-// failed write keeps the state in memory and says so; it is never swallowed.
+// document from an earlier Tell is migrated only after the result validates,
+// with the original kept whole in its archive. A failed write keeps the state
+// in memory and says so; it is never swallowed.
 
 export const STORAGE_KEY = 'tell';
 
 export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 export type Snapshot =
-  | { status: 'ready'; state: TellState; saveError: string | null }
+  | { status: 'ready'; state: TellState; saveError: string | null; migrated?: number }
   | { status: 'refused'; reason: string; newer: boolean; raw: string };
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** The one way a backup file is read: parse, then the same validation as loading. */
-export function readBackup(text: string): { ok: true; state: TellState } | { ok: false; error: string } {
+export function readBackup(text: string, now = new Date()): { ok: true; state: TellState } | { ok: false; error: string } {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
   } catch {
     return { ok: false, error: 'That file is not readable JSON.' };
   }
-  const v = validateState(parsed);
-  return v.ok ? v : { ok: false, error: `That file can’t be used: ${v.error}.` };
+  const v = validateState(parsed, now);
+  return v.ok ? { ok: true, state: v.state } : { ok: false, error: `That file can’t be used: ${v.error}.` };
 }
 
 export function createStore(storage: StorageLike) {
@@ -52,8 +54,20 @@ export function createStore(storage: StorageLike) {
     } catch {
       return { status: 'refused', reason: 'the saved data is not readable JSON', newer: false, raw };
     }
-    const v = validateState(parsed);
-    return v.ok ? { status: 'ready', state: v.state, saveError: null } : { status: 'refused', reason: v.error, newer: !!v.newer, raw };
+    const v = validateState(parsed, new Date());
+    if (!v.ok) return { status: 'refused', reason: v.error, newer: !!v.newer, raw };
+    if (!v.migrated) return { status: 'ready', state: v.state, saveError: null };
+    // Written straight away, so the archive's date is the day it was carried over.
+    return { ...persist(v.state), migrated: v.migrated };
+  }
+
+  function persist(state: TellState): Extract<Snapshot, { status: 'ready' }> {
+    try {
+      storage.setItem(STORAGE_KEY, JSON.stringify(state));
+      return { status: 'ready', state, saveError: null };
+    } catch (e) {
+      return { status: 'ready', state, saveError: `Tell couldn’t save (${message(e)}). Everything is kept while Tell stays open; export a backup from About to be safe.` };
+    }
   }
 
   function set(next: Snapshot) {
@@ -62,13 +76,7 @@ export function createStore(storage: StorageLike) {
   }
 
   function write(state: TellState) {
-    let saveError: string | null = null;
-    try {
-      storage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (e) {
-      saveError = `Tell couldn’t save (${message(e)}). Everything is kept while Tell stays open; export a backup from About to be safe.`;
-    }
-    set({ status: 'ready', state, saveError });
+    set(persist(state));
   }
 
   return {

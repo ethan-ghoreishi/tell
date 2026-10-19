@@ -1,311 +1,305 @@
-// The shape of Tell's content (experiments) and of what it records (runs and
-// calls). Runs and calls are facts, snapshotted when they happen; everything
-// the Map shows is derived from them, never from the current content.
+// The shape of Tell's episodes and of what it records. Four kinds of record
+// stay separate: Play (answers to invented stories), choices (what the player
+// said about a real choice), takeaways (interpretations the player chose to
+// keep) and outcomes (what the player reported happened). Records are
+// snapshots: nothing shown later depends on today's content.
 
-/** What a choice gives or costs. Practical quantities, never traits. */
-export type Factor = 'money' | 'time' | 'effort' | 'energy' | 'quality' | 'convenience' | 'control' | 'certainty' | 'flexibility';
-
-export const FACTORS: { id: Factor; name: string; about: string }[] = [
-  { id: 'money', name: 'Money', about: 'what it costs or pays' },
-  { id: 'time', name: 'Time', about: 'hours, days, waiting' },
-  { id: 'effort', name: 'Effort', about: 'work and hassle' },
-  { id: 'energy', name: 'Energy', about: 'sleep, rest, how tired it leaves you' },
-  { id: 'quality', name: 'Quality', about: 'how good the result is' },
-  { id: 'convenience', name: 'Convenience', about: 'how easy it is day to day' },
-  { id: 'control', name: 'Control', about: 'whose say it is, and owning it' },
-  { id: 'certainty', name: 'Certainty', about: 'knowing what you will get' },
-  { id: 'flexibility', name: 'Flexibility', about: 'keeping options open, being able to change it' },
-];
-
-export const factorName = (f: Factor) => FACTORS.find((x) => x.id === f)!.name;
-
-export type Context = 'home' | 'travel' | 'work' | 'project' | 'buying' | 'tools';
-
-export const CONTEXTS: Record<Context, string> = {
-  home: 'Home',
-  travel: 'Travel',
-  work: 'Work',
-  project: 'Projects',
-  buying: 'Buying',
-  tools: 'Tools',
-};
-
-/** Conditions that could legitimately change a choice. Only these are compared. */
-export type Tag = 'stakes' | 'deadline' | 'undo' | 'public';
-
-export const TAGS: Record<Tag, string> = {
-  stakes: 'more at stake',
-  deadline: 'a deadline',
-  undo: 'harder to undo',
-  public: 'others will see it',
-};
-
-export type Unit = 'money' | 'minutes' | 'hours' | 'days' | 'weeks' | 'percent';
-
+export type Unit = 'number' | 'percent' | 'hours' | 'days' | 'weeks';
 export type Side = 'a' | 'b';
 
-export type Mechanic = 'slide' | 'cut' | 'spend' | 'peek';
+/** The four questions episodes and choices are built around. */
+export type Part = 'purpose' | 'possibilities' | 'priorities' | 'evidence';
 
-export const MECHANICS: Record<Mechanic, { name: string; about: string }> = {
-  slide: { name: 'Slide', about: 'Two options. One amount changes until you switch.' },
-  cut: { name: 'Cut', about: 'Five good things. Drop one at a time until one is left.' },
-  spend: { name: 'Spend', about: 'Spend 10 coins, then choose where they clash.' },
-  peek: { name: 'Peek', about: 'Facts are hidden. Open a few and see which ones move you.' },
+export const PARTS: Record<Part, { name: string; question: string; unresolved: string }> = {
+  purpose: { name: 'Purpose', question: 'What outcome would make this worthwhile?', unresolved: 'What I’m really trying to get out of it' },
+  possibilities: { name: 'Possibilities', question: 'Are these the right options?', unresolved: 'Whether these are the right options' },
+  priorities: { name: 'Priorities', question: 'What matters when good things conflict?', unresolved: 'What matters most when things pull against each other' },
+  evidence: { name: 'Evidence', question: 'What could change what you’d do?', unresolved: 'Something I don’t know, or am assuming' },
+};
+export const PART_ORDER: Part[] = ['purpose', 'possibilities', 'priorities', 'evidence'];
+
+/** Kinds of option people often leave out. A choice records which ones it has. */
+export type Shape = 'smaller' | 'combine' | 'wait' | 'keep' | 'ask';
+
+export const SHAPES: Record<Shape, string> = {
+  smaller: 'A smaller version, or a trial first',
+  combine: 'Some of both',
+  wait: 'Wait until something specific happens',
+  keep: 'Keep things as they are',
+  ask: 'Ask someone, or hand it over',
 };
 
-// ---- Content ---------------------------------------------------------------
+export type NextKind = 'decide' | 'trial' | 'find-out' | 'wait' | 'leave' | 'stop';
 
-/** A value that changes in a Slide. Steps are ascending; `rises` gains as the value grows. */
-export interface Dial {
-  factor: Factor;
-  unit: Unit;
-  steps: number[];
-  rises: Side;
-  /** Names the switch point: "What skipping the 03:30 alarm is worth to you". */
-  measure: string;
+export const NEXT: Record<NextKind, string> = {
+  decide: 'Decide now',
+  trial: 'Try something small',
+  'find-out': 'Find something out',
+  wait: 'Wait',
+  leave: 'Leave it for now',
+  stop: 'Stop here without deciding',
+};
+
+export type Circumstance = 'deadline' | 'undo' | 'public' | 'others' | 'stakes';
+
+export const CIRCUMSTANCES: Record<Circumstance, string> = {
+  deadline: 'A deadline',
+  undo: 'Hard to undo',
+  public: 'Others will see it',
+  others: 'Others depend on it',
+  stakes: 'Your own money or name at stake',
+};
+
+/**
+ * What matching compares. Structure and circumstances can make a match;
+ * "common" features are so frequent that they are shown but never count.
+ */
+export type Feature =
+  | 'shape-smaller'
+  | 'shape-combine'
+  | 'shape-wait'
+  | 'shape-keep'
+  | 'shape-ask'
+  | 'several'
+  | 'next-trial'
+  | 'next-find-out'
+  | 'next-wait'
+  | 'next-leave'
+  | 'deadline'
+  | 'undo'
+  | 'public'
+  | 'others'
+  | 'stakes'
+  | 'assumption'
+  | 'must'
+  | 'unknown';
+
+export const FEATURES: Record<Feature, { label: string; group: 'structure' | 'circumstance' | 'common' }> = {
+  'shape-smaller': { label: 'a smaller version or a trial among the options', group: 'structure' },
+  'shape-combine': { label: 'an option that combines others', group: 'structure' },
+  'shape-wait': { label: 'waiting among the options', group: 'structure' },
+  'shape-keep': { label: 'keeping things as they are among the options', group: 'structure' },
+  'shape-ask': { label: 'asking someone among the options', group: 'structure' },
+  several: { label: 'three or more options', group: 'structure' },
+  'next-trial': { label: 'a small trial as the next move', group: 'structure' },
+  'next-find-out': { label: 'finding something out as the next move', group: 'structure' },
+  'next-wait': { label: 'waiting as the next move', group: 'structure' },
+  'next-leave': { label: 'leaving it for now as the next move', group: 'structure' },
+  deadline: { label: 'a deadline', group: 'circumstance' },
+  undo: { label: 'something hard to undo', group: 'circumstance' },
+  public: { label: 'others seeing it', group: 'circumstance' },
+  others: { label: 'others depending on it', group: 'circumstance' },
+  stakes: { label: 'your own money or name at stake', group: 'circumstance' },
+  must: { label: 'a must-have', group: 'common' },
+  unknown: { label: 'an unknown that could change things', group: 'common' },
+  assumption: { label: 'an assumption marked as one', group: 'structure' },
+};
+
+// ---- Episodes --------------------------------------------------------------
+
+export interface Option {
+  id: string;
+  text: string;
 }
 
-export interface SlideCard {
+/** The one move in the middle of an episode, between the first answer and the second. */
+export type Beat =
+  /** A reveal or a change of context; it may bring a new option. */
+  | { kind: 'twist'; text: string; adds?: Option }
+  /** Other options to consider; the ones picked join the second question. */
+  | { kind: 'widen'; prompt: string; items: Option[] }
+  /** Good things dropped one at a time until one is left. */
+  | { kind: 'cut'; prompt: string; items: Option[] }
+  /** Hidden facts, opened one at a time, with the lean after each. */
+  | { kind: 'peek'; prompt: string; opens: number; facts: { id: string; label: string; text: string }[] }
+  /** One value changes until the answer switches; then the story's value is shown. */
+  | { kind: 'slide'; text: string; unit: Unit; steps: number[]; rises: Side; measure: string; actual?: { value: number; text: string } };
+
+export interface Episode {
   id: string;
   v: number;
-  mechanic: 'slide';
-  context: Context;
+  part: Part;
   title: string;
-  /** May hold {y} (the alt dial) and {m:N} (a fixed amount of money). */
-  scene: string;
-  /**
-   * What each option offers: one factor each, never the same, so neither wins
-   * on everything. The option that gains as the dial grows gives the dial's factor.
-   */
-  a: { text: string; gives: Factor };
-  /** Holds {x}, the one value that changes. */
-  b: { text: string; gives: Factor };
-  dial: Dial;
-  /** One condition that could legitimately matter: an extra sentence, and its short name. */
-  condition: { tag: Tag; text: string; label: string };
-  /** A second value "It depends" can test, shown as {y} until it is the one changing. */
-  alt?: Dial & { label: string; at: number };
-}
-
-export interface CutCard {
-  id: string;
-  v: number;
-  mechanic: 'cut';
-  context: Context;
-  title: string;
-  scene: string;
-  items: { id: string; factor: Factor; text: string }[];
-}
-
-export interface SpendCard {
-  id: string;
-  v: number;
-  mechanic: 'spend';
-  context: Context;
-  title: string;
-  scene: string;
-  features: { id: string; factor: Factor; label: string; high: string; low: string }[];
-}
-
-export interface PeekCard {
-  id: string;
-  v: number;
-  mechanic: 'peek';
-  context: Context;
-  title: string;
-  scene: string;
-  a: string;
-  b: string;
-  facts: { id: string; factor: Factor; label: string; a: string; b: string; favours: Side }[];
-}
-
-export type Card = SlideCard | CutCard | SpendCard | PeekCard;
-
-/** A kind of real call, for Decide. */
-export interface Kind {
-  id: string;
-  name: string;
-  example: string;
-  options: [string, string];
-  features: { id: string; factor: Factor; text: string }[];
-  /** The ids shown first; the player can swap any. */
-  defaults: string[];
-  /** Completes "Would you still pick X if it …"; holds {x}. */
-  dial: { unit: Unit; steps: number[]; phrase: string };
-  /** Tell's own checklist of things worth finding out. */
-  checks: { id: string; text: string }[];
+  /** The kind of project, for the library: "A house concert". */
+  project: string;
+  setup: string;
+  ask: string;
+  options: Option[];
+  beat: Beat;
+  reask: string;
+  ending: {
+    /** The distinction the story turns on. */
+    point: string;
+    /** Possible readings when the second answer differs from the first. */
+    changed: string[];
+    /** Possible readings when it is the same. */
+    stayed: string[];
+    unknown: string;
+    /** A question to take to a real choice. */
+    apply: string;
+  };
+  features: Feature[];
+  /** Editorial notes: why the episode exists and what it can't show. Shown in the app. */
+  rationale: { distinction: string; alternatives: string; limits: string; relevance: string };
 }
 
 // ---- Records ---------------------------------------------------------------
 
-export type Role = 'probe' | 'stress' | 'connect' | 'depends';
+/** An option id, or 'unsure'. */
+export type Answer = string;
+export const UNSURE = 'unsure';
 
 export type SlideOutcome =
   /** `at` is the first step where the rising option won; steps.length means it never did. */
-  | { kind: 'switch'; at: number }
-  | { kind: 'close'; at: number }
-  /** Stopped at step `at`; Tell fills in what it depended on from the experiment. */
-  | { kind: 'depends'; at: number; on: 'alt' | 'condition' | 'else'; factor?: Factor; tag?: Tag; label?: string };
+  { kind: 'switch'; at: number } | { kind: 'close'; at: number };
 
-interface RunBase {
+export type BeatAnswer =
+  | { kind: 'twist' }
+  | { kind: 'widen'; picked: string[] }
+  | { kind: 'cut'; order: string[] }
+  | { kind: 'peek'; opened: { fact: number; lean: Answer }[]; wouldHave: number[] }
+  | { kind: 'slide'; asked: { step: number; pick: Side }[]; outcome: SlideOutcome };
+
+/** One play of an episode: hypothetical answers to an invented story. */
+export interface Play {
   id: string;
-  session: string;
-  role: Role;
-  card: string;
+  episode: string;
   v: number;
-  context: Context;
-  title: string;
   at: string;
   day: string;
+  /** Earlier plays of the same episode: 0 the first time. A replay is never a new example. */
+  replay: number;
+  /** The episode as it was shown. */
+  shown: Omit<Episode, 'rationale'>;
+  first: Answer;
+  beat: BeatAnswer;
+  final: Answer;
 }
 
-export interface SlideRun extends RunBase {
-  mechanic: 'slide';
-  /** The amount that changed, then what it was traded for. */
-  tradeoff: [Factor, Factor];
-  dial: 'main' | 'alt';
-  measure: string;
-  unit: Unit;
-  steps: number[];
-  rises: Side;
-  condition?: { tag: Tag; label: string };
-  /** The interval guessed before playing, 0..steps.length. */
-  guess?: number;
-  asked: { step: number; pick: Side }[];
-  outcome: SlideOutcome;
-}
-
-export interface CutRun extends RunBase {
-  mechanic: 'cut';
-  items: { id: string; factor: Factor; text: string }[];
-  /** Ids in the order they were cut; the one never cut is `winner`. */
-  order: string[];
-  winner: string;
-}
-
-export interface SpendRun extends RunBase {
-  mechanic: 'spend';
-  features: { id: string; factor: Factor; label: string }[];
-  coins: number[];
-  /** Feature indexes. */
-  clashes: { a: number; b: number; pick: number }[];
-}
-
-export type Lean = Side | 'none';
-
-export interface PeekRun extends RunBase {
-  mechanic: 'peek';
-  a: string;
-  b: string;
-  facts: { id: string; factor: Factor; label: string }[];
-  before: Lean;
-  /** Fact indexes in the order opened, with the lean after each. */
-  opened: { fact: number; lean: Lean }[];
-  pick: Side;
-  /** Unopened facts the player said would have changed the pick. */
-  wouldHave: number[];
-}
-
-export type Run = SlideRun | CutRun | SpendRun | PeekRun;
-
-/** One planned experiment in a set, with the published reason it was chosen. */
-export interface Step {
-  card: string;
-  role: Role;
-  condition: boolean;
-  dial: 'main' | 'alt';
-  /** For an alt-dial Slide: the main step held fixed, where the player said "It depends". */
-  hold?: number;
-  reason: string;
-}
-
-/** The day's set: steps are planned one at a time and stored, so a reload never changes it. */
-export interface Session {
+export interface ChoiceOption {
   id: string;
-  day: string;
-  steps: Step[];
-  done: boolean;
+  text: string;
+  shape?: Shape;
 }
 
-export type Answer3 = 'yes' | 'no' | 'unsure';
-export type Went = 'better' | 'expected' | 'worse';
-export type Mattered = 'more' | 'expected' | 'less';
+export type Changes = 'yes' | 'no' | 'unsure';
+export type How = 'ask' | 'look' | 'try' | 'wait' | 'cant';
 
-export interface Call {
-  id: string;
-  at: string;
-  day: string;
-  kind: string;
-  title: string;
-  options: [string, string];
-  items: { id: string; factor: Factor; text: string; own?: true }[];
-  order: string[];
-  winner: string;
-  lean: Lean;
-  slide?: { unit: Unit; steps: number[]; phrase: string; asked: { step: number; pick: Side }[]; outcome: SlideOutcome };
-  unknowns: { id: string; text: string; check?: string; answer: Answer3 }[];
-  due: string;
-  follow?: {
-    at: string;
-    /** A random id for the lesson this call teaches, so a shared file can't count it twice. */
-    lesson: string;
-    chose: Side | 'neither';
-    went: Went;
-    mattered: { item: string; how: Mattered }[];
-    missed: { check?: string; text?: string }[];
-  };
-}
-
-/** What a closed call teaches, in fixed vocabulary only: shareable without any of the player's words. */
-export interface Lesson {
-  /** Random, from the follow-up: says nothing about the call. */
-  id: string;
-  kind: string;
-  went: Went;
-  mattered: { feature: string; how: Mattered }[];
-  missed: string[];
-  /** Things missed that aren't on Tell's checklist; their words never leave the device. */
-  other: number;
-}
-
-export interface PoolSource {
-  id: string;
-  added: string;
-  lessons: Lesson[];
-}
-
-export type Verdict = 'right' | 'coincidence' | 'unsure';
-
-export const VERDICTS: Record<Verdict, string> = {
-  right: 'Seems right',
-  coincidence: 'Coincidence',
-  unsure: 'Not sure',
+export const CHANGES: Record<Changes, string> = { yes: 'Yes', no: 'No', unsure: 'Not sure' };
+export const HOW: Record<How, string> = {
+  ask: 'Ask someone',
+  look: 'Look it up',
+  try: 'Try something small',
+  wait: 'Wait and see',
+  cant: 'Can’t find out',
 };
 
-/** The player's view of a pattern: a note filed with the counts it was given against, never evidence. */
-export interface Note {
-  pattern: string;
-  verdict: Verdict;
-  counts: string;
+export type Ref = { kind: 'takeaway' | 'choice'; id: string };
+
+/** A past example offered during a choice, as it was shown, and the player's answer. */
+export interface Match {
+  ref: Ref;
+  answer: 'applies' | 'not' | 'unsure';
+  /** The example's words and source when it was offered. */
+  shown: string;
+  /** Why it appeared; empty when the player picked it themselves. */
+  why: string;
+  manual: boolean;
   at: string;
 }
 
-export type Rating = 'useful' | 'interesting' | 'meh';
+/** Everything the player says about a real choice. A save snapshots it. */
+export interface ChoiceContent {
+  title: string;
+  situation: string;
+  circumstances: Circumstance[];
+  /** What feels unresolved; `unsure` means look at all four. */
+  parts: Part[];
+  unsure: boolean;
+  /** A question carried over from an episode, or empty. */
+  prompt: string;
+  worth: string;
+  notWorth: string;
+  options: ChoiceOption[];
+  /** An option id, or empty for no lean. */
+  lean: string;
+  criteria: { id: string; text: string; must: boolean }[];
+  /** The criterion that matters most right now, or empty. */
+  top: string;
+  /** Options a must-have rules out. */
+  ruledOut: string[];
+  unknowns: { id: string; text: string; kind: 'fact' | 'assumption'; changes?: Changes; how?: How }[];
+  matches: Match[];
+  clearer: string;
+  unresolved: string;
+  next: { kind: NextKind; text: string } | null;
+  /** Recorded when the player plans to act or test something. `by` is a day, or empty. */
+  expectation: { text: string; by: string } | null;
+}
 
-export const RATINGS: Record<Rating, string> = { useful: 'Useful', interesting: 'Interesting', meh: 'Meh' };
+export type FlowStep = 'start' | 'unresolved' | Part | 'examples' | 'summary';
 
-export type Currency = 'GBP' | 'EUR' | 'USD';
+export interface Outcome {
+  id: string;
+  at: string;
+  state: 'happened' | 'too-early' | 'plans-changed';
+  /** The expectation as it stood when this was reported. */
+  expected: string;
+  compared: 'as-expected' | 'different' | 'partly' | '';
+  what: string;
+  surprise: string;
+  settled: boolean;
+  lesson: 'none' | 'kept' | 'revised';
+  takeaway: string;
+}
 
-export const SCHEMA = 2;
+export interface Choice extends ChoiceContent {
+  id: string;
+  created: string;
+  updated: string;
+  /** Being written or revised. */
+  draft: boolean;
+  step: FlowStep;
+  /** Append-only: what was saved, each time. */
+  saves: { at: string; content: ChoiceContent }[];
+  outcomes: Outcome[];
+}
+
+export type Source =
+  | { kind: 'play'; play: string }
+  | { kind: 'choice'; choice: string; save: number }
+  | { kind: 'outcome'; choice: string; outcome: string }
+  | { kind: 'own' }
+  | { kind: 'earlier'; schema: number };
+
+/** An interpretation the player chose to keep. Revising adds a version; the first stays. */
+export interface Takeaway {
+  id: string;
+  at: string;
+  source: Source;
+  versions: { at: string; text: string }[];
+  features: Feature[];
+  /** When it was retired, or empty. */
+  retired: string;
+}
+
+/** Earlier versions of Tell, by the schema they saved. */
+export const EARLIER: Record<number, string> = { 1: 'the first version of Tell', 2: 'Tell’s choice-experiments version' };
+export const earlierName = (schema: number) => EARLIER[schema] ?? `an earlier version of Tell (schema ${schema})`;
+
+/** A document from an earlier version of Tell, kept exactly as it was. */
+export interface Archived {
+  schema: number;
+  at: string;
+  doc: Record<string, unknown>;
+}
+
+export const SCHEMA = 3;
 
 export interface TellState {
   schema: typeof SCHEMA;
-  currency: Currency;
-  runs: Run[];
-  session: Session | null;
-  calls: Call[];
-  notes: Note[];
-  principles: { id: string; text: string; at: string; call?: string }[];
-  ratings: { session: string; rating: Rating; at: string }[];
-  pool: PoolSource[];
+  plays: Play[];
+  choices: Choice[];
+  takeaways: Takeaway[];
+  archive: Archived[];
 }

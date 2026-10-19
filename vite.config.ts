@@ -45,7 +45,7 @@ export default defineConfig({
       manifest: {
         name: 'Tell',
         short_name: 'Tell',
-        description: 'Small choice experiments that show what actually matters to you when you choose.',
+        description: 'See what would make a choice clearer: short stories to think with, and a workshop for your own choices.',
         lang: 'en-GB',
         theme_color: '#f4f1ea',
         background_color: '#f4f1ea',

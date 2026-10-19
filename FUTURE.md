@@ -3,39 +3,33 @@
 Each entry must pass the charter's feature test before it ships. None is a commitment. Delete an
 entry when it ships or is abandoned.
 
-## A generated content pipeline (the main candidate)
+## Shared lessons
 
-Write the recipe, not the questions: a model drafts structured ingredients offline, in batches by
-trade-off and context; `content.test.ts` rejects what breaks the recipe; a person reviews what
-passes. Only numbers vary at runtime. Watch set ratings on About: experiments in "Meh" sets get
-rewritten or retired. Until then, content is written by hand to the same recipe.
+The choice-experiments version swapped closed-call lessons as files of fixed vocabulary
+(`DECISIONS.md`, 2026-10-14). 2.0 removed it from the main experience. If it returns, it should
+share kept takeaways' structure, never the player's words, and count each source once, as
+matching already does. A server pool would reverse the no-network rule and needs an owner decision.
 
-## A shared lessons pool on a server
+## More episodes
 
-The file swap (v2) shows the shape. A pool would be opt-in, carry the same fixed-vocabulary
-lessons, and show an item only above a much larger threshold (for example 50 calls of a kind).
-Needs an owner decision: it reverses the no-network rule for that one feature.
+The library is finite on purpose. New episodes are a content release: written to the shape in
+`AGENTS.md`, each with a rationale, read by a person. Candidates the pilot may point to: waiting
+as the strongest option; a choice where a hard constraint, not a preference, settles it; a
+collaborator's purpose differing from yours. A generation pipeline is out of scope until the
+owner decides otherwise.
 
-## Track record
+## Runtime AI
 
-Ask "how sure?" when saving a call; at follow-up, show how often each level of certainty went as
-expected, as counts once five calls are closed. Later, estimates against what actually happened.
-
-## More kinds of call
-
-Hiring help, moving, health and gear. Each needs features with factors, a dial and a checklist.
-
-## A daily dilemma with a share card
-
-One Slide the same for everyone each day (no server: chosen by date), with a result card the
-player can share by hand. Only if it passes the feature test and stays free of pressure.
-
-## Freshness
-
-A fixed library ages. Mitigations, in order: more experiments to the recipe, the pipeline above,
-retests that show change over time.
+The brief says "not yet". If it comes, it must stay optional, never interpret answers into traits
+or recommendations, and keep the four kinds of record apart. Until then, the plain-text export is
+the bridge to the player's own AI.
 
 ## Sync between devices
 
-If the owner wants it: whole snapshots to the owner's own GitHub data repo, decided by content
-hash, reusing Practice Compass's model. Export and restore stay the fallback.
+If wanted: whole snapshots to the owner's own repository, decided by content hash, reusing
+Practice Compass's model. Export and restore stay the fallback.
+
+## A reminder the player sets
+
+Only if pilots ask for it, and only as something the player explicitly schedules outside Tell
+(for example, a calendar file). Tell itself never notifies.

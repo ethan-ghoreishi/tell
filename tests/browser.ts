@@ -87,3 +87,18 @@ export async function openApp(
 /** Nothing on the page may scroll sideways on a phone. */
 export const overflowsSideways = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+
+/** Only <main> scrolls: the page itself never does. */
+export const pageScrolls = (page: Page) =>
+  page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 1);
+
+/** Controls smaller than 44px in either direction (inline text links excepted). */
+export const smallTargets = (page: Page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll<HTMLElement>('button, input, textarea, select, summary, a.btn, a.tab, a.cell-head, a.card')]
+      .filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && (r.height < 44 || r.width < 44);
+      })
+      .map((el) => `${el.tagName.toLowerCase()} “${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 40)}” ${Math.round(el.getBoundingClientRect().width)}×${Math.round(el.getBoundingClientRect().height)}`),
+  );

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { CARDS, KINDS } from '../domain/content';
-import { addCall, addNote, addPool, addPrinciple, bracket, currentStep, emptyState, followUp, lessonsFile, nextAsk, rate, record, startSet } from '../domain/engine';
+import { EPISODES } from '../domain/episodes';
+import { addOutcome, answerExample, bracket, createChoice, editChoice, emptyState, examplePool, keep, nextAsk, recordPlay, retire, revise, saveChoice } from '../domain/engine';
 import type { Side, TellState } from '../domain/types';
-import { readLessons, validateState } from '../domain/validate';
-import { STORAGE_KEY, createStore, type StorageLike } from './store';
+import { validateState } from '../domain/validate';
+import { STORAGE_KEY, createStore, readBackup, type StorageLike } from './store';
 
-// Persistence and data safety, against an in-memory stand-in for localStorage.
+// Persistence, migration and data safety, against an in-memory stand-in for localStorage.
 
 function memory(initial?: string) {
   const data = new Map<string, string>(initial === undefined ? [] : [[STORAGE_KEY, initial]]);
@@ -22,24 +22,49 @@ function memory(initial?: string) {
 }
 
 const now = new Date(2026, 9, 1, 9);
-/** Today's first experiment, a Slide, played through. */
-const played = () => {
-  const s = startSet(emptyState(), CARDS, now);
-  const asked: { step: number; pick: Side }[] = [];
-  for (let st = nextAsk(7, 'b', asked); st !== null; st = nextAsk(7, 'b', asked)) asked.push({ step: st, pick: st >= 3 ? 'b' : 'a' });
-  return record(s, CARDS, { mechanic: 'slide', guess: 2, asked, outcome: { kind: 'switch', at: bracket(7, 'b', asked).lo } }, now);
-};
+const played = (s: TellState = emptyState()) => recordPlay(s, EPISODES, 'ev-cafe', { first: 'framed', beat: { kind: 'twist' }, final: 'grid' }, now);
 
 /** Everything a player can record, so validation is checked against what the engine really writes. */
 function everything(): TellState {
   let s = played();
-  while (currentStep(s, now)) s = record(s, CARDS, { mechanic: 'slide', asked: [], outcome: { kind: 'depends', at: 3, on: 'else' } }, now);
-  const k = KINDS[0];
-  s = addCall(s, { kind: k.id, title: 'Camera', options: ['Keep', 'Buy'], items: [...k.features.slice(0, 4), { id: 'own-1', factor: 'quality', text: 'Low light', own: true }], order: ['price', 'quality', 'daily', 'reliable'], winner: 'own-1', lean: 'b', slide: { unit: 'money', steps: k.dial.steps, phrase: k.dial.phrase, asked: [{ step: 3, pick: 'a' }], outcome: { kind: 'close', at: 5 } }, unknowns: [{ id: 'u1', text: 'Return window', check: 'return-window', answer: 'yes' }] }, 14, now);
-  s = followUp(s, s.calls[0].id, { lesson: '0a1b2c3d', chose: 'b', went: 'better', mattered: [{ item: 'price', how: 'less' }], missed: [{ check: 'resale' }, { text: 'Strap' }] }, now);
-  s = addNote(addPrinciple(rate(s, s.session!.id, 'interesting', now), 'Light beats fast', now, s.calls[0].id), 'change:sl-shop', 'unsure', '1 / 2', now);
-  const pooled = addPool(s, [{ ...JSON.parse(lessonsFile(s)).lessons[0], id: 'theirs01' }], now);
-  return pooled.ok ? pooled.state : s;
+  const asked: { step: number; pick: Side }[] = [];
+  for (let st = nextAsk(7, 'a', asked); st !== null; st = nextAsk(7, 'a', asked)) asked.push({ step: st, pick: st >= 4 ? 'a' : 'b' });
+  s = recordPlay(s, EPISODES, 'ev-testers', { first: 'unsure', beat: { kind: 'slide', asked, outcome: { kind: 'switch', at: bracket(7, 'a', asked).lo } }, final: 'launch' }, now);
+  s = recordPlay(s, EPISODES, 'ev-mugs', { first: 'make', beat: { kind: 'peek', opened: [{ fact: 2, lean: 'not' }], wouldHave: [3] }, final: 'not' }, now);
+  s = recordPlay(s, EPISODES, 'po-rewrite', { first: 'keep', beat: { kind: 'widen', picked: ['part', 'done'] }, final: 'done' }, now);
+  s = recordPlay(s, EPISODES, 'pr-journal', { first: 'local', beat: { kind: 'cut', order: ['devices', 'friends', 'safe', 'noserver'] }, final: 'local' }, now);
+  s = keep(s, 't1', 'Check where a limit came from', { kind: 'play', play: s.plays[0].id }, now);
+  s = createChoice(s, 'c1', now);
+  s = editChoice(
+    s,
+    'c1',
+    {
+      title: 'Show at the café',
+      situation: 'They offered March',
+      circumstances: ['public', 'deadline'],
+      parts: ['possibilities', 'evidence'],
+      options: [
+        { id: 'o1', text: 'Framed' },
+        { id: 'o2', text: 'Ask them', shape: 'ask' },
+      ],
+      lean: 'o2',
+      criteria: [{ id: 'k1', text: 'Under budget', must: true }],
+      top: 'k1',
+      ruledOut: ['o1'],
+      unknowns: [{ id: 'u1', text: 'They want frames', kind: 'assumption', changes: 'yes', how: 'ask' }],
+      clearer: 'Ask first',
+      unresolved: 'Budget',
+      next: { kind: 'find-out', text: 'Email them' },
+      expectation: { text: 'They say anything goes', by: '2026-10-08' },
+      step: 'summary',
+    },
+    now,
+  );
+  s = answerExample(s, 'c1', examplePool(s, 'c1')[0], 'applies', false, now);
+  s = saveChoice(s, 'c1', now);
+  s = addOutcome(s, 'c1', 'out1', { state: 'happened', compared: 'as-expected', what: 'Anything goes', surprise: 'They wanted a grid', settled: true, lesson: { kind: 'kept', id: 't2', text: 'Ask early' } }, now);
+  s = revise(retire(s, 't1', now), 't2', 'Ask early, cheaply', now);
+  return s;
 }
 
 describe('store', () => {
@@ -50,12 +75,17 @@ describe('store', () => {
     store.update(played);
     const reopened = createStore(storage).get();
     expect(reopened.status).toBe('ready');
-    if (reopened.status === 'ready') expect(reopened.state.runs).toHaveLength(1);
+    if (reopened.status === 'ready') expect(reopened.state.plays).toHaveLength(1);
+  });
+
+  it('accepts everything the engine writes', () => {
+    const s = everything();
+    expect(validateState(JSON.parse(JSON.stringify(s)), now)).toEqual({ ok: true, state: s });
   });
 
   it('round-trips a backup through export and import exactly', () => {
     const a = createStore(memory());
-    a.update(played);
+    a.update(everything);
     const b = createStore(memory());
     expect(b.importText(a.exportText())).toEqual({ ok: true });
     expect(b.get()).toEqual(a.get());
@@ -70,39 +100,55 @@ describe('store', () => {
     expect(store.exportText()).toBe('{ not json');
   });
 
-  it('refuses data from a newer version, saying so', () => {
-    const store = createStore(memory(JSON.stringify({ ...emptyState(), schema: 3 })));
-    expect(store.get()).toMatchObject({ status: 'refused', newer: true });
+  it('refuses data from a newer version, saying so, and leaves it untouched', () => {
+    const newer = JSON.stringify({ ...emptyState(), schema: 4 });
+    const storage = memory(newer);
+    expect(createStore(storage).get()).toMatchObject({ status: 'refused', newer: true });
+    expect(storage.data.get(STORAGE_KEY)).toBe(newer);
   });
 
-  it('refuses the first version’s data without touching it, and says why', () => {
-    const v1 = JSON.stringify({ schema: 1, answers: [], deal: null, kept: [], disagreed: [], notes: [] });
-    const storage = memory(v1);
+  it('refuses a malformed play, naming it, and changes nothing', () => {
+    const bad = JSON.stringify({ ...emptyState(), plays: [{ id: 'x' }] });
+    const storage = memory(bad);
     const snap = createStore(storage).get();
-    expect(snap).toMatchObject({ status: 'refused', newer: false, raw: v1 });
-    if (snap.status === 'refused') expect(snap.reason).toMatch(/first version of Tell/);
-    expect(storage.data.get(STORAGE_KEY)).toBe(v1);
-  });
-
-  it('refuses a malformed experiment, naming it', () => {
-    const bad = { ...emptyState(), runs: [{ id: 'x' }] };
-    const snap = createStore(memory(JSON.stringify(bad))).get();
     expect(snap.status).toBe('refused');
-    if (snap.status === 'refused') expect(snap.reason).toMatch(/^experiment 1 /);
+    if (snap.status === 'refused') expect(snap.reason).toMatch(/^play 1 /);
+    expect(storage.data.get(STORAGE_KEY)).toBe(bad);
   });
 
-  it('accepts everything the engine writes', () => {
-    const s = everything();
-    expect(s.pool).toHaveLength(1);
-    expect(validateState(JSON.parse(JSON.stringify(s)))).toEqual({ ok: true, state: s });
+  it('carries the first version’s record into the archive, whole', () => {
+    const v1 = { schema: 1, answers: [{ card: 'w-01', pick: 'power', at: '2026-10-08T09:00:00.000Z' }], deal: null, kept: [{ text: 'Kept line' }], disagreed: [], notes: [] };
+    const storage = memory(JSON.stringify(v1));
+    const snap = createStore(storage).get();
+    expect(snap).toMatchObject({ status: 'ready', migrated: 1 });
+    if (snap.status !== 'ready') return;
+    expect(snap.state.archive).toEqual([{ schema: 1, at: expect.any(String), doc: v1 }]);
+    expect(snap.state.takeaways).toEqual([]); // v1's lines described the player; they stay in the archive only
+    expect(JSON.parse(storage.data.get(STORAGE_KEY)!)).toEqual(snap.state); // written once it validated
   });
 
-  it('reads a lessons file through the same strict door', () => {
-    expect(readLessons(lessonsFile(everything()))).toMatchObject({ ok: true, lessons: [{ kind: 'buying' }] });
-    expect(readLessons('{')).toEqual({ ok: false, error: 'That file is not readable JSON.' });
-    expect(readLessons(JSON.stringify({ tell: 'backup' }))).toEqual({ ok: false, error: 'That isn’t a Tell lessons file.' });
-    const words = { tell: 'lessons', v: 1, lessons: [{ id: 'x1', kind: 'buying', went: 'better', mattered: [], missed: ['My camera strap broke'], other: 0 }] };
-    expect(readLessons(JSON.stringify(words))).toEqual({ ok: false, error: 'Lesson 1 holds text that isn’t one of Tell’s ids.' });
+  it('carries version 2 into the archive, and its written principles into takeaways', () => {
+    const v2 = {
+      schema: 2,
+      currency: 'GBP',
+      runs: [{ id: '2026-10-14-0', mechanic: 'slide', card: 'sl-shop' }],
+      session: null,
+      calls: [{ id: 'c-1', title: 'Which laptop' }],
+      notes: [],
+      principles: [
+        { id: 'p-1', text: 'Light beats fast', at: '2026-10-14T10:00:00.000Z', call: 'c-1' },
+        { id: 'p-2', text: '   ', at: '2026-10-14T10:00:00.000Z' },
+      ],
+      ratings: [],
+      pool: [],
+    };
+    const r = readBackup(JSON.stringify(v2), now);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.state.archive[0].doc).toEqual(v2);
+    expect(r.state.takeaways).toEqual([
+      { id: 'earlier-1', at: '2026-10-14T10:00:00.000Z', source: { kind: 'earlier', schema: 2 }, versions: [{ at: '2026-10-14T10:00:00.000Z', text: 'Light beats fast' }], features: [], retired: '' },
+    ]);
   });
 
   it('validates an import completely and changes nothing on refusal', () => {
@@ -110,7 +156,8 @@ describe('store', () => {
     store.update(played);
     const before = store.get();
     expect(store.importText('[]')).toMatchObject({ ok: false });
-    expect(store.importText(JSON.stringify({ ...emptyState(), principles: [{ id: 1 }] }))).toMatchObject({ ok: false, error: expect.stringMatching(/principle/) });
+    expect(store.importText(JSON.stringify({ ...emptyState(), takeaways: [{ id: 1 }] }))).toMatchObject({ ok: false, error: expect.stringMatching(/takeaway 1/) });
+    expect(store.importText(JSON.stringify({ ...emptyState(), schema: 9 }))).toMatchObject({ ok: false, error: expect.stringMatching(/newer/) });
     expect(store.get()).toBe(before);
   });
 
@@ -131,7 +178,7 @@ describe('store', () => {
     expect(snap.status).toBe('ready');
     if (snap.status === 'ready') {
       expect(snap.saveError).toMatch(/couldn’t save/);
-      expect(snap.state.runs).toHaveLength(1);
+      expect(snap.state.plays).toHaveLength(1);
     }
     storage.failWrites = false;
     store.update((s) => s);

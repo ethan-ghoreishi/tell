@@ -1,7 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "tell-dev", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 5291 },
-    { "name": "tell-preview", "runtimeExecutable": "npm", "runtimeArgs": ["run", "preview"], "port": 4291 }
+    { "name": "tell-dev", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 5291, "url": "http://tell.localhost:5291" },
+    { "name": "tell-preview", "runtimeExecutable": "npm", "runtimeArgs": ["run", "preview"], "port": 4291, "url": "http://tell.localhost:4291" }
   ]
 }

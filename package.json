@@ -1,9 +1,9 @@
 {
   "name": "tell",
   "private": true,
-  "version": "0.2.0",
+  "version": "2.0.0",
   "type": "module",
-  "description": "Small choice experiments that show what actually matters to you when you choose. Local-first PWA: no accounts, no runtime AI, nothing leaves the device.",
+  "description": "A playful choice workshop for people making creative work and independent projects: see what would make a choice clearer. Local-first PWA: no accounts, no runtime AI, nothing leaves the device.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

@@ -298,7 +298,7 @@ button {
 }
 
 .btn-sm {
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 14px;
   font-size: 0.875rem;
 }
@@ -323,7 +323,7 @@ button {
 }
 
 .chip {
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 14px;
   border: 1px solid var(--border-strong);
   border-radius: var(--pill);
@@ -448,17 +448,10 @@ button {
 
 /* ---- Map ----------------------------------------------------------------- */
 
-.totals {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  color: var(--text-dim);
-  font-size: 0.9rem;
-}
-
 summary.link {
-  display: inline-block;
-  min-height: 32px;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
   cursor: pointer;
   list-style: none;
 }
@@ -483,17 +476,11 @@ summary.link::-webkit-details-marker {
   border-top: 1px dashed var(--border);
 }
 
-.pick-mark {
-  color: var(--accent);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
 .stack-tight > * + * {
   margin-top: 4px;
 }
 
-.kept-line blockquote {
+.kept-line {
   font: italic 1.05rem/1.45 var(--font-serif);
 }
 
@@ -551,11 +538,7 @@ summary.link::-webkit-details-marker {
   color: var(--accent);
 }
 
-/* ---- Experiments --------------------------------------------------------- */
-
-.reason {
-  color: var(--text-dim);
-}
+/* ---- Stories ------------------------------------------------------------- */
 
 .amount {
   color: var(--accent);
@@ -569,12 +552,6 @@ summary.link::-webkit-details-marker {
   background: var(--accent-soft);
   color: var(--text);
   font-size: 0.95rem;
-}
-
-.choice-preview li {
-  padding: 10px 14px;
-  border: 1px dashed var(--border-strong);
-  border-radius: 12px;
 }
 
 .option.on {
@@ -607,59 +584,8 @@ summary.link::-webkit-details-marker {
   display: block;
 }
 
-.fact .fact-values {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 4px;
-  font-size: 0.92rem;
-}
-
 .fact.open {
   border-style: dashed;
-}
-
-.coin-rows {
-  border-top: 1px solid var(--border);
-}
-
-.coin-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 56px;
-  border-bottom: 1px solid var(--border);
-}
-
-.stepper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.step-btn {
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--border-strong);
-  border-radius: 50%;
-  background: var(--surface);
-  font-size: 1.2rem;
-  line-height: 1;
-}
-
-.step-btn:disabled {
-  opacity: 0.4;
-}
-
-.coin-count {
-  min-width: 2ch;
-  text-align: center;
-  font-weight: 700;
-}
-
-.result {
-  font-size: 1.45rem;
 }
 
 .due {
@@ -697,6 +623,39 @@ summary.link::-webkit-details-marker {
   gap: 8px;
 }
 
+.row > .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.textarea {
+  min-height: 0;
+  padding: 12px 14px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.pre {
+  white-space: pre-wrap;
+}
+
+a.shelf {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.glossary dt {
+  font-weight: 600;
+}
+
+.glossary dd {
+  margin: 0 0 6px;
+}
+
+.card-quiet > summary + * {
+  margin-top: 8px;
+}
+
 .brief {
   margin: 0;
   padding: 14px;
@@ -709,24 +668,6 @@ summary.link::-webkit-details-marker {
 }
 
 /* ---- Map ----------------------------------------------------------------- */
-
-.progress {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--bar-track);
-  overflow: hidden;
-}
-
-.progress > span {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-}
-
-.sub-title {
-  font-size: 1rem;
-  font-weight: 600;
-}
 
 .cells {
   border-top: 1px solid var(--border);
