@@ -1,4 +1,4 @@
-name: Test and deploy to GitHub Pages
+name: Test, and deploy to GitHub Pages when enabled
 
 on:
   push:
@@ -32,11 +32,16 @@ jobs:
       - run: npm test
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
+        if: vars.DEPLOY_PAGES == 'true'
         with:
           path: dist
 
+  # Publishing needs GitHub Pages, which this private repository's plan doesn't
+  # include. Once Pages is available, set the repository variable
+  # DEPLOY_PAGES to true (Settings → Secrets and variables → Actions).
   deploy:
     needs: build
+    if: vars.DEPLOY_PAGES == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

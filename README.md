@@ -44,8 +44,10 @@ in a browser you also use for other local apps: storage is per origin.
 
 ## Deploy
 
-Pushing to `main` runs `.github/workflows/deploy.yml`: the full test suite, then the build, published
-to GitHub Pages. The build uses relative paths and hash routing, so it runs from any sub-path.
+Pushing to `main` runs `.github/workflows/deploy.yml`: the full test suite, then the build. Publishing
+to GitHub Pages is switched on by the repository variable `DEPLOY_PAGES=true`, once Pages is available
+for the repository (GitHub's plan doesn't include Pages for a private repository). The build uses
+relative paths and hash routing, so it runs from any static host or sub-path.
 
 ## How it's built
 
