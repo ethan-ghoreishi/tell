@@ -2,7 +2,91 @@
 
 Durable record of non-obvious choices. Newest first.
 
-## Tell 2.0: a choice workshop (2026-10-19)
+## Tell 3.0: situations and connections (2026-10-20)
+
+**What changed, and why.** The owner's brief (2026-10-20) redefined Tell as a collection of
+intriguing, playable situations that help people notice useful connections between choices,
+built around one hypothesis to test: that enjoyable situations in different settings can reveal
+a useful shared structure when compared. It asked for the smallest coherent Play + Map that can
+test it, and named the main risk: situations that become predictable, and connections that feel
+clever but not useful. It authorised replacing obsolete navigation, content formulas, cadence
+rules and structures, and a clean data reset.
+
+**Replaced (each authorised by the brief):**
+1. *The choice workshop's promise and its two moments* give way to the collection and the
+   hypothesis. "See what would make a choice clearer" is gone from the product.
+2. *Twelve episodes of one shape* (first answer, one move, second answer, readings) are replaced
+   by six situations that vary how they are played. The repeated choose → twist → reconsider
+   formula, "Not sure", Slide, Cut, Peek, widen and twist are retired.
+3. *The four-question backbone* (Purpose, Possibilities, Priorities, Evidence) is replaced by a
+   smaller hidden model (below).
+4. *Bring a choice, takeaways, outcomes and past-example matching* are removed, deferred to
+   `FUTURE.md`. So are Pass the phone and the "Worth keeping?" step: the brief asks for no
+   required writing, filing or reflection, and nothing to approve or maintain.
+5. *Schema 4, a clean reset.* Records from schemas 1–3 are kept whole in an archive.
+
+**The hidden model.** Three questions: the way back (can it be undone, at what price), finding
+out (bought before acting, arriving while you can still act, only by acting, or only after
+committing) and waiting (raises the risk, keeps options at a price, or wears an option away).
+This is the brief's "actions, information, consequences and future options" reduced to the
+three that change how the others play out: the value of finding out depends on whether the
+news arrives before the point of no return and on what undoing would cost; what waiting does
+decides whether keeping an option means holding back or acting now. Rejected: a longer taxonomy
+(stakes, audience, money, time), which the brief names as story ingredients, not dimensions.
+
+**Builder decisions.**
+- *Three pairs, in six places, each pair differing on one question of the model.*
+  The old oak (no way back; facts bought with weeks) and the new loaf (a cheap way back; the
+  shelf is a test). The harvest (news arrives every morning while you can still pick) and the
+  winter order (a lighthouse's forecast comes after the supply boat). Your uncle's boat (waiting keeps her available,
+  for a fee, while lessons answer the question) and the last packet (waiting wears old seed
+  away; keeping it possible means sowing now). These follow the brief's three illustrative
+  structures because, after drafting alternatives (a puppy and a landlord, a ferry ticket, a
+  cottage lease, a glass furnace), they gave the sharpest distinctions in the most varied
+  settings. The third pair adds what the brief's example doesn't: keeping an option open
+  sometimes means acting, not waiting.
+- *Six arrangements of four controls.* Uncover (facts from a budget that can't buy them all),
+  then choose; compare plans, see what follows, choose again; day by day, act or wait; choose,
+  or ask and find another option; one choice and news that comes after it; share ten rows. A test
+  keeps every arrangement distinct. Three situations are a single decision: the brief says some
+  need no twist.
+- *Endings close the story for the path taken* and show other reasonable ways through. No ending
+  reveals an outcome that would make one answer right in hindsight: the oak and the boat stop
+  before the storms and the autumn; the harvest says what each future would mean for the day
+  picked. Where news must come (the lighthouse's forecast, the loaf's Saturday, the beans' one in
+  three), every answer keeps a cost and a case.
+- *Connections are hidden until both situations are played,* and the collection's order keeps
+  partners apart, so one play can't prime the other. An ending says only that one other situation
+  shares something. This also makes the connection the moment the hypothesis is tested.
+- *First plays count.* Later plays come after the player may have seen the comparison. The card
+  says so when there are replays.
+- *Every combination of answers has its own note,* written to add a distinction neither ending
+  states (for example: a tasting tells you what people say, a sale what they do; the same move,
+  waiting, keeps the boat and wears the beans away). Notes for answers that fit the structure
+  "neatly" were rewritten so they don't read as endorsed. What the answers can't show is a fixed
+  sentence in code, naming the pair's other differences.
+- *Connections rest on a declared field of the model,* checked by test, so none can rest on
+  shared words.
+- *Older data is archived, not migrated.* 2.0's records (choices, takeaways, readings) answer
+  different questions, and the brief allows a reset. A real 2.0 document, written by 2.0's own
+  engine before it was deleted, is the test fixture for load, Restore and download.
+- *Three tabs: Play, Map, About.* The archive lives in About with the data controls.
+- *Neutral buttons where a default could nudge:* "Decide without finding out" and the allocation's
+  "Done" are not primary, and the plot starts as it always is (ten rows of usual vegetables).
+
+**Editorial review.** Every path and combination was printed and read against the brief's
+questions: immediately interesting, several plausible responses, the interaction revealing more
+than the opening question, a structure clear enough to compare, a connection that earns more
+than "so what?", curiosity to play another. Changes from that read: the beans' "a few rows"
+ending lost its hindsight advantage; four notes that restated the structure were rewritten to
+add a distinction. Passing tests are not evidence of enjoyment or usefulness; `PILOT.md` is.
+
+**Untested hypotheses**, for the pilot: that the situations stay interesting rather than
+predictable; that the connections are useful, not just clever.
+
+---
+
+## Tell 2.0: a choice workshop (2026-10-19; superseded by 3.0)
 
 **What changed, and why.** The owner's brief (2026-10-19) redefined Tell: a playful choice
 workshop for people making creative work and independent projects, with the promise "See what

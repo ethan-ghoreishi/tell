@@ -1,39 +1,31 @@
 # Tell
 
-**See what would make a choice clearer.**
+**Small situations to play, and what connects the choices you make in them.**
 
-Tell is a playful choice workshop for people making creative work and independent projects. Two
-ways in:
+Six invented situations, each a small choice somewhere different and two or three minutes long:
+an old oak leaning over a school path, a new loaf in an old bakery, a vineyard waiting on a
+storm, a lighthouse keeper's winter order, an uncle's wooden boat, a packet of seeds nobody grows
+any more. Each is played its own way (finding things out from a budget, comparing plans, waiting
+day by day, sharing ten rows, asking and finding another option) and ends when its story does,
+with other reasonable ways through.
 
-- **Bring a choice** you keep circling. Give it a title, pick what feels unresolved (or "Not
-  sure"), and Tell walks you through only those parts of four questions: **Purpose** (what would
-  make it worthwhile?), **Possibilities** (are these the right options?), **Priorities** (what
-  matters when good things conflict?) and **Evidence** (what could change what you'd do?). It ends
-  with an editable summary of what became clearer, what's still open and an optional next move,
-  with an expectation you can compare against later. Drafts save as you type.
-- **Play a story**: twelve short invented stories, three per question, each with a first answer,
-  one twist or reveal (a Cut, a Peek, a Slide, more options, or a change of context), a second
-  answer and an ending that keeps what you answered apart from what it might mean and what stays
-  unknown.
+Some share a shape with another set somewhere quite different. Once both have been played, the
+**Map** shows what connects them, what you chose in each, a note for that combination of
+choices, and a question to take elsewhere. It shows what you chose, never why, and never
+describes you. Whether those connections are useful is the hypothesis Tell exists to test.
 
-The **Map** puts your current choices and the takeaways you chose to keep first, with the full
-history underneath: every play, save and outcome, labelled by kind, with its evidence. During a
-real choice, Tell may offer up to two past examples that share its structure, saying why each
-appeared; you decide whether it applies.
+No accounts, analytics or AI. Everything stays on your device.
 
-Tell never chooses for you, never reads meaning into your words, and never scores, reminds or
-nudges. Everything stays on your device.
-
-Why it exists and its method: [CHARTER.md](CHARTER.md). Rules for changing it:
-[AGENTS.md](AGENTS.md). The dated why: [DECISIONS.md](DECISIONS.md). Not yet built:
-[FUTURE.md](FUTURE.md). How to pilot it: [PILOT.md](PILOT.md).
+Why it exists: [CHARTER.md](CHARTER.md). Rules for changing it: [AGENTS.md](AGENTS.md). The
+dated why: [DECISIONS.md](DECISIONS.md). Not yet built: [FUTURE.md](FUTURE.md). How to pilot it:
+[PILOT.md](PILOT.md).
 
 ## Run it
 
 ```bash
 npm install
 npm run dev        # http://tell.localhost:5291
-npm test           # unit tests, episode checks, contrast, browser journeys (Chromium + WebKit), production build
+npm test           # unit, content and review tests, contrast, browser journeys (Chromium + WebKit), production build
 npm run build      # type-check and build the PWA into dist/
 npm run preview    # serve the build on http://tell.localhost:4291
 ```
@@ -42,12 +34,18 @@ The browser journeys need Playwright's Chromium and WebKit (`npx playwright inst
 They fail, rather than skip, if a browser is missing. Use `tell.localhost` rather than `localhost`
 in a browser you also use for other local apps: storage is per origin.
 
+To read every way through every situation and every connection's notes (the editorial review):
+
+```bash
+REVIEW_FILE=/tmp/review.txt npx vitest run tests/review.test.ts
+```
+
 ## Deploy
 
-Pushing to `main` runs `.github/workflows/deploy.yml`: the full test suite, then the build. Publishing
-to GitHub Pages is switched on by the repository variable `DEPLOY_PAGES=true`, once Pages is available
-for the repository (GitHub's plan doesn't include Pages for a private repository). The build uses
-relative paths and hash routing, so it runs from any static host or sub-path.
+Pushing to `main` runs `.github/workflows/deploy.yml`: the full test suite, then the build, then
+GitHub Pages (switched on by the repository variable `DEPLOY_PAGES=true`):
+https://ethan-ghoreishi.github.io/tell/. The build uses relative paths and hash routing, so it
+runs from any static host or sub-path. An installed copy asks before updating.
 
 ## How it's built
 
@@ -55,20 +53,19 @@ relative paths and hash routing, so it runs from any static host or sub-path.
 | --- | --- |
 | UI | React 19, TypeScript, Vite, hand-written CSS (`src/styles/global.css`) |
 | PWA | `vite-plugin-pwa`, prompts before updating, CSP `connect-src 'self'` |
-| Data | One validated JSON document in localStorage; export, restore, plain text |
+| Data | One validated JSON document in localStorage; backup, restore, plain text |
 | Logic | Pure domain in `src/domain/` with an explicit clock |
 | Tests | Vitest, plus Playwright driven as a library at phone sizes |
 
 ```
 src/
-  domain/   types, episodes (content and rationale), engine (plays, choices, takeaways,
-            outcomes, matching, text), validate (the one door, and migration), text
-  mechanics.tsx  Slide and Cut, shared by episodes
+  domain/   types (the model), situations (content and connections), engine (plays, endings,
+            connections, plain text), validate (the one door), text
+  steps.tsx the four controls: choose, uncover, allocate, days
   store/    persistence and data safety
-  pages/    Home, Episode (play, ending, pass the phone), Choice (flow, saved view, follow-up),
-            Map, About
+  pages/    Home (the collection), Play (a situation and its ending), Map, About
   styles/   design tokens and components
-tests/      contrast check, browser journeys, production build
+tests/      review walk, contrast, browser journeys, production build, a real 2.0 document
 ```
 
 Icons are generated from `public/icon.svg` with `npm run icons`.

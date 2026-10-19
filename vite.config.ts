@@ -45,7 +45,7 @@ export default defineConfig({
       manifest: {
         name: 'Tell',
         short_name: 'Tell',
-        description: 'See what would make a choice clearer: short stories to think with, and a workshop for your own choices.',
+        description: 'Small situations to play, and what connects the choices you make in them.',
         lang: 'en-GB',
         theme_color: '#f4f1ea',
         background_color: '#f4f1ea',

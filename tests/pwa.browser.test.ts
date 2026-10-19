@@ -46,7 +46,7 @@ describe.each([
       });
 
       await page.goto(url);
-      await page.getByRole('heading', { name: 'See what would make a choice clearer' }).waitFor();
+      await page.getByRole('heading', { name: 'Pick a situation' }).waitFor();
       expect(await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content')).toContain("connect-src 'self'");
 
       if (engine === 'chromium') {
@@ -56,21 +56,18 @@ describe.each([
         expect(await page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
       }
 
-      // Play a story to its end.
-      await page.getByRole('link', { name: 'Start here: Six evenings' }).click();
-      await page.getByRole('button', { name: 'Start', exact: true }).click();
+      // Play a situation to its end.
+      await page.getByRole('link', { name: /The winter order/ }).click();
       await page.locator('button.option').first().click();
-      await page.getByRole('button', { name: 'Continue', exact: true }).click();
-      await page.locator('button.option').nth(1).click();
-      await page.getByRole('heading', { name: 'What you answered' }).waitFor();
+      await page.getByRole('heading', { name: 'What you did' }).waitFor();
 
       if (engine === 'chromium') {
         // Offline, the app and the play are still there.
         await context.setOffline(true);
         await page.reload();
-        await page.getByRole('heading', { name: 'What you answered' }).waitFor();
+        await page.getByRole('heading', { name: 'What you did' }).waitFor();
         await page.getByRole('link', { name: 'Map', exact: true }).click();
-        await page.getByText(/^Play: answers to invented stories/).waitFor();
+        await page.getByRole('heading', { name: 'What you chose' }).waitFor();
         await context.setOffline(false);
       }
 
@@ -85,7 +82,7 @@ describe.each([
       await page.evaluate(() => localStorage.clear());
       await page.reload();
       page.once('dialog', (d) => {
-        expect(d.message()).toContain('Restore this backup of 1 play, 0 choices and 0 takeaways?');
+        expect(d.message()).toBe('Restore this backup of 1 play?');
         void d.accept();
       });
       await page.getByLabel('Backup file').setInputFiles(file);

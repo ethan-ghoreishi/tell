@@ -1,0 +1,202 @@
+{
+  "schema": 3,
+  "plays": [
+    {
+      "id": "p1-1792404000000",
+      "episode": "pu-projects",
+      "v": 1,
+      "at": "2026-10-19T10:00:00.000Z",
+      "day": "2026-10-19",
+      "replay": 0,
+      "shown": {
+        "id": "pu-projects",
+        "v": 1,
+        "part": "purpose",
+        "title": "Six evenings",
+        "project": "Side projects",
+        "setup": "You have three projects half-done: a short story collection, a podcast pilot and a small app. You have about six free evenings a month. A friend asks which one gets them this season.",
+        "ask": "Where do the evenings go?",
+        "options": [
+          {
+            "id": "stories",
+            "text": "The stories: they’re closest to done"
+          },
+          {
+            "id": "podcast",
+            "text": "The podcast: it’s the most fun to make"
+          },
+          {
+            "id": "app",
+            "text": "The app: the most people might use it"
+          }
+        ],
+        "beat": {
+          "kind": "twist",
+          "text": "Now suppose that, in this story, none of the three will ever reach more than you and a handful of friends. Nothing else changes."
+        },
+        "reask": "Then where do the evenings go?",
+        "ending": {
+          "point": "Taking one hoped-for outcome off the table shows whether a choice was resting on it.",
+          "changed": [
+            "Something your first answer relied on, perhaps the work reaching people, was gone, and a different reason took over.",
+            "Or the thought experiment is far enough from your real situation that the second answer says little about it."
+          ],
+          "stayed": [
+            "Your answer didn’t rest on reach: it held without it.",
+            "Or you answered with your real situation in mind rather than the imagined one, which is a fair way to answer."
+          ],
+          "unknown": "How many people any of the three would actually reach.",
+          "apply": "If the outcome you’re hoping for were ruled out, would you still choose the same way?"
+        },
+        "features": [
+          "several"
+        ]
+      },
+      "first": "app",
+      "beat": {
+        "kind": "twist"
+      },
+      "final": "stories"
+    }
+  ],
+  "choices": [
+    {
+      "title": "Move the studio",
+      "situation": "",
+      "circumstances": [],
+      "parts": [],
+      "unsure": false,
+      "prompt": "",
+      "worth": "",
+      "notWorth": "",
+      "options": [
+        {
+          "id": "o1",
+          "text": "Stay",
+          "shape": "keep"
+        },
+        {
+          "id": "o2",
+          "text": "Move"
+        }
+      ],
+      "lean": "o2",
+      "criteria": [],
+      "top": "",
+      "ruledOut": [],
+      "unknowns": [],
+      "matches": [],
+      "clearer": "",
+      "unresolved": "",
+      "next": {
+        "kind": "trial",
+        "text": "Rent for a month"
+      },
+      "expectation": {
+        "text": "More light",
+        "by": ""
+      },
+      "id": "c1",
+      "created": "2026-10-19T12:00:00.000Z",
+      "updated": "2026-10-19T13:00:00.000Z",
+      "draft": false,
+      "step": "start",
+      "saves": [
+        {
+          "at": "2026-10-19T13:00:00.000Z",
+          "content": {
+            "title": "Move the studio",
+            "situation": "",
+            "circumstances": [],
+            "parts": [],
+            "unsure": false,
+            "prompt": "",
+            "worth": "",
+            "notWorth": "",
+            "options": [
+              {
+                "id": "o1",
+                "text": "Stay",
+                "shape": "keep"
+              },
+              {
+                "id": "o2",
+                "text": "Move"
+              }
+            ],
+            "lean": "o2",
+            "criteria": [],
+            "top": "",
+            "ruledOut": [],
+            "unknowns": [],
+            "matches": [],
+            "clearer": "",
+            "unresolved": "",
+            "next": {
+              "kind": "trial",
+              "text": "Rent for a month"
+            },
+            "expectation": {
+              "text": "More light",
+              "by": ""
+            }
+          }
+        }
+      ],
+      "outcomes": [
+        {
+          "id": "out1",
+          "at": "2026-10-19T14:00:00.000Z",
+          "state": "happened",
+          "expected": "More light",
+          "compared": "partly",
+          "what": "Light, but noisy",
+          "surprise": "",
+          "settled": false,
+          "lesson": "none",
+          "takeaway": ""
+        }
+      ]
+    }
+  ],
+  "takeaways": [
+    {
+      "id": "t1",
+      "at": "2026-10-19T11:00:00.000Z",
+      "source": {
+        "kind": "play",
+        "play": "p1-1792404000000"
+      },
+      "versions": [
+        {
+          "at": "2026-10-19T11:00:00.000Z",
+          "text": "Check what a choice rests on"
+        }
+      ],
+      "features": [
+        "several"
+      ],
+      "retired": ""
+    }
+  ],
+  "archive": [
+    {
+      "schema": 1,
+      "at": "2026-10-19T09:00:00.000Z",
+      "doc": {
+        "schema": 1,
+        "answers": [
+          {
+            "card": "w-01",
+            "pick": "power",
+            "at": "2026-10-08T09:00:00.000Z"
+          }
+        ],
+        "deal": null,
+        "kept": [],
+        "disagreed": [],
+        "notes": []
+      }
+    }
+  ]
+}

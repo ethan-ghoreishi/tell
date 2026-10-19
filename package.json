@@ -1,9 +1,9 @@
 {
   "name": "tell",
   "private": true,
-  "version": "2.0.0",
+  "version": "3.0.0",
   "type": "module",
-  "description": "A playful choice workshop for people making creative work and independent projects: see what would make a choice clearer. Local-first PWA: no accounts, no runtime AI, nothing leaves the device.",
+  "description": "A collection of small, playable situations, and the connections between the choices made in them. Local-first PWA: no accounts, no runtime AI, nothing leaves the device.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

@@ -3,33 +3,34 @@
 Each entry must pass the charter's feature test before it ships. None is a commitment. Delete an
 entry when it ships or is abandoned.
 
-## Shared lessons
+## Bring a choice
 
-The choice-experiments version swapped closed-call lessons as files of fixed vocabulary
-(`DECISIONS.md`, 2026-10-14). 2.0 removed it from the main experience. If it returns, it should
-share kept takeaways' structure, never the player's words, and count each source once, as
-matching already does. A server pool would reverse the no-network rule and needs an owner decision.
+2.0's flow for a real choice (drafts, the parts that feel unresolved, a summary, voluntary
+follow-up) is deferred, not rejected (`DECISIONS.md`, 2026-10-20). If the pilot shows the
+connections are useful, the natural return is lighter than 2.0's: carry a connection's question
+to a real choice, with no required writing and nothing to file. The 2.0 code is in git history
+(`61ab864`).
 
-## More episodes
+## More situations and connections
 
-The library is finite on purpose. New episodes are a content release: written to the shape in
-`AGENTS.md`, each with a rationale, read by a person. Candidates the pilot may point to: waiting
-as the strongest option; a choice where a hard constraint, not a preference, settles it; a
-collaborator's purpose differing from yours. A generation pipeline is out of scope until the
-owner decides otherwise.
+The collection is finite on purpose; new situations are a content release, written to
+`AGENTS.md`, read path by path. Candidates: a situation where a hard limit, not a preference,
+settles it; one where asking someone else is the way to find out; one where the way back is
+cheap but slow. A connection across more than two situations (what waiting buys in the harvest,
+costs at the oak, and wears away in the packet) only once pairs are shown to be useful, and only
+with notes for every combination.
+
+## Pass the phone
+
+2.0 let a second person play the same story with nothing of theirs saved. Comparing two people
+on one situation is a different hypothesis from comparing one person across two; it waits.
 
 ## Runtime AI
 
-The brief says "not yet". If it comes, it must stay optional, never interpret answers into traits
-or recommendations, and keep the four kinds of record apart. Until then, the plain-text export is
-the bridge to the player's own AI.
+Not yet. If it comes, it must stay optional, never interpret answers into traits or
+recommendations, and never write connections. Until then, the plain-text download is the bridge.
 
 ## Sync between devices
 
 If wanted: whole snapshots to the owner's own repository, decided by content hash, reusing
-Practice Compass's model. Export and restore stay the fallback.
-
-## A reminder the player sets
-
-Only if pilots ask for it, and only as something the player explicitly schedules outside Tell
-(for example, a calendar file). Tell itself never notifies.
+Practice Compass's model. Backup and restore stay the fallback.

@@ -4,22 +4,22 @@ import type { TellState } from '../domain/types';
 import { validateState } from '../domain/validate';
 
 // One JSON document in localStorage, the source of truth on this device.
-// ponytail: localStorage caps out around 5 MB, roughly 20k answers; move to
+// ponytail: localStorage caps out around 5 MB, a few thousand plays; move to
 // IndexedDB if a player ever gets near that.
 //
 // Data safety: a document that can't be read (not JSON, malformed, or from a
 // newer Tell) is REFUSED. Nothing is written over it; the app offers its raw
 // text for download, Restore from a backup, or an explicit Start fresh. A
-// document from an earlier Tell is migrated only after the result validates,
-// with the original kept whole in its archive. A failed write keeps the state
-// in memory and says so; it is never swallowed.
+// document from an earlier Tell is kept whole in the archive of a fresh
+// record, downloadable from About. A failed write keeps the state in memory
+// and says so; it is never swallowed.
 
 export const STORAGE_KEY = 'tell';
 
 export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 export type Snapshot =
-  | { status: 'ready'; state: TellState; saveError: string | null; migrated?: number }
+  | { status: 'ready'; state: TellState; saveError: string | null; archived?: number }
   | { status: 'refused'; reason: string; newer: boolean; raw: string };
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -56,9 +56,9 @@ export function createStore(storage: StorageLike) {
     }
     const v = validateState(parsed, new Date());
     if (!v.ok) return { status: 'refused', reason: v.error, newer: !!v.newer, raw };
-    if (!v.migrated) return { status: 'ready', state: v.state, saveError: null };
-    // Written straight away, so the archive's date is the day it was carried over.
-    return { ...persist(v.state), migrated: v.migrated };
+    if (!v.archived) return { status: 'ready', state: v.state, saveError: null };
+    // Written straight away, so the archive's date is the day it was kept.
+    return { ...persist(v.state), archived: v.archived };
   }
 
   function persist(state: TellState): Extract<Snapshot, { status: 'ready' }> {

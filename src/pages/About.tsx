@@ -1,17 +1,13 @@
 import { useRef, useState, type ChangeEvent } from 'react';
-import { EPISODES } from '../domain/episodes';
-import { MATCH_MAX, MATCH_MIN, localDay, recordText } from '../domain/engine';
-import { FEATURES, PARTS, PART_ORDER, type TellState } from '../domain/types';
-import { Section } from '../mechanics';
+import { localDay, recordText } from '../domain/engine';
+import { CONNECTIONS, SITUATIONS } from '../domain/situations';
+import { earlierName, type TellState } from '../domain/types';
+import { Section } from '../steps';
 import { store } from '../store/store';
-import { download, plural } from '../ui';
+import { download, plural, shortDate } from '../ui';
 
-// How Tell works, stated as the rules the code follows, where its method comes
-// from and what it can't show, and the player's control over their data.
-
-const common = Object.values(FEATURES)
-  .filter((f) => f.group === 'common')
-  .map((f) => f.label);
+// How Tell works, stated as the rules the code follows, what it can't show,
+// and the player's control over their data.
 
 export default function About({ state }: { state: TellState }) {
   return (
@@ -19,128 +15,78 @@ export default function About({ state }: { state: TellState }) {
       <header className="stack">
         <h1 className="title">How Tell works</h1>
         <p className="lede">
-          See what would make a choice clearer. Play a short story or bring a real choice, look at the part that’s unresolved, keep what helps, and come back to
-          what happened if you want to. Tell helps you examine a choice; it never makes one.
+          Tell is a collection of small situations to play. Each works on its own. Some share a shape with another set somewhere quite different, and putting
+          what you chose in the two side by side may show something neither shows alone. That last part is an idea Tell is testing, not a promise.
         </p>
       </header>
 
-      <Section title="Four questions" id="questions">
-        <dl className="glossary">
-          {PART_ORDER.map((p) => (
-            <div key={p}>
-              <dt>
-                <strong>{PARTS[p].name}</strong>
-              </dt>
-              <dd className="dim small">{PARTS[p].question}</dd>
-            </div>
-          ))}
-        </dl>
-        <p className="small dim">
-          They are a light adaptation of two sources: the elements of decision quality used by{' '}
-          <a className="link" href="https://sdg.com/decision-quality/" rel="noreferrer" target="_blank">
-            Strategic Decisions Group
-          </a>{' '}
-          (the right frame, creative alternatives, meaningful information, clear values and trade-offs), and Ralph Keeney’s{' '}
-          <a className="link" href="https://www.sciencedirect.com/science/article/pii/0377221796000045" rel="noreferrer" target="_blank">
-            value-focused thinking
-          </a>{' '}
-          (start from what you want, then create better options; <i>European Journal of Operational Research</i>, 1996).
-        </p>
-        <p className="small dim">
-          Tell uses them to choose which questions to ask and to write its stories. They are not a tested theory of why choices get stuck, not categories of
-          people, and nothing is scored. Tell separates what matters to you, lines you won’t cross, facts you don’t know and things you’re assuming, because
-          each calls for something different; some uncertainty always remains.
-        </p>
-      </Section>
-
-      <Section title="Play" id="play">
+      <Section title="Situations" id="situations">
         <ul className="rules">
           <li>
-            {plural(EPISODES.length, 'invented story', 'invented stories')}, three for each question. Each is short: a situation, a first answer, one change or
-            reveal, a second answer and an ending. Play them in any order, whenever you like; there is nothing to unlock and nothing new arrives by itself.
+            The collection has {plural(SITUATIONS.length, 'invented situation')}, each two or three minutes long, each ending when its story does. Play them in any order, as often as
+            you like. Nothing unlocks, expires or arrives by itself.
           </li>
-          <li>The ending keeps three things apart: what you answered, possible readings of it, and what stays unknown. A reading is about the answers, never about you.</li>
-          <li>Every story says why it exists and what it can’t show, under “About this story” at its end.</li>
-          <li>A replay is shown with your first play of that story. It never counts as a separate example.</li>
-          <li>Pass the phone lets someone else play the same story. Nothing they answer is saved.</li>
-          <li>Facts in a story are invented and marked “In this story”. A story is not evidence about the real world.</li>
+          <li>There are no right answers and nothing is scored. Every situation has several reasonable ways through, and its ending shows some of them.</li>
+          <li>
+            Every situation is written around three questions. Can what you do be undone, and at what price? What can you find out, and when? What does waiting
+            do to what’s still possible?
+          </li>
         </ul>
       </Section>
 
-      <Section title="Bring a choice" id="choose">
-        <ul className="rules">
-          <li>A title is enough to start; you don’t need two finished options. Pick what feels unresolved, or “Not sure” to look at all four.</li>
-          <li>Tell asks only about the parts you pick, in your own words, and keeps them exactly as written. It doesn’t interpret free text.</li>
-          <li>
-            Waiting, keeping things as they are, a smaller trial or asking someone can be options. Stopping without deciding is a fine ending.
-          </li>
-          <li>Everything is saved as a draft as you type, so you can leave and come back. Back and “Change what to look at” are always there.</li>
-          <li>The summary is built from your answers for you to edit. If you plan to act or test something, it asks what you expect, so you can compare later.</li>
-        </ul>
-      </Section>
-
-      <Section title="What Tell keeps" id="keeps">
+      <Section title="Connections" id="connections">
         <ul className="rules">
           <li>
-            Four kinds of record, labelled apart: answers to invented stories, what you said about real choices, things you chose to keep, and what you reported
-            happened. Each keeps its date and where it came from.
+            There are {plural(CONNECTIONS.length, 'connection')}, each written by hand between two situations that share a tension and differ on one of those three
+            questions.
+            Tell never matches words.
           </li>
-          <li>Every play and every save is a snapshot. Revising a choice adds a save; revising a takeaway adds a wording. Earlier ones stay, and so does the evidence.</li>
-          <li>Retiring a takeaway moves it to your history. You can bring it back.</li>
-        </ul>
-      </Section>
-
-      <Section title="How past examples are chosen" id="matching">
-        <ul className="rules">
+          <li>A connection appears once you’ve played both of its situations, and not before: knowing which two go together could shape how you play the second.</li>
           <li>
-            During a choice, Tell may show up to {MATCH_MAX} things from your record: takeaways you kept and your other saved choices. It compares only what you
-            marked: the kinds of option, how an unknown that matters could be found out, assumptions you marked, and the circumstances. It never
-            reads your words.
+            It shows what connects them, what you chose in each, a note written for that combination of choices, and a question to take elsewhere. It uses your
+            first play of each, since later plays come after you’ve seen how they compare.
           </li>
           <li>
-            An example appears only when it shares at least {MATCH_MIN} of those, and at least one is about the choice’s structure rather than its circumstances.
-            Sharing a question (say, both about evidence) never counts, and nor do {common.join(', ')}: nearly every choice has them.
+            Your answers show what you chose, never why. Two situations always differ in more than one way, so different answers can’t show which difference
+            mattered. Tell never describes you, and never treats an answer as a trait.
           </li>
-          <li>Each example says why it appeared, and shows times it applied and things went differently. You say whether it applies, pick one yourself, or use none.</li>
         </ul>
-      </Section>
-
-      <Section title="Coming back" id="follow">
-        <p className="small dim">
-          Whenever you like, add what happened to a saved choice: too early to say, plans changed, or what happened compared with what you expected, and anything
-          that surprised you. There are no reminders and no due dates. Nothing is scored: a good outcome doesn’t prove the reasoning, and a bad one doesn’t
-          disprove it.
-        </p>
       </Section>
 
       <Section title="What Tell can’t show" id="limits">
         <ul className="rules">
-          <li>Answers to an invented story can differ from what you’d do for real. One story is one moment.</li>
-          <li>The four questions organise the conversation; they don’t prove which part of a choice is stuck.</li>
-          <li>Matching is deliberately simple. Two choices with the same shape can differ in everything that matters.</li>
-          <li>
-            Untested so far: whether the stories are enjoyable enough to play unprompted, whether a session leaves a real choice clearer, and whether past
-            examples help more than they distract. These are what the pilot is for.
-          </li>
+          <li>What you’d choose in an invented situation can differ from what you’d do for real. One play is one moment.</li>
+          <li>A connection is an idea to try against your own choices, not a finding about you.</li>
+          <li>Untested so far: whether the situations stay interesting from one to the next, and whether the connections are useful. That is what the pilot is for.</li>
         </ul>
       </Section>
 
       <Section title="Your data" id="data">
         <p className="small dim">
-          No accounts, no analytics and no AI, and the security policy blocks connections to anywhere else. Your record lives in this browser:{' '}
-          {plural(state.plays.length, 'play')}, {plural(state.choices.length, 'choice')}, {plural(state.takeaways.length, 'takeaway')}.
+          No accounts, no analytics and no AI, and the security policy blocks connections to anywhere else. What you play stays in this browser:{' '}
+          {plural(state.plays.length, 'play')}.
         </p>
         <button className="btn btn-block" onClick={() => download(`tell-backup-${localDay(new Date())}.json`, store.exportText())}>
           Export a backup
         </button>
-        <RestoreButton current={state.plays.length + state.choices.length} />
-        <button className="btn btn-block" onClick={() => download(`tell-${localDay(new Date())}.txt`, recordText(state), 'text/plain')}>
-          Download everything as plain text
+        <RestoreButton current={state.plays.length} />
+        <button className="btn btn-block" onClick={() => download(`tell-${localDay(new Date())}.txt`, recordText(state, CONNECTIONS), 'text/plain')}>
+          Download as plain text
         </button>
+        {state.archive.map((a) => (
+          <div key={`${a.schema}-${a.at}`} className="card-quiet stack">
+            <p className="small">
+              Your record from {earlierName(a.schema)}, kept exactly as it was on {shortDate(a.at)}. This version asks different questions, so it doesn’t read it.
+            </p>
+            <button className="btn btn-block" onClick={() => download(`tell-schema-${a.schema}-record.json`, JSON.stringify(a.doc, null, 2))}>
+              Download it
+            </button>
+          </div>
+        ))}
         <button
           className="btn btn-ghost btn-block"
           onClick={() => {
-            if (window.confirm('Delete everything Tell has recorded on this device? This can’t be undone. Export a backup first if you might want it back.')) {
+            if (window.confirm('Delete everything Tell has kept on this device? This can’t be undone. Export a backup first if you might want it back.')) {
               store.erase();
             }
           }}
@@ -167,8 +113,8 @@ export function RestoreButton({ current }: { current?: number }) {
     if (!backup.ok) return setMessage(backup.error);
     const s = backup.state;
     const replacing = current ? ' This replaces what is on this device.' : '';
-    const earlier = s.archive.length ? ` It is from an earlier Tell, and will be kept whole in your history.` : '';
-    if (!window.confirm(`Restore this backup of ${plural(s.plays.length, 'play')}, ${plural(s.choices.length, 'choice')} and ${plural(s.takeaways.length, 'takeaway')}?${earlier}${replacing}`)) return;
+    const what = s.archive.length && !s.plays.length ? `a record from ${earlierName(s.archive[0].schema)}, to be kept as it was` : plural(s.plays.length, 'play');
+    if (!window.confirm(`Restore this backup of ${what}?${replacing}`)) return;
     const result = store.importText(text);
     setMessage(result.ok ? 'Restored.' : result.error);
   }

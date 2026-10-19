@@ -1,162 +1,114 @@
-import { emptyState } from './engine';
-import { CIRCUMSTANCES, FEATURES, HOW, NEXT, PARTS, SCHEMA, SHAPES, UNSURE, type Archived, type TellState } from './types';
+import { answersProblem, emptyState, keysOf, most } from './engine';
+import { MODEL, SCHEMA, type Situation, type TellState } from './types';
 
 // The one door every inbound document passes: what is stored on load and any
 // backup offered to Restore. A refusal names the problem and the caller
-// changes nothing. A wrong type is refused, never coerced. Documents from
-// earlier versions of Tell are migrated: the original is kept whole in the
-// archive, and only the player's own written principles become takeaways.
+// changes nothing. A wrong type is refused, never coerced. A document from an
+// earlier version of Tell is kept whole in the archive; this version asks
+// different questions, so nothing in it is reread.
 
-export type Validation = { ok: true; state: TellState; migrated?: number } | { ok: false; error: string; newer?: boolean };
+export type Validation = { ok: true; state: TellState; archived?: number } | { ok: false; error: string; newer?: boolean };
 
 type Obj = Record<string, unknown>;
 const isObj = (x: unknown): x is Obj => typeof x === 'object' && x !== null && !Array.isArray(x);
 const isStr = (x: unknown): x is string => typeof x === 'string';
+const text = (x: unknown) => isStr(x) && x.trim().length > 0;
 const isInt = (x: unknown): x is number => Number.isInteger(x);
-const isBool = (x: unknown) => typeof x === 'boolean';
 const isDay = (x: unknown) => isStr(x) && /^\d{4}-\d{2}-\d{2}$/.test(x) && !Number.isNaN(Date.parse(x));
 const isTime = (x: unknown) => isStr(x) && !Number.isNaN(Date.parse(x));
-const oneOf = (x: unknown, values: readonly unknown[]) => values.includes(x);
 const listOf = (x: unknown, check: (v: unknown) => boolean) => Array.isArray(x) && x.every(check);
-const keys = (r: object) => Object.keys(r);
-const isOption = (x: unknown) => isObj(x) && isStr(x.id) && !!x.id && isStr(x.text);
-const ids = (xs: unknown) => (xs as Obj[]).map((x) => x.id as string);
 const unique = (xs: string[]) => new Set(xs).size === xs.length;
+const isOption = (x: unknown) => isObj(x) && text(x.id) && text(x.text) && (x.detail === undefined || text(x.detail));
+const isBands = (x: unknown) => listOf(x, (b) => isObj(b) && text(b.id) && isInt(b.upTo)) && (x as unknown[]).length >= 1;
 
-/** An episode's shape, as written in content or as snapshotted in a play. Null when it's sound. */
-export function episodeProblem(e: unknown): string | null {
-  if (!isObj(e)) return 'is not an episode';
-  for (const k of ['id', 'title', 'project', 'setup', 'ask', 'reask']) if (!isStr(e[k]) || !(e[k] as string).trim()) return `has no ${k}`;
-  if (!isInt(e.v) || !oneOf(e.part, keys(PARTS))) return 'has no version or part';
-  if (!listOf(e.options, isOption) || (e.options as unknown[]).length < 2 || (e.options as unknown[]).length > 3) return 'needs two or three options';
-  const b = e.beat;
-  if (!isObj(b)) return 'has no move';
-  const extra: unknown[] = [];
-  if (b.kind === 'twist') {
-    if (!isStr(b.text) || (b.adds !== undefined && !isOption(b.adds))) return 'has a malformed twist';
-    if (b.adds) extra.push(b.adds);
-  } else if (b.kind === 'widen' || b.kind === 'cut') {
-    if (!isStr(b.prompt) || !listOf(b.items, isOption) || (b.items as unknown[]).length < 3 || (b.items as unknown[]).length > 5) return `has a malformed ${b.kind}`;
-    if (b.kind === 'widen') extra.push(...(b.items as unknown[]));
-    else if (!unique(ids(b.items))) return 'repeats an item';
-  } else if (b.kind === 'peek') {
-    const fact = (f: unknown) => isObj(f) && isStr(f.id) && isStr(f.label) && isStr(f.text);
-    if (!isStr(b.prompt) || !listOf(b.facts, fact) || (b.facts as unknown[]).length < 3 || !isInt(b.opens) || b.opens < 1 || b.opens >= (b.facts as unknown[]).length) {
-      return 'has a malformed Peek';
+/** A situation's shape, as written in content or as snapshotted in a play. Null when it's sound. */
+export function situationProblem(x: unknown): string | null {
+  if (!isObj(x)) return 'is not a situation';
+  for (const k of ['id', 'title', 'place', 'hook', 'setup']) if (!text(x[k])) return `has no ${k}`;
+  if (!isInt(x.v) || x.v < 1) return 'has no version';
+  const st = x.structure;
+  if (!isObj(st) || Object.keys(st).length !== Object.keys(MODEL).length || !Object.entries(MODEL).every(([f, m]) => Object.keys(m.values).includes(st[f] as string))) {
+    return 'has no structure in the model';
+  }
+  if (!listOf(x.steps, isObj) || (x.steps as unknown[]).length === 0) return 'has no steps';
+  const steps = x.steps as Obj[];
+  if (!unique(steps.map((s) => s.id as string)) || !steps.every((s) => text(s.id))) return 'repeats a step';
+  for (const [i, s] of steps.entries()) {
+    const p = stepProblem(s);
+    if (p) return `step “${String(s.id)}” ${p}`;
+    if (s.kind === 'choose' && s.before !== undefined) {
+      const k = keyedProblem(s.before, steps.slice(0, i));
+      if (k) return `step “${String(s.id)}” ${k}`;
     }
-    if (!unique(ids(b.facts))) return 'repeats a fact';
-  } else if (b.kind === 'slide') {
-    const steps = b.steps as number[];
-    if (!isStr(b.text) || !isStr(b.measure) || !oneOf(b.unit, ['number', 'percent', 'hours', 'days', 'weeks']) || !oneOf(b.rises, ['a', 'b'])) return 'has a malformed Slide';
-    if (!listOf(steps, isInt) || steps.length !== 7 || steps.some((n, i) => i > 0 && n <= steps[i - 1])) return 'needs seven rising Slide values';
-    if ((e.options as unknown[]).length !== 2) return 'needs two options for a Slide';
-    if (b.actual !== undefined && !(isObj(b.actual) && isInt(b.actual.value) && isStr(b.actual.text))) return 'has a malformed Slide reveal';
-  } else return 'has an unknown move';
-  const all = [...ids(e.options), ...ids(extra)];
-  if (!unique(all) || all.includes(UNSURE)) return 'repeats an option id';
-  const end = e.ending;
-  if (!isObj(end) || !isStr(end.point) || !isStr(end.unknown) || !isStr(end.apply)) return 'has a malformed ending';
-  const readings = (r: unknown) => listOf(r, isStr) && (r as unknown[]).length >= 2;
-  if (!readings(end.changed) || !readings(end.stayed)) return 'needs at least two readings each way';
-  for (const k of ['added', 'followed', 'against']) if (end[k] !== undefined && !readings(end[k])) return `has malformed ${k} readings`;
-  // Every path needs readings written for it.
-  if ((b.kind === 'widen' || (b.kind === 'twist' && b.adds)) && end.added === undefined) return 'needs readings for an added option';
-  if (b.kind === 'slide' && b.actual && (end.followed === undefined || end.against === undefined)) return 'needs readings for following the line and going against it';
-  if (!listOf(e.features, (f) => oneOf(f, keys(FEATURES)))) return 'has an unknown feature';
+  }
+  const end = x.ending;
+  if (!isObj(end) || !text(end.others)) return 'has no ending';
+  const k = keyedProblem(end.closing, steps);
+  return k ? `closing ${k}` : null;
+}
+
+function stepProblem(s: Obj): string | null {
+  const numeric = () => {
+    if (!isBands(s.bands)) return 'has no bands';
+    const bands = s.bands as { id: string; upTo: number }[];
+    if (!unique(bands.map((b) => b.id)) || bands.some((b, i) => i > 0 && b.upTo <= bands[i - 1].upTo) || bands[0].upTo < 0) return 'has bands out of order';
+    // Every number the step can produce falls in a band.
+    if (bands.at(-1)!.upTo < most(s as never)) return 'has bands that miss its largest answer';
+    return null;
+  };
+  const unit = (u: unknown) => listOf(u, text) && (u as unknown[]).length === 2;
+  if (s.kind === 'choose') {
+    if (!text(s.prompt) || !listOf(s.options, isOption) || (s.options as unknown[]).length < 2 || (s.options as unknown[]).length > 4) return 'needs two to four options';
+    const ask = s.ask;
+    if (ask !== undefined && !(isObj(ask) && text(ask.label) && text(ask.did) && text(ask.answer) && isOption(ask.adds))) return 'has a malformed ask';
+    const ids = [...(s.options as Obj[]), ...(isObj(ask) ? [ask.adds as Obj] : [])].map((o) => o.id as string);
+    return unique(ids) ? null : 'repeats an option';
+  }
+  if (s.kind === 'uncover') {
+    const fact = (f: unknown) => isObj(f) && text(f.id) && text(f.label) && text(f.text) && isInt(f.cost) && f.cost >= 1;
+    if (!text(s.prompt) || !isInt(s.budget) || s.budget < 1 || !unit(s.unit) || !listOf(s.facts, fact) || (s.facts as unknown[]).length < 2) return 'is a malformed uncover';
+    if (!unique((s.facts as Obj[]).map((f) => f.id as string))) return 'repeats a fact';
+    // A budget that buys everything leaves nothing to choose.
+    if ((s.facts as Obj[]).reduce((n, f) => n + (f.cost as number), 0) <= s.budget) return 'can open every fact';
+    return numeric();
+  }
+  if (s.kind === 'allocate') {
+    if (!text(s.prompt) || !isInt(s.total) || s.total < 1 || !unit(s.unit) || !listOf(s.items, isOption) || (s.items as unknown[]).length < 2) return 'is a malformed allocate';
+    if (!unique((s.items as Obj[]).map((i) => i.id as string)) || !(s.items as Obj[]).some((i) => i.id === s.measure)) return 'measures an item it doesn’t have';
+    return numeric();
+  }
+  if (s.kind === 'days') {
+    const day = (d: unknown) => isObj(d) && text(d.label) && text(d.text);
+    if (!listOf(s.days, day) || (s.days as unknown[]).length < 2 || !text(s.act) || !text(s.wait) || !text(s.last)) return 'is a malformed days';
+    return numeric();
+  }
+  return 'has an unknown kind';
+}
+
+/** Keyed words must follow an earlier step and cover every answer it can have. */
+function keyedProblem(k: unknown, earlier: Obj[]): string | null {
+  if (text(k)) return null;
+  if (!isObj(k) || !isObj(k.cases)) return 'has malformed words';
+  const step = earlier.find((s) => s.id === k.step);
+  if (!step) return `follows a step that doesn’t come before it (“${String(k.step)}”)`;
+  const keys = keysOf(step as never);
+  const cases = k.cases as Obj;
+  if (Object.keys(cases).length !== keys.length || !keys.every((key) => text(cases[key]))) return `doesn’t cover every answer to “${String(k.step)}”`;
   return null;
 }
 
 function playProblem(p: unknown): string | null {
-  if (!isObj(p) || !isStr(p.id) || !isStr(p.episode) || !isInt(p.v) || !isTime(p.at) || !isDay(p.day) || !isInt(p.replay) || p.replay < 0) return 'is not a play';
-  const shown = episodeProblem(p.shown);
-  if (shown) return `shows an episode that ${shown}`;
-  const b = (p.shown as Obj).beat as Obj;
-  const x = p.beat;
-  if (!isObj(x) || x.kind !== b.kind) return 'has an answer that doesn’t fit its episode';
-  if (x.kind === 'widen' && !listOf(x.picked, isStr)) return 'has malformed answers';
-  if (x.kind === 'cut' && !listOf(x.order, isStr)) return 'has malformed answers';
-  if (x.kind === 'peek' && !(listOf(x.opened, (o) => isObj(o) && isInt(o.fact) && isStr(o.lean)) && listOf(x.wouldHave, isInt))) return 'has malformed answers';
-  if (x.kind === 'slide') {
-    const o = x.outcome;
-    if (!listOf(x.asked, (a) => isObj(a) && isInt(a.step) && oneOf(a.pick, ['a', 'b'])) || !isObj(o) || !oneOf(o.kind, ['switch', 'close']) || !isInt(o.at)) return 'has malformed answers';
-  }
-  if (!isStr(p.first) || !isStr(p.final)) return 'has malformed answers';
-  return null;
+  if (!isObj(p) || !text(p.id) || !text(p.situation) || !isInt(p.v) || !isTime(p.at) || !isDay(p.day) || !isInt(p.replay) || p.replay < 0) return 'is not a play';
+  const shown = situationProblem(p.shown);
+  if (shown) return `shows a situation that ${shown}`;
+  const s = p.shown as unknown as Situation;
+  if (s.id !== p.situation || s.v !== p.v) return 'shows a different situation from the one it names';
+  return answersProblem(s, p.answers);
 }
 
-const isRef = (r: unknown) => isObj(r) && oneOf(r.kind, ['takeaway', 'choice']) && isStr(r.id);
-
-function contentProblem(c: Obj): string | null {
-  for (const k of ['title', 'situation', 'prompt', 'worth', 'notWorth', 'lean', 'top', 'clearer', 'unresolved']) if (!isStr(c[k])) return `has no ${k}`;
-  if (!listOf(c.circumstances, (k) => oneOf(k, keys(CIRCUMSTANCES))) || !listOf(c.parts, (k) => oneOf(k, keys(PARTS))) || !isBool(c.unsure)) return 'has a malformed start';
-  if (!listOf(c.options, (o) => isOption(o) && ((o as Obj).shape === undefined || oneOf((o as Obj).shape, keys(SHAPES))))) return 'has malformed options';
-  if (!listOf(c.criteria, (x) => isObj(x) && isStr(x.id) && isStr(x.text) && isBool(x.must)) || !listOf(c.ruledOut, isStr)) return 'has malformed priorities';
-  const unknown = (u: unknown) =>
-    isObj(u) && isStr(u.id) && isStr(u.text) && oneOf(u.kind, ['fact', 'assumption']) && (u.changes === undefined || oneOf(u.changes, ['yes', 'no', 'unsure'])) && (u.how === undefined || oneOf(u.how, keys(HOW)));
-  if (!listOf(c.unknowns, unknown)) return 'has malformed unknowns';
-  const match = (m: unknown) => isObj(m) && isRef(m.ref) && oneOf(m.answer, ['applies', 'not', 'unsure']) && isStr(m.shown) && isStr(m.why) && isBool(m.manual) && isTime(m.at);
-  if (!listOf(c.matches, match)) return 'has malformed examples';
-  if (c.next !== null && !(isObj(c.next) && oneOf(c.next.kind, keys(NEXT)) && isStr(c.next.text))) return 'has a malformed next move';
-  if (c.expectation !== null && !(isObj(c.expectation) && isStr(c.expectation.text) && (c.expectation.by === '' || isDay(c.expectation.by)))) return 'has a malformed expectation';
-  return null;
-}
-
-function choiceProblem(c: unknown): string | null {
-  if (!isObj(c) || !isStr(c.id) || !isTime(c.created) || !isTime(c.updated) || !isBool(c.draft) || !isStr(c.step)) return 'is not a choice';
-  const content = contentProblem(c);
-  if (content) return content;
-  if (!listOf(c.saves, (s) => isObj(s) && isTime(s.at) && isObj(s.content) && contentProblem(s.content as Obj) === null)) return 'has a malformed save';
-  const outcome = (o: unknown) =>
-    isObj(o) &&
-    isStr(o.id) &&
-    isTime(o.at) &&
-    oneOf(o.state, ['happened', 'too-early', 'plans-changed']) &&
-    isStr(o.expected) &&
-    oneOf(o.compared, ['', 'as-expected', 'different', 'partly']) &&
-    isStr(o.what) &&
-    isStr(o.surprise) &&
-    isBool(o.settled) &&
-    oneOf(o.lesson, ['none', 'kept', 'revised']) &&
-    isStr(o.takeaway);
-  if (!listOf(c.outcomes, outcome)) return 'has a malformed outcome';
-  if (!c.draft && (c.saves as unknown[]).length === 0) return 'is marked saved but has no save';
-  return null;
-}
-
-function takeawayProblem(t: unknown): string | null {
-  if (!isObj(t) || !isStr(t.id) || !isTime(t.at) || !isStr(t.retired)) return 'is not a takeaway';
-  const s = t.source;
-  const source =
-    isObj(s) &&
-    ((s.kind === 'play' && isStr(s.play)) ||
-      (s.kind === 'choice' && isStr(s.choice) && isInt(s.save)) ||
-      (s.kind === 'outcome' && isStr(s.choice) && isStr(s.outcome)) ||
-      s.kind === 'own' ||
-      (s.kind === 'earlier' && isInt(s.schema)));
-  if (!source) return 'has no source';
-  if (!listOf(t.versions, (v) => isObj(v) && isTime(v.at) && isStr(v.text)) || (t.versions as unknown[]).length === 0) return 'has no wording';
-  if (!listOf(t.features, (f) => oneOf(f, keys(FEATURES)))) return 'has an unknown feature';
-  return null;
-}
-
-/**
- * A document from Tell 1 or 2, carried into this version. Nothing is dropped:
- * the whole original goes into the archive. Principles from version 2 were
- * the player's own words, so they become takeaways; nothing else is reread.
- */
-export function migrate(x: Obj, now: Date): TellState {
-  const at = now.toISOString();
-  const state = emptyState();
-  const doc = JSON.parse(JSON.stringify(x)) as Archived['doc'];
-  state.archive = [{ schema: x.schema as number, at, doc }];
-  if (x.schema === 2 && Array.isArray(x.principles)) {
-    state.takeaways = x.principles.flatMap((p, i) =>
-      isObj(p) && isStr(p.text) && p.text.trim()
-        ? [{ id: `earlier-${i + 1}`, at: isTime(p.at) ? (p.at as string) : at, source: { kind: 'earlier', schema: 2 }, versions: [{ at: isTime(p.at) ? (p.at as string) : at, text: p.text.trim() }], features: [], retired: '' }]
-        : [],
-    ) as TellState['takeaways'];
-  }
-  return state;
+/** A document from an earlier Tell: kept whole, untouched, in a fresh record. */
+export function archive(x: Obj, now: Date): TellState {
+  return { ...emptyState(), archive: [{ schema: x.schema as number, at: now.toISOString(), doc: JSON.parse(JSON.stringify(x)) }] };
 }
 
 export function validateState(x: unknown, now: Date): Validation {
@@ -164,38 +116,18 @@ export function validateState(x: unknown, now: Date): Validation {
   if (!isObj(x)) return fail('it is not a Tell document');
   if (typeof x.schema !== 'number') return fail('it has no schema version');
   if (x.schema > SCHEMA) return { ok: false, error: `it was saved by a newer version of Tell (schema ${x.schema})`, newer: true };
-  if (x.schema === 1 || x.schema === 2) {
-    const migrated = validateState(migrate(x, now), now);
-    return migrated.ok ? { ...migrated, migrated: x.schema } : migrated;
-  }
+  if (isInt(x.schema) && x.schema >= 1 && x.schema < SCHEMA) return { ok: true, state: archive(x, now), archived: x.schema };
   if (x.schema !== SCHEMA) return fail(`schema ${String(x.schema)} is unknown`);
 
-  const each = (name: string, list: unknown, problem: (v: unknown) => string | null): string | null => {
-    if (!Array.isArray(list)) return `${name}s is not a list`;
-    const seen = new Set<string>();
-    for (const [i, v] of list.entries()) {
-      const p = problem(v);
-      if (p) return `${name} ${i + 1} ${p}`;
-      const id = (v as Obj).id as string;
-      if (seen.has(id)) return `${name} ${i + 1} repeats “${id}”`;
-      seen.add(id);
-    }
-    return null;
-  };
-  const problem =
-    each('play', x.plays, playProblem) ??
-    each('choice', x.choices, choiceProblem) ??
-    each('takeaway', x.takeaways, takeawayProblem) ??
-    (listOf(x.archive, (a) => isObj(a) && isInt(a.schema) && isTime(a.at) && isObj(a.doc)) ? null : 'the archive is malformed');
-  if (problem) return fail(problem);
-  // Evidence must point at something that exists, or the Map couldn't show it.
-  const state = x as unknown as TellState;
-  for (const [i, t] of state.takeaways.entries()) {
-    const s = t.source;
-    const c = s.kind === 'choice' || s.kind === 'outcome' ? state.choices.find((y) => y.id === s.choice) : undefined;
-    const found =
-      s.kind === 'play' ? state.plays.some((p) => p.id === s.play) : s.kind === 'choice' ? !!c?.saves[s.save] : s.kind === 'outcome' ? !!c?.outcomes.some((o) => o.id === s.outcome) : true;
-    if (!found) return fail(`takeaway ${i + 1} points at a record that isn’t there`);
+  if (!Array.isArray(x.plays)) return fail('plays is not a list');
+  const seen = new Set<string>();
+  for (const [i, p] of x.plays.entries()) {
+    const problem = playProblem(p);
+    if (problem) return fail(`play ${i + 1} ${problem}`);
+    const id = (p as Obj).id as string;
+    if (seen.has(id)) return fail(`play ${i + 1} repeats “${id}”`);
+    seen.add(id);
   }
-  return { ok: true, state };
+  if (!listOf(x.archive, (a) => isObj(a) && isInt(a.schema) && isTime(a.at) && isObj(a.doc))) return fail('the archive is malformed');
+  return { ok: true, state: x as unknown as TellState };
 }

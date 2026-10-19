@@ -297,12 +297,6 @@ button {
   color: var(--text-dim);
 }
 
-.btn-sm {
-  min-height: 44px;
-  padding: 0 14px;
-  font-size: 0.875rem;
-}
-
 .btn:disabled {
   opacity: 0.5;
 }
@@ -316,29 +310,6 @@ button {
   text-decoration: none;
 }
 
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.chip {
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--pill);
-  background: transparent;
-  color: var(--text-dim);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.chip.on {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
 /* ---- Play ---------------------------------------------------------------- */
 
 .round-head {
@@ -346,22 +317,6 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-}
-
-.dots {
-  display: flex;
-  gap: 6px;
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--bar-track);
-}
-
-.dot.done {
-  background: var(--accent);
 }
 
 .scene {
@@ -398,13 +353,6 @@ button {
   background: var(--surface-2);
 }
 
-.outs {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px 16px;
-}
-
 .reveal {
   animation: rise 0.28s ease-out both;
 }
@@ -414,36 +362,6 @@ button {
     opacity: 0;
     transform: translateY(6px);
   }
-}
-
-.added {
-  display: flex;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--accent-soft);
-  color: var(--text);
-  font-size: 0.9rem;
-}
-
-.added svg {
-  flex: none;
-  width: 18px;
-  height: 18px;
-  margin-top: 2px;
-  color: var(--accent);
-}
-
-.then-now {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.then-now > div {
-  padding: 12px;
-  border-radius: 12px;
-  background: var(--surface-2);
 }
 
 /* ---- Map ----------------------------------------------------------------- */
@@ -460,28 +378,8 @@ summary.link::-webkit-details-marker {
   display: none;
 }
 
-.evidence {
-  padding: 2px 0 14px;
-}
-
-.evidence li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 6px 0;
-  font-size: 0.875rem;
-}
-
-.evidence li + li {
-  border-top: 1px dashed var(--border);
-}
-
 .stack-tight > * + * {
   margin-top: 4px;
-}
-
-.kept-line {
-  font: italic 1.05rem/1.45 var(--font-serif);
 }
 
 .notice {
@@ -519,11 +417,6 @@ summary.link::-webkit-details-marker {
   margin-top: 10px;
 }
 
-.glossary {
-  display: grid;
-  gap: 10px;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -533,17 +426,112 @@ summary.link::-webkit-details-marker {
   }
 }
 
-/* A ghost toggle shows its pressed state by class as well as aria-pressed. */
-.btn-ghost.on {
+/* ---- Situations ---------------------------------------------------------- */
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.connection {
+  border-color: var(--accent);
+}
+
+.option.new {
+  border-color: var(--accent);
+}
+
+/* Share something scarce: a stepper per item, and the plot drawn above. */
+.alloc {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stepper {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.step-btn {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.step-btn:disabled {
+  opacity: 0.4;
+}
+
+.alloc-n {
+  flex: none;
+  min-width: 2ch;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.plot {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+}
+
+.plot-cell {
+  height: 18px;
+  border-radius: 4px;
+  background: var(--bar-track);
+}
+
+.plot-cell.first {
+  background: var(--accent);
+}
+
+/* Day by day: where the story is in its week. */
+.days {
+  display: flex;
+  gap: 6px;
+}
+
+.days li {
+  flex: 1;
+  padding: 4px 0;
+  border-bottom: 3px solid var(--bar-track);
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.days li.past {
+  border-color: var(--accent);
+}
+
+.days li.now {
+  border-color: var(--accent);
   color: var(--accent);
 }
 
-/* ---- Stories ------------------------------------------------------------- */
+.replays {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+}
 
-.amount {
-  color: var(--accent);
-  font-weight: 700;
-  white-space: nowrap;
+.replays a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
 
 .condition {
@@ -563,19 +551,6 @@ summary.link::-webkit-details-marker {
   cursor: default;
 }
 
-.option.dropped {
-  color: var(--text-faint);
-  text-decoration: line-through;
-  background: transparent;
-}
-
-.drop-n {
-  display: inline-block;
-  min-width: 1.6em;
-  margin-right: 6px;
-  text-decoration: none;
-}
-
 .option-line {
   display: block;
 }
@@ -588,55 +563,8 @@ summary.link::-webkit-details-marker {
   border-style: dashed;
 }
 
-.due {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  color: var(--text);
-  text-decoration: none;
-}
-
-/* ---- Forms --------------------------------------------------------------- */
-
-.field {
-  display: grid;
-  gap: 6px;
-}
-
-.input {
-  width: 100%;
-  min-height: var(--tap);
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: 12px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-}
-
-.input::placeholder {
-  color: var(--text-faint);
-}
-
-.row {
-  display: flex;
-  gap: 8px;
-}
-
-.row > .input {
-  flex: 1;
-  min-width: 0;
-}
-
-.textarea {
-  min-height: 0;
-  padding: 12px 14px;
-  line-height: 1.45;
-  resize: vertical;
-}
-
-.pre {
-  white-space: pre-wrap;
+.fact:disabled {
+  opacity: 0.6;
 }
 
 a.shelf {
@@ -644,27 +572,17 @@ a.shelf {
   text-decoration: none;
 }
 
-.glossary dt {
-  font-weight: 600;
-}
-
-.glossary dd {
-  margin: 0 0 6px;
-}
-
 .card-quiet > summary + * {
   margin-top: 8px;
 }
 
-.brief {
-  margin: 0;
-  padding: 14px;
-  border-radius: 12px;
-  background: var(--surface-2);
-  color: var(--text);
-  font: 0.85rem/1.5 var(--font-sans);
-  white-space: pre-wrap;
-  user-select: text;
+/* A folded story takes no more room than its tap target. */
+details.card-quiet {
+  padding: 0 16px;
+}
+
+details.card-quiet[open] {
+  padding-bottom: 14px;
 }
 
 /* ---- Map ----------------------------------------------------------------- */

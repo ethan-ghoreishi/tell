@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 // Colour is checked by a test, not by eye, against the SHIPPED stylesheet.
 // The pairs are written out so an omission is visible. Text needs 4.5:1
-// (WCAG AA); the progress bar and dots are graphics and need 3:1.
+// (WCAG AA); the plot and the day marks are graphics and need 3:1.
 
 const CSS = readFileSync(new URL('../src/styles/global.css', import.meta.url), 'utf8');
 const darkAt = CSS.indexOf('@media (prefers-color-scheme: dark)');
@@ -51,22 +51,21 @@ const GRAPHIC = 3;
 
 const PAIRS: { fg: string; bg: string; over?: string; min: number; where: string }[] = [
   { fg: 'text', bg: 'bg', min: TEXT, where: 'body text on the page' },
-  { fg: 'text', bg: 'surface', min: TEXT, where: 'scenes and options in a .card' },
-  { fg: 'text', bg: 'surface-2', min: TEXT, where: '.card-quiet and then/now boxes' },
+  { fg: 'text', bg: 'surface', min: TEXT, where: 'options, tiles and connections in a .card' },
+  { fg: 'text', bg: 'surface-2', min: TEXT, where: '.card-quiet (Reread the story, archive)' },
   { fg: 'text-dim', bg: 'bg', min: TEXT, where: '.dim / .lede on the page' },
   { fg: 'text-dim', bg: 'surface', min: TEXT, where: '.dim in a .card' },
   { fg: 'text-dim', bg: 'surface-2', min: TEXT, where: '.dim in .card-quiet' },
-  { fg: 'text-faint', bg: 'bg', min: TEXT, where: '.eyebrow / .faint / tabs on the page' },
+  { fg: 'text-faint', bg: 'bg', min: TEXT, where: '.eyebrow / .faint / tabs / day labels on the page' },
   { fg: 'text-faint', bg: 'surface', min: TEXT, where: '.eyebrow in a .card' },
-  { fg: 'text-faint', bg: 'surface-2', min: TEXT, where: '.eyebrow in then/now boxes' },
-  { fg: 'accent', bg: 'bg', min: TEXT, where: '.link / active tab' },
-  { fg: 'accent', bg: 'surface', min: TEXT, where: 'the changing .amount in an option' },
+  { fg: 'text-faint', bg: 'surface-2', min: TEXT, where: '.faint in .card-quiet' },
+  { fg: 'accent', bg: 'bg', min: TEXT, where: '.link / active tab / today’s day label' },
+  { fg: 'accent', bg: 'surface', min: TEXT, where: '.link in a .card' },
   { fg: 'accent', bg: 'surface-2', min: TEXT, where: '.link in .card-quiet' },
-  { fg: 'accent', bg: 'accent-soft', over: 'bg', min: TEXT, where: '.chip.on' },
-  { fg: 'text', bg: 'accent-soft', over: 'surface', min: TEXT, where: '.option.on and .condition in a .card' },
-  { fg: 'text', bg: 'accent-soft', over: 'bg', min: TEXT, where: 'the .added box' },
+    { fg: 'text', bg: 'accent-soft', over: 'surface', min: TEXT, where: '.condition in a connection card' },
+  { fg: 'text', bg: 'accent-soft', over: 'bg', min: TEXT, where: '.condition on the page (what was found, what asking said)' },
   { fg: 'accent-contrast', bg: 'accent', min: TEXT, where: '.btn-primary' },
-  { fg: 'accent', bg: 'bar-track', min: GRAPHIC, where: 'progress bar and dots' },
+  { fg: 'accent', bg: 'bar-track', min: GRAPHIC, where: 'the plot’s cells and the day marks' },
 ];
 
 describe.each(Object.entries(PALETTES))('%s palette', (_, block) => {

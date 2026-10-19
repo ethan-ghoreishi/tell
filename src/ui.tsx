@@ -1,6 +1,6 @@
 import type { SVGProps } from 'react';
 
-// Small shared pieces: icons, dates, file download, clipboard, ids.
+// Small shared pieces: icons, dates, file download.
 
 type IconProps = SVGProps<SVGSVGElement>;
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
@@ -30,14 +30,7 @@ export const InfoIcon = (p: IconProps) => (
     <path d="M12 11v5M12 8h.01" {...stroke} strokeWidth={2.2} />
   </svg>
 );
-export const AddedIcon = (p: IconProps) => (
-  <svg viewBox="0 0 24 24" aria-hidden="true" {...p}>
-    <circle cx="12" cy="12" r="8.5" {...stroke} />
-    <path d="M12 8v8M8 12h8" {...stroke} />
-  </svg>
-);
-
-export { longDate, plural, shortDate } from './domain/text';
+export { plural, shortDate } from './domain/text';
 
 export function download(filename: string, text: string, type = 'application/json') {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -49,16 +42,3 @@ export function download(filename: string, text: string, type = 'application/jso
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-
-/** Copy to the clipboard where the browser allows it; the text is always on screen to select as well. */
-export async function copy(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/** A random id that says nothing about what it labels. */
-export const randomId = () => Array.from(crypto.getRandomValues(new Uint32Array(2)), (n) => n.toString(16).padStart(8, '0')).join('');

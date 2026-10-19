@@ -1,16 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { PART_ORDER, earlierName, type Part } from './domain/types';
+import { earlierName } from './domain/types';
 import About, { RestoreButton } from './pages/About';
-import { ChoicePage, NewChoice } from './pages/Choice';
-import { EpisodePage, PlayPage } from './pages/Episode';
 import Home from './pages/Home';
 import MapPage from './pages/MapPage';
+import { PlayPage, SituationPage } from './pages/Play';
 import { store, useTell, type Snapshot } from './store/store';
 import { InfoIcon, MapIcon, MarkIcon, PlayIcon, download } from './ui';
 
 const TABS = [
-  { route: 'home', href: '#/', label: 'Home', Icon: PlayIcon },
+  { route: 'home', href: '#/', label: 'Play', Icon: PlayIcon },
   { route: 'map', href: '#/map', label: 'Map', Icon: MapIcon },
   { route: 'about', href: '#/about', label: 'About', Icon: InfoIcon },
 ] as const;
@@ -38,12 +37,10 @@ export default function App() {
   }, [route]);
 
   if (snapshot.status === 'refused') return <Recovery snapshot={snapshot} />;
-  const { state, saveError, migrated } = snapshot;
+  const { state, saveError, archived } = snapshot;
   const [page, ...rest] = route.split('/');
   const arg = rest.join('/');
-  // A saved choice lives on the Map; a draft is still being brought from Home.
-  const saved = page === 'choice' && state.choices.some((c) => c.id === arg && !c.draft);
-  const tab = page === 'map' || saved ? 'map' : page === 'about' ? 'about' : 'home';
+  const tab = page === 'map' || page === 'about' ? page : 'home';
 
   return (
     <div className="app">
@@ -69,9 +66,9 @@ export default function App() {
               {saveError}
             </p>
           )}
-          {migrated && (
+          {archived && (
             <p className="notice" role="status">
-              Your record from {earlierName(migrated)} was carried over and kept exactly as it was, under History on your map.
+              Tell has changed. Your record from {earlierName(archived)} is kept exactly as it was, and you can download it from About.
             </p>
           )}
           <UpdateNotice />
@@ -79,14 +76,10 @@ export default function App() {
             <MapPage state={state} />
           ) : page === 'about' ? (
             <About state={state} />
-          ) : page === 'episode' ? (
-            <EpisodePage key={arg} state={state} id={arg} />
+          ) : page === 'situation' ? (
+            <SituationPage key={arg} state={state} id={arg} />
           ) : page === 'play' ? (
             <PlayPage key={arg} state={state} id={arg} />
-          ) : page === 'choose' ? (
-            <NewChoice key={route} state={state} part={PART_ORDER.includes(rest[0] as Part) ? (rest[0] as Part) : undefined} prompt={rest[1] ? safeDecode(rest.slice(1).join('/')) : undefined} />
-          ) : page === 'choice' ? (
-            <ChoicePage key={arg} state={state} id={arg} />
           ) : (
             <Home state={state} />
           )}
@@ -95,14 +88,6 @@ export default function App() {
     </div>
   );
 }
-
-const safeDecode = (s: string) => {
-  try {
-    return decodeURIComponent(s);
-  } catch {
-    return '';
-  }
-};
 
 /** The service worker never reloads the app by itself; it asks. */
 function UpdateNotice() {

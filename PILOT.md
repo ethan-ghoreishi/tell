@@ -1,53 +1,43 @@
 # Pilot plan
 
-A short manual pilot of Tell 2.0's three untested hypotheses, each tested separately. There are no
-analytics: evidence comes from what pilots say and, with their consent, from a plain-text export
-they choose to send (About → "Download everything as plain text").
+A short manual pilot of Tell 3.0's two risks, which matter more than any technical one: that
+the situations become predictable, and that the connections feel clever but not useful. There
+are no analytics: evidence comes from observation and what pilots say, and, with their consent,
+the plain-text download they choose to send (About → "Download as plain text").
 
-**Who:** five or six people who make creative work or run independent projects, including the
-owner. **How long:** two weeks. **Setup:** each installs Tell on their own phone (Home Screen) and
-gets nothing beyond "Tell helps you see what would make a choice clearer. Use it when you feel
-like it." No reminders from anyone during the two weeks; that would contaminate hypothesis 1.
+**Who:** five or six people, including the owner, who haven't seen Tell's content. **How long:**
+one observed session, then a week of their own, then a short conversation. **Setup:** each
+installs Tell on their own phone and is told only "Small situations to play. Some have more in
+common than they seem." No reminders during the week.
 
-## 1. Is Play enjoyable enough to choose voluntarily?
+## 1. Do the situations stay interesting, or become predictable?
 
-- **Watch:** in a 15-minute session at the start, ask the pilot to play "Six evenings" and one
-  story of their choice while thinking aloud. Note where they hesitate, re-read or smile, and
-  whether the ending's three parts (answered, readings, unknown) make sense without explanation.
-- **Ask at the end of week two:** How many stories did you play without being asked? Which did you
-  replay, and why? Did any feel like it had a right answer it wanted from you? Which felt
-  pointless?
-- **Holds if:** most pilots played at least three stories on their own initiative, and none
-  reports feeling tested, judged or pushed towards an answer.
-- **Fails if:** stories are played only when asked, or endings read as verdicts.
+- **Watch** the first session, thinking aloud, without help. Note where they slow down, re-read,
+  smile or hesitate over a choice, and where they tap through.
+- **Ask after the second situation, before the third:** "What do you think the next one will ask
+  you to do?" Then, after it: was it what you expected?
+- **Ask at the end:** Which one would you play again, and why? Did any feel like it had a right
+  answer it wanted from you? Did any feel like a test or a lesson?
+- **Holds if:** most can't predict the third situation's controls or turn; most play at least
+  four of the six in the first sitting without being asked; nobody reports a right answer.
+- **Fails if:** pilots predict the next situation's shape, tap through the endings unread, or
+  name an answer the app seemed to want.
 
-## 2. Does bringing a real choice make it clearer?
+## 2. Are the connections useful, or just clever?
 
-- **Do:** each pilot brings one real choice they've been circling, in a session with an observer
-  who says nothing about the content. Afterwards, ask them to rate, in their own words: what
-  became clearer, if anything; whether any step felt like busywork; whether they stopped without
-  deciding and whether that felt fine.
-- **Check a week later:** did they act on the next move, change it, or drop it? Did they come
-  back to add what happened, unprompted? Was "too early" enough?
-- **Holds if:** most pilots name a specific distinction, option, condition or next move they
-  didn't have before, and none says Tell pushed them to an answer.
-- **Fails if:** the summary only restates what they already knew, or the steps feel like a form.
-
-## 3. Does reusing past evidence help?
-
-- **Do:** only after a pilot has kept at least two takeaways and saved one choice, ask them to
-  bring a second real choice. Eight of the twelve stories can be offered automatically; takeaways
-  from the other four appear only under "Pick one yourself", so note whether pilots look there.
-  Note whether past examples appear, whether the "why it appeared" line makes sense, and whether
-  they answer "Applies", "Doesn't apply" or pick one themselves.
-- **Ask:** Was any example useful? Did any feel irrelevant despite the reason given? Did the
-  "exception" lines change how you weighed an example?
-- **Holds if:** when an example appears, pilots can say why it does or doesn't apply, and at least
-  some find one useful; irrelevant examples are rare.
-- **Fails if:** examples feel random, or pilots treat them as advice.
+- **Watch** the moment a connection first appears on an ending. Do they read it? Do they react
+  ("oh") or scroll past?
+- **Ask straight away:** In your own words, what connects those two? Did it tell you anything
+  you didn't see from either ending on its own?
+- **A day or more later, without the app open:** Can you remember any connection? Has its
+  question come up for anything real since? (Write down what they say, not whether it was right.)
+- **Holds if:** most can restate at least one connection's distinction a day later, and at least
+  some name a real choice it applied to.
+- **Fails if:** pilots describe connections as obvious, restate only their two answers, or treat
+  the note as a verdict on them.
 
 ## Afterwards
 
-Write what happened as a dated entry in `DECISIONS.md`: what held, what failed, and what changes
-(content, matching rule, flow). Episodes rated pointless are rewritten or retired, following the
-review rule in `AGENTS.md`.
+Write what happened as a dated entry in `DECISIONS.md`: what held, what failed, and what
+changes. Situations named predictable or pointless are rewritten or retired; connections that
+add nothing beyond the two answers are cut. Both follow the review rule in `AGENTS.md`.
