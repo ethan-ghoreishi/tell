@@ -2,6 +2,69 @@
 
 Durable record of non-obvious choices. Newest first.
 
+## Tell v2: choice experiments (2026-10-14)
+
+**What changed, and why.** v1 asked players to pick the cause of a scene (eight angles) and
+counted picks against a binomial gate. That is the structure of a personality inventory, the
+causes of behaviour are psychology's territory, and the 1-in-4 null assumed options equally
+tempting when the wording decided. The owner asked for a product with a clear trigger, no
+psychology, a defensible question system and more surprising results. v2 asks for choices, not
+causes: the methods product teams use to learn what customers value, run on yourself, with counts.
+
+**Owner decisions.**
+1. *The four mechanics are the only formats* (Slide, Cut, Spend, Peek, plus "It depends").
+   Retired: angles, the odds gate, the world area, twins, paired choices, kept lines.
+2. *"No gamification" becomes "No pressure mechanics".* Play that is honest about the evidence
+   is in (chart filling in, guess then Slide, pass the phone); streaks, penalties, leaderboards
+   and nudges stay out.
+3. *Cadence, delegated to the builder: one set a day.* This reverses the earlier recommendation of
+   sets on demand. Reasons: answers spread over days sample the player in different states rather
+   than one mood (and "it depends on the day" is real); the library of ~70 cells lasts about three
+   weeks of daily play, and retests open at 21 days, so there is no content cliff (the 60-day
+   simulation test proves a set every day); a daily set gives a reason to return without a streak.
+   Decide is never limited.
+4. *Shared lessons, now, without a server: a file swap.* A closed call yields a lesson in fixed
+   vocabulary (kind, went, feature ids, check ids, a count of other misses). The player previews
+   exactly what the file holds, downloads it, and someone else adds it; import is validated, each
+   lesson carries a random id so a call re-sent in a later file (or your own coming back) is never
+   counted twice, and an item shows once 3 shared calls report it. Things players type
+   that aren't on Tell's list show locally as "not on Tell's list yet", which is how the checklist
+   improves. A server pool (opt-in, larger threshold) stays in FUTURE.md; this tests the shape.
+
+**The question system.**
+- *Content is ingredients, not questions.* Each experiment is structured data checked by a recipe
+  test (one changing value, no dominated option, log-spaced steps, fixed vocabulary, no currency
+  symbols, coverage). Reveal sentences are templates in code, so no result can claim more than
+  the answers show.
+- *Slide is the adjusting-amount procedure:* halving over seven steps settles one of eight
+  intervals in three choices. A range, never a point.
+- *Seven steps, each 1.3–3.5× the last,* because money and time differences are felt as ratios;
+  one wide ladder fits most people. Rejected: anchoring each ladder on the player's earlier answer
+  (as the final idea suggested). It would bias the very comparison a stress-test makes. Currency
+  is a setting instead.
+- *Picking is a published priority list, never random.* The probe's mechanic rotates (Slide every
+  other day); within it: open call, a change seen once, untested trade-off, open-ended result,
+  retest, next in list. Stress-test changes one tagged condition or prices what the probe
+  surfaced; Connect tries the same trade-off elsewhere. This is measure, manipulate, replicate.
+- *Cut items and Peek facts rotate by one per play,* so position can't favour an item.
+- *Spend clashes are adjacent ranks by coins,* testing the stated order link by link; tied coins
+  still yield a result (the order your choices set).
+- *A context change needs two intervals,* because one step is ordinary wobble between two
+  answers. *A repeat needs 3 times and three in four:* a display rule, not inference. Both are
+  stated on About.
+- *Retests at 21 days* (the final idea said three months): within the usual two-to-four-week
+  test–retest window, and needed to keep daily sets full.
+
+**Smaller choices.** Pass the phone is ephemeral; the other person's answers are never saved.
+Ratings (Useful, Interesting, Meh) are per set and credited to its experiments on About, so weak
+experiments show up. The brief for your AI is always on screen as selectable text; the clipboard
+is a convenience. Schema 2: v1 data is refused with its own message and offered as a download,
+never overwritten; with one player's data, a migration wasn't worth writing.
+
+---
+
+*Below: v1 decisions, kept as history. Superseded by the entry above where they conflict.*
+
 ## A 60-card deck, and call-outs that stay (2026-10-08)
 
 **Deck doubled to 60** (owner: "Proceed", on the recommendation to write more cards before

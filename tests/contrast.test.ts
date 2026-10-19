@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 // Colour is checked by a test, not by eye, against the SHIPPED stylesheet.
 // The pairs are written out so an omission is visible. Text needs 4.5:1
-// (WCAG AA); the map's bars and progress dots are graphics and need 3:1.
+// (WCAG AA); the progress bar and dots are graphics and need 3:1.
 
 const CSS = readFileSync(new URL('../src/styles/global.css', import.meta.url), 'utf8');
 const darkAt = CSS.indexOf('@media (prefers-color-scheme: dark)');
@@ -55,17 +55,18 @@ const PAIRS: { fg: string; bg: string; over?: string; min: number; where: string
   { fg: 'text', bg: 'surface-2', min: TEXT, where: '.card-quiet and then/now boxes' },
   { fg: 'text-dim', bg: 'bg', min: TEXT, where: '.dim / .lede on the page' },
   { fg: 'text-dim', bg: 'surface', min: TEXT, where: '.dim in a .card' },
-  { fg: 'text-dim', bg: 'surface-2', min: TEXT, where: 'unselected segments' },
+  { fg: 'text-dim', bg: 'surface-2', min: TEXT, where: '.dim in .card-quiet' },
   { fg: 'text-faint', bg: 'bg', min: TEXT, where: '.eyebrow / .faint / tabs on the page' },
   { fg: 'text-faint', bg: 'surface', min: TEXT, where: '.eyebrow in a .card' },
   { fg: 'text-faint', bg: 'surface-2', min: TEXT, where: '.eyebrow in then/now boxes' },
-  { fg: 'accent', bg: 'bg', min: TEXT, where: '.link / active tab / picked angle' },
-  { fg: 'accent', bg: 'surface', min: TEXT, where: '.pick-mark in a .card' },
-  { fg: 'accent', bg: 'accent-soft', over: 'bg', min: TEXT, where: '.chip.on / .keep.on' },
+  { fg: 'accent', bg: 'bg', min: TEXT, where: '.link / active tab' },
+  { fg: 'accent', bg: 'surface', min: TEXT, where: 'the changing .amount in an option' },
+  { fg: 'accent', bg: 'surface-2', min: TEXT, where: '.link in .card-quiet' },
+  { fg: 'accent', bg: 'accent-soft', over: 'bg', min: TEXT, where: '.chip.on' },
+  { fg: 'text', bg: 'accent-soft', over: 'surface', min: TEXT, where: '.option.on and .condition in a .card' },
   { fg: 'text', bg: 'accent-soft', over: 'bg', min: TEXT, where: 'the .added box' },
   { fg: 'accent-contrast', bg: 'accent', min: TEXT, where: '.btn-primary' },
-  { fg: 'bar-fill', bg: 'bar-track', min: GRAPHIC, where: 'map bars' },
-  { fg: 'accent', bg: 'bar-track', min: GRAPHIC, where: 'progress dots' },
+  { fg: 'accent', bg: 'bar-track', min: GRAPHIC, where: 'progress bar and dots' },
 ];
 
 describe.each(Object.entries(PALETTES))('%s palette', (_, block) => {

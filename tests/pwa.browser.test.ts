@@ -40,7 +40,7 @@ describe('production build (chromium)', () => {
       });
 
       await page.goto(url);
-      await page.getByRole('heading', { name: 'Today’s set' }).waitFor();
+      await page.getByRole('heading', { name: 'Today', exact: true }).waitFor();
       expect(await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content')).toContain("connect-src 'self'");
 
       // Install: the worker activates, and the next load is under its control.
@@ -48,13 +48,14 @@ describe('production build (chromium)', () => {
       await page.reload();
       expect(await page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
 
-      // Play a round, then carry on offline.
-      await page.getByRole('button', { name: 'Start' }).click();
-      await page.locator('.option').first().click();
+      // Play an experiment, then carry on offline.
+      await page.getByRole('button', { name: 'Start today’s set' }).click();
+      await page.getByRole('button', { name: 'Skip the guess' }).click();
+      for (let i = 0; i < 3; i++) await page.locator('.option').first().click();
       await page.locator('.reveal').waitFor();
       await context.setOffline(true);
       await page.reload();
-      await page.getByText('Round 2 of 4').waitFor();
+      await page.getByText('Experiment 2 of 3').waitFor();
       await context.setOffline(false);
 
       // Export a backup, then restore it through the same validation door.
@@ -62,10 +63,10 @@ describe('production build (chromium)', () => {
       const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export a backup' }).click()]);
       expect(download.suggestedFilename()).toMatch(/^tell-backup-\d{4}-\d{2}-\d{2}\.json$/);
       const file = (await download.path())!;
-      expect(JSON.parse(readFileSync(file, 'utf8')).answers).toHaveLength(1);
+      expect(JSON.parse(readFileSync(file, 'utf8')).runs).toHaveLength(1);
 
       page.once('dialog', (d) => {
-        expect(d.message()).toContain('Restore this backup of 1 round?');
+        expect(d.message()).toContain('Restore this backup of 1 experiment and 0 calls?');
         void d.accept();
       });
       await page.getByLabel('Backup file').setInputFiles(file);

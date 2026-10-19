@@ -3,44 +3,39 @@
 Each entry must pass the charter's feature test before it ships. None is a commitment. Delete an
 entry when it ships or is abandoned.
 
-## Decide: briefs for your own AI (the main candidate)
+## A generated content pipeline (the main candidate)
 
-Pick an area and a decision type from a fixed list (no AI reads free text). Answer two or three
-targeted paired choices, then get a plain-text brief built only from entries you approved and
-can edit before copying. A "review prompt" lets your own AI check its answer against the brief
-in a fresh chat: the Prismatica step. Tell itself checks nothing. Wording stays honest: "from
-my answers in a game, not established traits"; game answers never become hard constraints.
+Write the recipe, not the questions: a model drafts structured ingredients offline, in batches by
+trade-off and context; `content.test.ts` rejects what breaks the recipe; a person reviews what
+passes. Only numbers vary at runtime. Watch set ratings on About: experiments in "Meh" sets get
+rewritten or retired. Until then, content is written by hand to the same recipe.
 
-## Freshness: the biggest open risk
+## A shared lessons pool on a server
 
-Signal Engine's pull came partly from live, current scenes; a fixed deck gives that up.
-Mitigations, in order: more evergreen cards, weekly curated packs (AI may draft offline, a person
-checks), real events only with sources and dates. Watch whether daily returns fall off as the
-deck runs low.
+The file swap (v2) shows the shape. A pool would be opt-in, carry the same fixed-vocabulary
+lessons, and show an item only above a much larger threshold (for example 50 calls of a kind).
+Needs an owner decision: it reverses the no-network rule for that one feature.
 
-## More areas
+## Track record
 
-People, Myself, Money & things. Each needs its own balanced deck and, for comparisons, twins.
+Ask "how sure?" when saving a call; at follow-up, show how often each level of certainty went as
+expected, as counts once five calls are closed. Later, estimates against what actually happened.
 
-## World-versus-me call-out
+## More kinds of call
 
-Once the deck has enough twins for a paired test to clear the gate after allowing for eight
-angles (roughly a dozen or more pairs answered), add an observation for a consistent world-versus-self
-difference. Until then, side-by-side rows only.
+Hiring help, moving, health and gear. Each needs features with factors, a dial and a checklist.
 
-## Gentle accumulation extras
+## A daily dilemma with a share card
 
-- A weekly "what added up", three lines at most, built from counts.
-- A history view for each angle: how its counts changed between comparable stretches, labelled
-  when the content differed.
+One Slide the same for everyone each day (no server: chosen by date), with a result card the
+player can share by hand. Only if it passes the feature test and stays free of pressure.
+
+## Freshness
+
+A fixed library ages. Mitigations, in order: more experiments to the recipe, the pipeline above,
+retests that show change over time.
 
 ## Sync between devices
 
 If the owner wants it: whole snapshots to the owner's own GitHub data repo, decided by content
-hash, with explicit conflict choices, reusing Practice Compass's model. Export and restore stay
-the fallback.
-
-## Adaptive dealing
-
-A transparent rule table (as in the owner's Pattern Lab prompt) that offers rival angles to a
-default, kept separate from the balanced core deck used for comparisons.
+hash, reusing Practice Compass's model. Export and restore stay the fallback.

@@ -1,176 +1,311 @@
-// The shape of Tell's content (cards) and of what it records (answers).
-// Answers are facts; everything shown on the Map is derived from them.
+// The shape of Tell's content (experiments) and of what it records (runs and
+// calls). Runs and calls are facts, snapshotted when they happen; everything
+// the Map shows is derived from them, never from the current content.
 
-export type Area = 'world' | 'work';
+/** What a choice gives or costs. Practical quantities, never traits. */
+export type Factor = 'money' | 'time' | 'effort' | 'energy' | 'quality' | 'convenience' | 'control' | 'certainty' | 'flexibility';
 
-export const AREAS: Record<Area, { name: string; question: string; record: string }> = {
-  world: {
-    name: 'The world',
-    question: 'Which explanation would you look into first?',
-    record: 'The explanation you looked into first',
-  },
-  work: {
-    name: 'Work & projects',
-    question: 'Which feels closest to your experience?',
-    record: 'What felt closest to your experience',
-  },
-};
-
-export type LensId =
-  | 'incentives'
-  | 'power'
-  | 'structure'
-  | 'perception'
-  | 'identity'
-  | 'belonging'
-  | 'capacity'
-  | 'uncertainty';
-
-/**
- * The eight angles. They are the app's editorial labels for kinds of
- * explanation, not measured traits. The order here is the display order
- * everywhere, so the Map never ranks you against yourself.
- */
-export const LENSES: { id: LensId; name: string; about: string }[] = [
-  { id: 'incentives', name: 'Incentives', about: 'what people stand to gain or lose' },
-  { id: 'power', name: 'Power', about: 'who can impose an outcome on others' },
-  { id: 'structure', name: 'Structure', about: 'how the situation is set up: rules, routines, surroundings' },
-  { id: 'perception', name: 'Perception', about: 'how attention and memory shape what seems true' },
-  { id: 'identity', name: 'Identity', about: 'who someone feels they are, or wants to be seen as' },
-  { id: 'belonging', name: 'Belonging', about: 'what others will think: status, loyalty, fitting in' },
-  { id: 'capacity', name: 'Capacity', about: 'the energy, time and resources available' },
-  { id: 'uncertainty', name: 'Uncertainty', about: 'what is not known yet' },
+export const FACTORS: { id: Factor; name: string; about: string }[] = [
+  { id: 'money', name: 'Money', about: 'what it costs or pays' },
+  { id: 'time', name: 'Time', about: 'hours, days, waiting' },
+  { id: 'effort', name: 'Effort', about: 'work and hassle' },
+  { id: 'energy', name: 'Energy', about: 'sleep, rest, how tired it leaves you' },
+  { id: 'quality', name: 'Quality', about: 'how good the result is' },
+  { id: 'convenience', name: 'Convenience', about: 'how easy it is day to day' },
+  { id: 'control', name: 'Control', about: 'whose say it is, and owning it' },
+  { id: 'certainty', name: 'Certainty', about: 'knowing what you will get' },
+  { id: 'flexibility', name: 'Flexibility', about: 'keeping options open, being able to change it' },
 ];
 
-export const lensName = (id: LensId) => LENSES.find((l) => l.id === id)!.name;
+export const factorName = (f: Factor) => FACTORS.find((x) => x.id === f)!.name;
 
-export interface LensOption {
-  /** Unique within its card. Counts never read it; they read the lens snapshot. */
-  id: string;
-  lens: LensId;
-  text: string;
-  sees: string;
-  misses: string;
-}
+export type Context = 'home' | 'travel' | 'work' | 'project' | 'buying' | 'tools';
 
-/** Decode (world scenes) and Mirror (your own experience) rounds. */
-export interface LensCard {
-  id: string;
-  v: number;
-  kind: 'decode' | 'mirror';
-  area: Area;
-  title: string;
-  scene: string;
-  options: LensOption[];
-  /** One closing line the player may keep. */
-  line: string;
-  /** The matched scene in the other area, offering the same four angles. */
-  twin?: string;
-}
-
-/** One half of a paired choice: the two halves differ in exactly one detail. */
-export interface SwitchCard {
-  id: string;
-  v: number;
-  kind: 'switch';
-  area: Area;
-  title: string;
-  scene: string;
-  /** Same ids in both halves, so "did the answer change" is an id comparison. */
-  options: { id: string; text: string }[];
-  pair: string;
-  variant: 'a' | 'b';
-}
-
-export type Card = LensCard | SwitchCard;
-
-export interface Pair {
-  id: string;
-  kind: 'consistency' | 'trade-off';
-  title: string;
-  /** What differed between the halves, completing "Only one thing differed: …". */
-  changed: string;
-  /** Shown with the result: describes, never diagnoses. */
-  note: string;
-}
-
-/** Ways to answer without picking an angle. */
-export type Out = 'else' | 'unknown' | 'notme';
-
-export const OUTS: Record<Out, string> = {
-  else: 'Something else',
-  unknown: 'Not enough to go on',
-  notme: 'Doesn’t happen to me',
+export const CONTEXTS: Record<Context, string> = {
+  home: 'Home',
+  travel: 'Travel',
+  work: 'Work',
+  project: 'Projects',
+  buying: 'Buying',
+  tools: 'Tools',
 };
 
-export const OUTS_FOR: Record<Card['kind'], Out[]> = {
-  decode: ['else', 'unknown'],
-  mirror: ['notme', 'else'],
-  switch: [],
+/** Conditions that could legitimately change a choice. Only these are compared. */
+export type Tag = 'stakes' | 'deadline' | 'undo' | 'public';
+
+export const TAGS: Record<Tag, string> = {
+  stakes: 'more at stake',
+  deadline: 'a deadline',
+  undo: 'harder to undo',
+  public: 'others will see it',
 };
 
-/**
- * One answered round, snapshotted at the moment of answering: what was shown
- * (in order, with each option's lens), what was picked, and the links to
- * matched scenes and pairs. Editing the deck later never rewrites the past.
- */
-export interface Answer {
+export type Unit = 'money' | 'minutes' | 'hours' | 'days' | 'weeks' | 'percent';
+
+export type Side = 'a' | 'b';
+
+export type Mechanic = 'slide' | 'cut' | 'spend' | 'peek';
+
+export const MECHANICS: Record<Mechanic, { name: string; about: string }> = {
+  slide: { name: 'Slide', about: 'Two options. One amount changes until you switch.' },
+  cut: { name: 'Cut', about: 'Five good things. Drop one at a time until one is left.' },
+  spend: { name: 'Spend', about: 'Spend 10 coins, then choose where they clash.' },
+  peek: { name: 'Peek', about: 'Facts are hidden. Open a few and see which ones move you.' },
+};
+
+// ---- Content ---------------------------------------------------------------
+
+/** A value that changes in a Slide. Steps are ascending; `rises` gains as the value grows. */
+export interface Dial {
+  factor: Factor;
+  unit: Unit;
+  steps: number[];
+  rises: Side;
+  /** Names the switch point: "What skipping the 03:30 alarm is worth to you". */
+  measure: string;
+}
+
+export interface SlideCard {
+  id: string;
+  v: number;
+  mechanic: 'slide';
+  context: Context;
+  title: string;
+  /** May hold {y} (the alt dial) and {m:N} (a fixed amount of money). */
+  scene: string;
+  /**
+   * What each option offers: one factor each, never the same, so neither wins
+   * on everything. The option that gains as the dial grows gives the dial's factor.
+   */
+  a: { text: string; gives: Factor };
+  /** Holds {x}, the one value that changes. */
+  b: { text: string; gives: Factor };
+  dial: Dial;
+  /** One condition that could legitimately matter: an extra sentence, and its short name. */
+  condition: { tag: Tag; text: string; label: string };
+  /** A second value "It depends" can test, shown as {y} until it is the one changing. */
+  alt?: Dial & { label: string; at: number };
+}
+
+export interface CutCard {
+  id: string;
+  v: number;
+  mechanic: 'cut';
+  context: Context;
+  title: string;
+  scene: string;
+  items: { id: string; factor: Factor; text: string }[];
+}
+
+export interface SpendCard {
+  id: string;
+  v: number;
+  mechanic: 'spend';
+  context: Context;
+  title: string;
+  scene: string;
+  features: { id: string; factor: Factor; label: string; high: string; low: string }[];
+}
+
+export interface PeekCard {
+  id: string;
+  v: number;
+  mechanic: 'peek';
+  context: Context;
+  title: string;
+  scene: string;
+  a: string;
+  b: string;
+  facts: { id: string; factor: Factor; label: string; a: string; b: string; favours: Side }[];
+}
+
+export type Card = SlideCard | CutCard | SpendCard | PeekCard;
+
+/** A kind of real call, for Decide. */
+export interface Kind {
+  id: string;
+  name: string;
+  example: string;
+  options: [string, string];
+  features: { id: string; factor: Factor; text: string }[];
+  /** The ids shown first; the player can swap any. */
+  defaults: string[];
+  /** Completes "Would you still pick X if it …"; holds {x}. */
+  dial: { unit: Unit; steps: number[]; phrase: string };
+  /** Tell's own checklist of things worth finding out. */
+  checks: { id: string; text: string }[];
+}
+
+// ---- Records ---------------------------------------------------------------
+
+export type Role = 'probe' | 'stress' | 'connect' | 'depends';
+
+export type SlideOutcome =
+  /** `at` is the first step where the rising option won; steps.length means it never did. */
+  | { kind: 'switch'; at: number }
+  | { kind: 'close'; at: number }
+  /** Stopped at step `at`; Tell fills in what it depended on from the experiment. */
+  | { kind: 'depends'; at: number; on: 'alt' | 'condition' | 'else'; factor?: Factor; tag?: Tag; label?: string };
+
+interface RunBase {
+  id: string;
+  session: string;
+  role: Role;
   card: string;
   v: number;
-  kind: Card['kind'];
-  area: Area;
+  context: Context;
   title: string;
-  /** ISO timestamp. */
   at: string;
-  /** Local calendar day, YYYY-MM-DD. */
   day: string;
-  shown: { id: string; lens?: LensId }[];
-  pick: string;
-  pickText: string;
-  twin?: string;
-  pair?: string;
-  variant?: 'a' | 'b';
 }
 
-/** Today's set, fixed when dealt so a reload never swaps cards or reorders options. */
-export interface Deal {
-  day: string;
-  area: Area | 'mix';
-  cards: { id: string; order: string[] }[];
+export interface SlideRun extends RunBase {
+  mechanic: 'slide';
+  /** The amount that changed, then what it was traded for. */
+  tradeoff: [Factor, Factor];
+  dial: 'main' | 'alt';
+  measure: string;
+  unit: Unit;
+  steps: number[];
+  rises: Side;
+  condition?: { tag: Tag; label: string };
+  /** The interval guessed before playing, 0..steps.length. */
+  guess?: number;
+  asked: { step: number; pick: Side }[];
+  outcome: SlideOutcome;
 }
 
-export interface Kept {
+export interface CutRun extends RunBase {
+  mechanic: 'cut';
+  items: { id: string; factor: Factor; text: string }[];
+  /** Ids in the order they were cut; the one never cut is `winner`. */
+  order: string[];
+  winner: string;
+}
+
+export interface SpendRun extends RunBase {
+  mechanic: 'spend';
+  features: { id: string; factor: Factor; label: string }[];
+  coins: number[];
+  /** Feature indexes. */
+  clashes: { a: number; b: number; pick: number }[];
+}
+
+export type Lean = Side | 'none';
+
+export interface PeekRun extends RunBase {
+  mechanic: 'peek';
+  a: string;
+  b: string;
+  facts: { id: string; factor: Factor; label: string }[];
+  before: Lean;
+  /** Fact indexes in the order opened, with the lean after each. */
+  opened: { fact: number; lean: Lean }[];
+  pick: Side;
+  /** Unopened facts the player said would have changed the pick. */
+  wouldHave: number[];
+}
+
+export type Run = SlideRun | CutRun | SpendRun | PeekRun;
+
+/** One planned experiment in a set, with the published reason it was chosen. */
+export interface Step {
   card: string;
-  area: Area;
-  title: string;
-  line: string;
-  at: string;
+  role: Role;
+  condition: boolean;
+  dial: 'main' | 'alt';
+  /** For an alt-dial Slide: the main step held fixed, where the player said "It depends". */
+  hold?: number;
+  reason: string;
 }
 
-export type Verdict = 'fits' | 'partly' | 'doesnt' | 'unsure';
+/** The day's set: steps are planned one at a time and stored, so a reload never changes it. */
+export interface Session {
+  id: string;
+  day: string;
+  steps: Step[];
+  done: boolean;
+}
+
+export type Answer3 = 'yes' | 'no' | 'unsure';
+export type Went = 'better' | 'expected' | 'worse';
+export type Mattered = 'more' | 'expected' | 'less';
+
+export interface Call {
+  id: string;
+  at: string;
+  day: string;
+  kind: string;
+  title: string;
+  options: [string, string];
+  items: { id: string; factor: Factor; text: string; own?: true }[];
+  order: string[];
+  winner: string;
+  lean: Lean;
+  slide?: { unit: Unit; steps: number[]; phrase: string; asked: { step: number; pick: Side }[]; outcome: SlideOutcome };
+  unknowns: { id: string; text: string; check?: string; answer: Answer3 }[];
+  due: string;
+  follow?: {
+    at: string;
+    /** A random id for the lesson this call teaches, so a shared file can't count it twice. */
+    lesson: string;
+    chose: Side | 'neither';
+    went: Went;
+    mattered: { item: string; how: Mattered }[];
+    missed: { check?: string; text?: string }[];
+  };
+}
+
+/** What a closed call teaches, in fixed vocabulary only: shareable without any of the player's words. */
+export interface Lesson {
+  /** Random, from the follow-up: says nothing about the call. */
+  id: string;
+  kind: string;
+  went: Went;
+  mattered: { feature: string; how: Mattered }[];
+  missed: string[];
+  /** Things missed that aren't on Tell's checklist; their words never leave the device. */
+  other: number;
+}
+
+export interface PoolSource {
+  id: string;
+  added: string;
+  lessons: Lesson[];
+}
+
+export type Verdict = 'right' | 'coincidence' | 'unsure';
 
 export const VERDICTS: Record<Verdict, string> = {
-  fits: 'Fits',
-  partly: 'Partly',
-  doesnt: 'Doesn’t fit',
+  right: 'Seems right',
+  coincidence: 'Coincidence',
   unsure: 'Not sure',
 };
 
-/** The player's view of an observation: a note saved with the counts it was given against. */
+/** The player's view of a pattern: a note filed with the counts it was given against, never evidence. */
 export interface Note {
-  obs: string;
+  pattern: string;
   verdict: Verdict;
   counts: string;
   at: string;
 }
 
-export const SCHEMA = 1;
+export type Rating = 'useful' | 'interesting' | 'meh';
+
+export const RATINGS: Record<Rating, string> = { useful: 'Useful', interesting: 'Interesting', meh: 'Meh' };
+
+export type Currency = 'GBP' | 'EUR' | 'USD';
+
+export const SCHEMA = 2;
 
 export interface TellState {
   schema: typeof SCHEMA;
-  answers: Answer[];
-  deal: Deal | null;
-  kept: Kept[];
-  disagreed: { card: string; at: string }[];
+  currency: Currency;
+  runs: Run[];
+  session: Session | null;
+  calls: Call[];
   notes: Note[];
+  principles: { id: string; text: string; at: string; call?: string }[];
+  ratings: { session: string; rating: Rating; at: string }[];
+  pool: PoolSource[];
 }

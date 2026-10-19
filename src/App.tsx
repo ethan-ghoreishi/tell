@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import About, { RestoreButton } from './pages/About';
+import Decide, { CallPage } from './pages/Decide';
 import MapPage from './pages/MapPage';
-import Play from './pages/Play';
+import Today from './pages/Today';
 import { store, useTell, type Snapshot } from './store/store';
 import { InfoIcon, MapIcon, MarkIcon, PlayIcon, download } from './ui';
 
 const TABS = [
-  { route: 'play', href: '#/', label: 'Play', Icon: PlayIcon },
+  { route: 'today', href: '#/', label: 'Today', Icon: PlayIcon },
   { route: 'map', href: '#/map', label: 'Map', Icon: MapIcon },
   { route: 'about', href: '#/about', label: 'About', Icon: InfoIcon },
 ] as const;
 
 /** Hash routing: no server rewrites, works offline from any path. */
 function useRoute() {
-  const read = () => location.hash.replace(/^#\/?/, '') || 'play';
+  const read = () => location.hash.replace(/^#\/?/, '') || 'today';
   const [route, setRoute] = useState(read);
   useEffect(() => {
     const onChange = () => setRoute(read());
@@ -36,13 +37,14 @@ export default function App() {
 
   if (snapshot.status === 'refused') return <Recovery snapshot={snapshot} />;
   const { state, saveError } = snapshot;
+  const tab = route === 'decide' ? 'today' : route.startsWith('call/') ? 'map' : route;
 
   return (
     <div className="app">
       {/* The nav comes first for assistive tech; CSS places it at the bottom. */}
       <nav className="tabbar" aria-label="Primary">
         {TABS.map(({ route: r, href, label, Icon }) => (
-          <a key={r} className="tab" href={href} aria-current={route === r ? 'page' : undefined}>
+          <a key={r} className="tab" href={href} aria-current={tab === r ? 'page' : undefined}>
             <Icon />
             <span>{label}</span>
           </a>
@@ -62,7 +64,17 @@ export default function App() {
             </p>
           )}
           <UpdateNotice />
-          {route === 'map' ? <MapPage state={state} /> : route === 'about' ? <About state={state} /> : <Play state={state} />}
+          {route === 'map' ? (
+            <MapPage state={state} />
+          ) : route === 'about' ? (
+            <About state={state} />
+          ) : route === 'decide' ? (
+            <Decide state={state} />
+          ) : route.startsWith('call/') ? (
+            <CallPage state={state} id={route.slice(5)} />
+          ) : (
+            <Today state={state} />
+          )}
         </div>
       </main>
     </div>

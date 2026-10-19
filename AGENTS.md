@@ -7,89 +7,85 @@ why goes in a dated `DECISIONS.md` entry; deferred ideas go in `FUTURE.md`.
 ## Hard do-nots (only an owner decision recorded in DECISIONS.md changes one)
 
 - **No runtime AI, accounts, analytics or third-party network.** The build ships a CSP with
-  `connect-src 'self'` (`vite.config.ts`).
-- **No gamification.** No streaks, points, badges, levels, scores or confetti. Progress is
-  neutral counts with denominators.
-- **No diagnosis.** Never name a bias or a trait for the player. Angles are editorial labels for
-  kinds of explanation. Paired-choice copy describes what changed and asks; it never concludes.
+  `connect-src 'self'` (`vite.config.ts`). Lessons are shared only as a file the player
+  downloads and someone else adds.
+- **No pressure mechanics.** No streaks, penalties, leaderboards, loss-framed nudges, prompts to
+  come back or autoplay. Play is allowed when it is honest about the evidence: the chart filling
+  in, ranges, guess-then-Slide counts, pass the phone. Everything is a count with a denominator,
+  never a score.
+- **No diagnosis.** Never describe the person ("you are", "you often"), name a bias or infer a
+  trait. Results describe choices; probes cite the record. Contrasts that differ only in wording
+  are never shown.
 - **Phone only.** Designed and verified at 390×844 and 375×667
-  (`tests/journeys.browser.test.ts`). Wider screens show the same centred column; there is no
-  desktop layout.
+  (`tests/journeys.browser.test.ts`). Wider screens show the same centred column.
 
 ## The record stays true
 
-- Answers are append-only snapshots: what was shown (order, and each option's lens), the pick,
-  the time and local day, and twin or pair links. Every number derives from `state.answers`,
-  never from the current deck (`engine.ts`; test "keeps past denominators when the deck is
-  later edited").
-- Every count shows its denominator ("k of n"). A call-out states its counts, its rule and an
-  alternative explanation (`MapPage.tsx`).
-- Observations come only from `clearsGate`: at least `MIN_OFFERS` offers, and the binomial tail
-  against 1-in-4 chance, multiplied by the number of angles checked, below 0.05 (`engine.ts`,
-  `engine.test.ts`). Changing the gate is an owner decision, and About's wording changes in the
-  same commit.
-- A call-out never vanishes. Once an angle has cleared the bar, `observations` keeps it; if later
-  rounds bring it under, it is marked "No longer clears the bar" with both counts. Derived from
-  the log, never stored (test "stays once shown").
-- Anything the app asks the player to record, the Map shows: kept lines, verdict notes, and
-  rounds marked "I see this differently" (`MapPage.tsx`; core journey).
-- A verdict (Fits, Partly, Doesn't fit, Not sure) is a note saved with the counts at the time.
-  It never changes counts or what is shown (`addNote`; test "is never changed by the player's
-  verdict").
-- World-versus-me comparisons only through deck twins answered on both sides, shown side by
-  side, never as percentages (`matchedPairs`).
-- The first half of a paired choice never mentions pairing (`deposit`; test).
+- Runs and calls are append-only snapshots of what was shown and answered (`record`, `addCall`
+  in `engine.ts`). Results and the Map read the snapshots, never the current content (test
+  "keeps past results when the content is later edited").
+- `record` refuses a play that isn't what it claims: a Slide's answers must be the halving
+  sequence, a Cut drops four, a Spend spends ten and clashes as `clashPairs` says.
+- Every count shows its denominator. A pattern shows its rule and an alternative explanation
+  (`MapPage.tsx`).
+- A repeated choice needs `REPEAT_MIN` times and `REPEAT_SHARE` of its chances; once shown it
+  stays, marked "No longer holds" (`patterns`; test "shows a repeated choice only at three times").
+- A context change needs the same Slide with and without its condition `CHANGE_GAP` intervals
+  apart (test "counts a context change only when…"). Changing a rule changes About in the same commit.
+- A verdict (Seems right, Coincidence, Not sure) is a note with the counts at the time; it never
+  changes what is shown (test "never changes a pattern because of the player's verdict").
+- Anything the app asks the player to record, the Map shows: guesses, ratings, "It depends",
+  unopened facts, calls, follow-ups, principles, shared lessons.
 
-## The deck (`src/domain/deck.test.ts` enforces)
+## The experiments (`src/domain/content.test.ts` enforces)
 
-- Every lens round offers exactly four distinct angles; option ids never collide with the ways
-  out (`else`, `unknown`, `notme`).
-- Twins are reciprocal, cross areas and offer the same four angles.
-- Each angle is offered equally often per area (within one).
-- Pair halves share identical answers in the same order, the second scene is a minimal edit of
-  the first (word-level diff), and the second half comes later in the array.
-- A consistency pair changes only what carries no information about the outcome (wording,
-  framing, money already lost or spent). Anything that could legitimately matter is a
-  trade-off pair. Review rule: the test can't judge meaning.
-- Every scene of your own offers at least one plainly practical explanation (setting, routine,
-  what the body can take), and sees/misses never moralise. Review rule.
-- New cards are appended, never inserted, so earlier deals and their tests stay put.
-- Scenes are invented and labelled as such: no statistics, no real events. Each scene is one
-  invented instance ("A school…", "Someone has…"), never a claim about a class of things
-  ("Schools…", "Thousands of people…"). Review rule.
-- Never reuse a card id for different content. Bump `v` when a card's meaning changes; past
-  answers keep their snapshot either way.
+- Slides: `{x}` once, in option B only; `{y}` once if and only if there is an alt dial; seven
+  ascending steps, each 1.3–3.5× the last; each option gives one different factor and the rising
+  option gives the dial's; each trade-off in three contexts; each condition tag on ≥3 Slides.
+- Cuts, Spends and Peeks: five items with five different factors; Spend features differ high to
+  low; Peek facts differ between options and favour each side at least once.
+- Every factor can be priced by a Slide and protected by a Cut.
+- No currency symbols (amounts are `{x}`, `{y}`, `{m:N}`), no psychology vocabulary, length
+  limits, no near-duplicates. Situations are invented single instances. Review rule: the test
+  can't judge meaning, so a person reads every new experiment.
+- Append new experiments; never reuse an id for different content; bump `v` when meaning changes.
+  Array order is the tie-break when picking, so place new ones deliberately.
 
-## Dealing (`deal` in `engine.ts`; tests under "dealing")
+## Picking experiments (`engine.ts`; tests under "sets")
 
-- Four rounds a day, dealt once per local calendar day with each round's option order stored,
-  so a reload never changes the set.
-- Order: second halves of pairs at least two days after the first; then matched scenes whose
-  twin is answered; then fresh rounds, balancing the two areas. Linked rounds never share a
-  day. Unanswered rounds return to the pool.
-- The day's set has a clear end. Never add a "more rounds" path or a cap bypass; tests move days
-  with Playwright's clock.
+- One set a day, `SET_SIZE` experiments plus any "It depends" adds, planned one step at a time and
+  stored, so a reload never changes it. An unfinished set lapses at midnight.
+- Probe: mechanic by `ROTATION`, then the published tiers (open call, a change seen once,
+  untested trade-off, open-ended result, retest after `RETEST_DAYS`, next in list). Stress-test:
+  the probe's condition, or a Slide pricing what the probe surfaced. Connect: the same trade-off
+  in another context. Every step stores its reason and shows it. Never random.
+- Cut items and Peek facts rotate by one per play of that mechanic.
+- Never add a "more sets" path or a cap bypass; tests move days with Playwright's clock. The
+  60-day simulation (test "plays sixty days in a row") must keep passing when content changes.
 
-## Data safety (`store.ts`, `validate.ts`; `store.test.ts`; journey "unreadable data")
+## Calls and lessons (`engine.ts`, `validate.ts`; tests under "calls and lessons")
 
-- One validated JSON document in localStorage. Every inbound document (load, restore,
-  recovery) passes `validateState`; a refusal names the problem and changes nothing.
-- Unreadable or newer data is refused with memory and disk untouched. The only ways on are:
-  download it as it is, restore a valid backup, or an explicit Start fresh (never offered for
-  newer data).
+- A lesson holds only kind, went, feature ids, check ids and a count of other misses. The
+  player's words never enter a lessons file (test "shares lessons in fixed vocabulary only").
+- Imported lessons pass `readLessons`, are de-duplicated by their random lesson id (never your
+  own, never one already added; test "counts each shared call once"), and show an item only once
+  `POOL_MIN` shared calls report it. Tell's own checklist is labelled as written by Tell.
+
+## Data safety (`store.ts`, `validate.ts`; `store.test.ts`; journey "data that can't be used")
+
+- One validated JSON document in localStorage. Every inbound document (load, restore, lessons)
+  passes validation; a refusal names the problem and changes nothing.
+- Unreadable, older-schema or newer data is refused with memory and disk untouched. The only ways
+  on: download it as it is, restore a valid backup, or an explicit Start fresh (never for newer).
 - A failed write is shown, never swallowed, and the state stays in memory.
-- Restore reads the file with `store.inspect`, confirms what it holds, then replaces.
 
 ## Architecture and tests
 
 - `src/domain/` is pure, React-free and takes an explicit `now`. Only `store.ts` persists;
   components change state through `store.update(pureTransition)`.
-- Effect bodies are wrapped in braces: Chromium's `scrollTo` returns a Promise, which React
-  would take for a cleanup.
-- `npm test` must pass: unit tests, colour contrast against the shipped stylesheet
-  (`tests/contrast.test.ts`), browser journeys in Chromium and WebKit driving the real app
-  through Playwright as a library, and the production build checked under its CSP, offline
-  after install and through Export → Restore (`tests/pwa.browser.test.ts`). A missing browser
-  fails, never skips.
-- A toggle with `aria-pressed` also shows its state by class. Only `<main>` scrolls; the tab
-  bar sits at the bottom; tap targets are at least 44px.
+- Effect bodies are wrapped in braces: Chromium's `scrollTo` returns a Promise.
+- `npm test` must pass: unit tests, the content recipe, colour contrast against the shipped
+  stylesheet, browser journeys in Chromium and WebKit, and the production build under its CSP,
+  offline and through Export → Restore. A missing browser fails, never skips.
+- A toggle with `aria-pressed` also shows its state by class. Only `<main>` scrolls; the tab bar
+  sits at the bottom; tap targets are at least 44px.

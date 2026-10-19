@@ -45,7 +45,7 @@ export default defineConfig({
       manifest: {
         name: 'Tell',
         short_name: 'Tell',
-        description: 'Small games that show how you see, and a record of you that adds up.',
+        description: 'Small choice experiments that show what actually matters to you when you choose.',
         lang: 'en-GB',
         theme_color: '#f4f1ea',
         background_color: '#f4f1ea',

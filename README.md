@@ -1,16 +1,21 @@
 # Tell
 
-**A few minutes of play. A clearer view of how you see.**
+**Tell never asks you the hard question. It asks small, easy choices and shows what they add up to.**
 
-Tell is a phone app of short games. Each day it deals four rounds: a scene from the world or from
-your own work, and a few ways of explaining it. You tap the one you'd look into first, or the
-one closest to your experience. A short reveal shows what that angle sees and misses, and what
-your answer just added to your map.
+Tell is a phone app of small choice experiments. Each day it deals a set of three: a **Slide**
+(one amount changes until you switch), a **Cut** (drop one of five good things at a time), a
+**Spend** (ten coins, then choose where they clash) or a **Peek** (open a few hidden facts and see
+which ones move you). Each set probes something your map doesn't know yet, stress-tests it with
+one condition changed, and connects it to the same trade-off elsewhere. Every experiment says why
+it was chosen.
 
-The map is the point. It keeps every answer, with the rounds behind every number. Each angle
-is shown as picked out of offered. Matched world and work scenes sit side by side, and paired
-choices show both answers when a choice returns with one detail changed. Lines you keep stay
-too. Nothing to memorise, nothing lost.
+Bring a real call to **Decide** and the same experiments run on your own options: what matters,
+what would switch you, which unknowns are worth finding out, and a brief for your own AI. Two
+weeks later Tell asks how it went.
+
+The **Map** keeps it all: your numbers for each trade-off, what you protect, what moves your
+lean, said against chose, patterns with their rules, your calls, lessons from closed calls
+(shareable as a file of Tell's fixed vocabulary only) and the principles you keep.
 
 Why it exists and what it refuses: [CHARTER.md](CHARTER.md). Rules for changing it:
 [AGENTS.md](AGENTS.md). The dated why: [DECISIONS.md](DECISIONS.md). Not yet built:
@@ -41,9 +46,11 @@ They fail, rather than skip, if a browser is missing.
 
 ```
 src/
-  domain/   types, the deck (content), engine (dealing, counting, the gate), validation
+  domain/   types, content (experiments and kinds of call), engine (picking, mechanics,
+            results, patterns, calls, lessons), validation, text
+  mechanics.tsx  the four experiments as screens
   store/    persistence and data safety
-  pages/    Play, Map, About
+  pages/    Today, Decide (and a call's page), Map, About
   styles/   design tokens and components
 tests/      contrast check and browser journeys
 ```

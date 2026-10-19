@@ -1,40 +1,87 @@
 import { describe, expect, it } from 'vitest';
-import { DECK, PAIRS } from './deck';
+import { CARDS, KINDS } from './content';
 import {
-  ROUNDS_PER_DAY,
+  CHANGE_GAP,
+  RETEST_DAYS,
+  ROTATION,
+  SET_SIZE,
+  addCall,
   addNote,
-  answer,
-  binomTail,
-  clearsGate,
-  currentRound,
+  addPool,
+  addPrinciple,
+  bracket,
+  brief,
+  callSummary,
+  charted,
+  chart,
+  clashPairs,
+  currentStep,
   daysBetween,
-  deal,
-  deposit,
+  dueCalls,
   emptyState,
-  lensRecord,
+  followUp,
+  lessonsFile,
   localDay,
-  matchedPairs,
-  observations,
-  outRecord,
-  pairResults,
-  toggleDisagree,
-  toggleKeep,
+  myLessons,
+  nextAsk,
+  noticed,
+  patterns,
+  protectedRecord,
+  rate,
+  ratingRecord,
+  ratingsByCard,
+  record,
+  rotate,
+  rotation,
+  runResult,
+  setStatus,
+  slideSetup,
+  startSet,
+  todaysSession,
+  type CallDraft,
+  type Play,
 } from './engine';
-import type { Answer, Card, LensCard, LensId, TellState } from './types';
+import type { Card, Lesson, Side, SlideCard, SlideRun, Step, TellState } from './types';
 
-const on = (d: number, h = 9) => new Date(2026, 9, d, h, 0, 0); // October 2026, local time
-const seeded = (seed = 1) => () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
-const card = (id: string) => DECK.find((c) => c.id === id)!;
+const on = (d: number, h = 9) => new Date(2026, 9, d, h, 0, 0); // October 2026 onwards, local time
 
-/** Deal a day and answer every round with `choose`. */
-function playDay(state: TellState, now: Date, choose: (c: Card) => string, area: 'mix' | 'world' | 'work' = 'mix') {
-  let s: TellState = { ...state, deal: deal(state, DECK, now, area, seeded(now.getDate())) };
-  for (const slot of s.deal!.cards) s = answer(s, DECK, slot.id, choose(card(slot.id)), now);
+/** A player: for each experiment, how they answer. Slides switch at a fixed step. */
+interface Chooser {
+  switchAt?: (c: SlideCard, step: Step) => number;
+  depends?: (c: SlideCard, step: Step) => 'alt' | 'condition' | 'else' | undefined;
+  guess?: number;
+  coins?: number[];
+}
+
+function playOf(state: TellState, cards: Card[], step: Step, who: Chooser): Play {
+  const c = cards.find((x) => x.id === step.card)!;
+  if (c.mechanic === 'slide') {
+    const { dial } = slideSetup(c, step);
+    const at = who.switchAt?.(c, step) ?? 3;
+    const on = step.role === 'depends' ? undefined : who.depends?.(c, step);
+    const asked: { step: number; pick: Side }[] = [];
+    if (on) return { mechanic: 'slide', asked, outcome: { kind: 'depends', at: nextAsk(7, dial.rises, asked)!, on } };
+    for (let s = nextAsk(7, dial.rises, asked); s !== null; s = nextAsk(7, dial.rises, asked)) {
+      asked.push({ step: s, pick: s >= at ? dial.rises : dial.rises === 'a' ? 'b' : 'a' });
+    }
+    return { mechanic: 'slide', guess: who.guess, asked, outcome: { kind: 'switch', at: bracket(7, dial.rises, asked).lo } };
+  }
+  if (c.mechanic === 'cut') return { mechanic: 'cut', order: rotate(c.items, rotation(state, 'cut')).slice(0, 4).map((i) => i.id) };
+  if (c.mechanic === 'spend') {
+    const coins = who.coins ?? [4, 3, 2, 1, 0];
+    return { mechanic: 'spend', coins, clashes: clashPairs(coins).map((p) => ({ ...p, pick: p.a })) };
+  }
+  return { mechanic: 'peek', before: 'a', opened: [{ fact: 0, lean: 'a' }, { fact: 1, lean: 'b' }], pick: 'b', wouldHave: [] };
+}
+
+/** Play today's whole set. */
+function playDay(state: TellState, now: Date, who: Chooser = {}, cards: Card[] = CARDS): TellState {
+  let s = startSet(state, cards, now);
+  for (let cur = currentStep(s, now); cur; cur = currentStep(s, now)) s = record(s, cards, playOf(s, cards, cur.step, who), now);
   return s;
 }
-const first = (c: Card) => c.options[0].id;
-const prefer = (lens: LensId) => (c: Card) =>
-  c.kind === 'switch' ? c.options[0].id : ((c as LensCard).options.find((o) => o.lens === lens) ?? c.options[0]).id;
+
+const steps = (s: TellState) => s.session!.steps.map((x) => `${x.role}:${x.card}${x.condition ? '+' : ''}${x.dial === 'alt' ? '~alt' : ''}`);
 
 describe('calendar', () => {
   it('uses the local calendar day and counts whole days across a clock change', () => {
@@ -44,251 +91,335 @@ describe('calendar', () => {
   });
 });
 
-describe('binomial gate', () => {
-  it('computes exact tail probabilities', () => {
-    expect(binomTail(4, 6, 0.25)).toBeCloseTo(0.03759765625, 12);
-    expect(binomTail(5, 6, 0.25)).toBeCloseTo(0.004638671875, 12);
-    expect(binomTail(3, 5, 0.25)).toBeCloseTo(0.103515625, 12);
-    expect(binomTail(0, 6, 0.25)).toBe(1);
-    expect(binomTail(7, 6, 0.25)).toBe(0);
-  });
-
-  it('shows an angle only when chance is implausible even after allowing for eight angles', () => {
-    expect(clearsGate(5, 6)).toBe(true); // 0.0046 × 8 = 0.037
-    expect(clearsGate(4, 6)).toBe(false); // 0.0376 × 8 = 0.30
-    expect(clearsGate(6, 8)).toBe(true);
-    expect(clearsGate(5, 8)).toBe(false);
-    expect(clearsGate(5, 5)).toBe(true); // 0.00098 × 8 = 0.0078
-    expect(clearsGate(4, 4)).toBe(false); // would clear on chance alone, but fewer than five offers
-  });
-});
-
-describe('dealing', () => {
-  it('deals four rounds, alternating areas, never two linked rounds on one day', () => {
-    const d = deal(emptyState(), DECK, on(1), 'mix', seeded());
-    expect(d.day).toBe('2026-10-01');
-    // w-newsroom's twin k-focus is skipped for k-reply.
-    expect(d.cards.map((c) => c.id)).toEqual(['w-headlines', 'k-plan', 'w-newsroom', 'k-reply']);
-  });
-
-  it('stores a shuffled option order that is a permutation of the round’s options', () => {
-    const d = deal(emptyState(), DECK, on(1), 'mix', seeded(7));
-    for (const slot of d.cards) expect([...slot.order].sort()).toEqual(card(slot.id).options.map((o) => o.id).sort());
-  });
-
-  it('brings matched scenes forward once their twin is answered, then fresh rounds', () => {
-    const day1 = playDay(emptyState(), on(1), first);
-    const d2 = deal(day1, DECK, on(2), 'mix', seeded());
-    expect(d2.cards.map((c) => c.id)).toEqual(['w-cycle', 'k-focus', 'w-late', 's-workshop-a']);
-  });
-
-  it('deals the second half of a pair only once the first is two calendar days old', () => {
-    let s = playDay(emptyState(), on(1), first);
-    s = playDay(s, on(2), first); // s-workshop-a answered on 2 October
-    expect(deal(s, DECK, on(3), 'mix').cards.map((c) => c.id)).not.toContain('s-workshop-b');
-    s = playDay(s, on(3), first);
-    expect(deal(s, DECK, on(4), 'mix').cards[0].id).toBe('s-workshop-b');
-  });
-
-  it('keeps to the chosen area', () => {
-    const d = deal(emptyState(), DECK, on(1), 'world', seeded());
-    expect(d.cards).toHaveLength(ROUNDS_PER_DAY);
-    expect(d.cards.every((c) => card(c.id).area === 'world')).toBe(true);
-  });
-
-  it('returns rounds left unanswered on an earlier day to the pool', () => {
-    let s: TellState = { ...emptyState(), deal: deal(emptyState(), DECK, on(1), 'mix', seeded()) };
-    s = answer(s, DECK, 'w-headlines', 'power', on(1));
-    expect(deal(s, DECK, on(2), 'mix').cards.map((c) => c.id)).toContain('w-newsroom');
-  });
-
-  it('eventually deals every round, then nothing', () => {
-    // A guard against twin or pair rules stranding a card.
-    let s = emptyState();
-    for (let d = 1; d <= 60; d++) s = playDay(s, on(d), first);
-    expect(s.answers).toHaveLength(DECK.length);
-    expect(deal(s, DECK, on(61), 'mix').cards).toEqual([]);
-  });
-});
-
-describe('recording', () => {
-  const dealt = () => ({ ...emptyState(), deal: deal(emptyState(), DECK, on(1), 'mix', seeded(3)) });
-
-  it('snapshots what was shown, in order, with each option’s angle', () => {
-    const s = dealt();
-    const order = s.deal.cards[0].order;
-    const a = answer(s, DECK, 'w-headlines', order[2], on(1)).answers[0];
-    expect(a.shown.map((x) => x.id)).toEqual(order);
-    expect(a.shown.every((x) => x.lens)).toBe(true);
-    expect(a.pickText).toBe(card('w-headlines').options.find((o) => o.id === order[2])!.text);
-    expect(a.day).toBe('2026-10-01');
-  });
-
-  it('refuses answers outside today’s set, repeats and invalid picks', () => {
-    const s = dealt();
-    expect(() => answer(s, DECK, 'w-rail', 'identity', on(1))).toThrow(/not in today/);
-    expect(() => answer(s, DECK, 'w-headlines', 'notme', on(1))).toThrow(/not an answer/);
-    expect(() => answer(s, DECK, 'w-headlines', 'power', on(2))).toThrow(/not in today/);
-    const once = answer(s, DECK, 'w-headlines', 'power', on(1));
-    expect(() => answer(once, DECK, 'w-headlines', 'power', on(1))).toThrow(/already/);
-  });
-
-  it('moves through the set and then ends it', () => {
-    let s: TellState = dealt();
-    for (let i = 0; i < ROUNDS_PER_DAY; i++) {
-      const round = currentRound(s, DECK, on(1))!;
-      expect(round.index).toBe(i);
-      s = answer(s, DECK, round.card.id, round.card.options[0].id, on(1));
+describe('Slide: halving over seven steps', () => {
+  it('asks the middle step first and settles any of the eight intervals in three choices', () => {
+    expect(nextAsk(7, 'b', [])).toBe(3);
+    for (let at = 0; at <= 7; at++) {
+      const asked: { step: number; pick: Side }[] = [];
+      for (let s = nextAsk(7, 'b', asked); s !== null; s = nextAsk(7, 'b', asked)) asked.push({ step: s, pick: s >= at ? 'b' : 'a' });
+      expect(asked, `interval ${at}`).toHaveLength(3);
+      expect(bracket(7, 'b', asked)).toEqual({ lo: at, hi: at });
     }
-    expect(currentRound(s, DECK, on(1))).toBeNull();
   });
 
-  it('keeps and un-keeps a line with its text snapshotted, and toggles disagreement', () => {
-    let s = toggleKeep(emptyState(), DECK, 'w-headlines', on(1));
-    expect(s.kept[0]).toMatchObject({ card: 'w-headlines', line: card('w-headlines').kind !== 'switch' ? (card('w-headlines') as LensCard).line : '' });
-    s = toggleKeep(s, DECK, 'w-headlines', on(1));
-    expect(s.kept).toEqual([]);
-    s = toggleDisagree(s, 'w-headlines', on(1));
-    expect(s.disagreed.map((d) => d.card)).toEqual(['w-headlines']);
-    expect(toggleDisagree(s, 'w-headlines', on(1)).disagreed).toEqual([]);
+  it('refuses answers that aren’t the halving they claim to be', () => {
+    const s = startSet(emptyState(), CARDS, on(1));
+    const out: Play = { mechanic: 'slide', asked: [{ step: 2, pick: 'a' }], outcome: { kind: 'switch', at: 3 } };
+    expect(() => record(s, CARDS, out, on(1))).toThrow(/out of order/);
+    const unsettled: Play = { mechanic: 'slide', asked: [{ step: 3, pick: 'a' }], outcome: { kind: 'switch', at: 4 } };
+    expect(() => record(s, CARDS, unsettled, on(1))).toThrow(/not settled/);
   });
 });
 
-describe('counting', () => {
-  it('counts each angle as picked-of-offered from the answers alone', () => {
-    const s = playDay(emptyState(), on(1), prefer('perception'));
-    const world = lensRecord(s.answers, 'world');
-    // w-headlines and w-newsroom both offer Perception, and it was picked both times.
-    expect(world.find((r) => r.lens === 'perception')).toMatchObject({ offered: 2, chosen: 2 });
-    expect(world.find((r) => r.lens === 'incentives')).toMatchObject({ offered: 2, chosen: 0 });
-    expect(world.reduce((n, r) => n + r.offered, 0)).toBe(8); // 2 rounds × 4 angles
-  });
-
-  it('keeps past denominators when the deck is later edited', () => {
-    // Answered under an older tagging, where this option counted as Identity…
-    const older = DECK.map((c) =>
-      c.id === 'w-headlines' && c.kind !== 'switch'
-        ? { ...c, options: c.options.map((o) => (o.id === 'power' ? { ...o, lens: 'identity' as const } : o)) }
-        : c,
-    );
-    let s: TellState = { ...emptyState(), deal: deal(emptyState(), older, on(1), 'mix', seeded()) };
-    s = answer(s, older, 'w-headlines', 'power', on(1));
-    // …the record keeps what was shown then, whatever the deck says now.
-    const record = lensRecord(s.answers, 'world');
-    expect(record.find((r) => r.lens === 'identity')).toMatchObject({ offered: 1, chosen: 1 });
-    expect(record.find((r) => r.lens === 'power')).toMatchObject({ offered: 0, chosen: 0 });
-  });
-
-  it('counts ways out separately', () => {
-    let s: TellState = { ...emptyState(), deal: deal(emptyState(), DECK, on(1), 'mix', seeded()) };
-    s = answer(s, DECK, 'w-headlines', 'unknown', on(1));
-    s = answer(s, DECK, 'k-plan', 'notme', on(1));
-    expect(outRecord(s.answers, 'world')).toEqual([{ out: 'unknown', label: 'Not enough to go on', count: 1 }]);
-    expect(outRecord(s.answers, 'work')).toEqual([{ out: 'notme', label: 'Doesn’t happen to me', count: 1 }]);
-    expect(lensRecord(s.answers, 'world').find((r) => r.lens === 'perception')).toMatchObject({ offered: 1, chosen: 0 });
-  });
-
-  it('says what each answer added, with its denominator', () => {
-    let s = playDay(emptyState(), on(1), prefer('perception'));
-    expect(deposit(s, 'w-newsroom')).toEqual(['Added to The world: Perception has been offered 2 times and picked 2.']);
-    s = playDay(s, on(2), prefer('perception'));
-    expect(deposit(s, 'k-focus')[1]).toBe('This completes a matched pair with “The newsroom’s good intentions”.');
-    // The first half of a pair never mentions pairing.
-    expect(deposit(s, 's-workshop-a')).toEqual(['Added to Work & projects: one choice recorded.']);
+describe('Spend: clashes', () => {
+  it('pairs adjacent ranks by coins, keeping authored order on ties', () => {
+    expect(clashPairs([1, 4, 0, 3, 2])).toEqual([
+      { a: 1, b: 3 },
+      { a: 3, b: 4 },
+      { a: 4, b: 0 },
+      { a: 0, b: 2 },
+    ]);
+    expect(clashPairs([2, 2, 2, 2, 2])).toEqual([
+      { a: 0, b: 1 },
+      { a: 1, b: 2 },
+      { a: 2, b: 3 },
+      { a: 3, b: 4 },
+    ]);
   });
 });
 
-describe('observations', () => {
-  /** Play every round in an area, preferring one angle wherever it's offered. */
-  const playAll = (lens: LensId, area: 'world' | 'work') => {
+describe('sets', () => {
+  it('runs probe, stress-test, connect on day one, each with its reason', () => {
+    const s = playDay(emptyState(), on(1));
+    expect(steps(s)).toEqual(['probe:sl-shop', 'stress:sl-shop+', 'connect:sl-taxi']);
+    expect(s.session!.steps.map((x) => x.reason)).toEqual([
+      'You haven’t tested money for time yet.',
+      'The same choice, with one thing changed: friends due in an hour.',
+      'The same trade-off in travel instead of home.',
+    ]);
+    expect(s.session!.done).toBe(true);
+    expect(s.runs).toHaveLength(SET_SIZE);
+  });
+
+  it('deals one set a day, fixed once planned', () => {
+    let s = startSet(emptyState(), CARDS, on(1));
+    expect(setStatus(s, CARDS, on(1))).toBe('playing');
+    expect(() => startSet(s, CARDS, on(1, 20))).toThrow(/already started/);
+    expect(currentStep(s, on(1, 20))).toEqual(currentStep(s, on(1)));
+    s = playDay(emptyState(), on(1));
+    expect(setStatus(s, CARDS, on(1, 23))).toBe('done');
+    expect(setStatus(s, CARDS, on(2))).toBe('ready');
+  });
+
+  it('lets an unfinished set lapse at midnight: its unplayed steps return to the pool', () => {
+    let s = startSet(emptyState(), CARDS, on(1));
+    s = record(s, CARDS, playOf(s, CARDS, currentStep(s, on(1))!.step, {}), on(1));
+    expect(todaysSession(s, on(2))).toBeNull();
+    s = startSet(s, CARDS, on(2));
+    expect(s.session!.steps[0].role).toBe('probe');
+    expect(s.runs).toHaveLength(1);
+  });
+
+  it('rotates the probe’s mechanic, and prices what a Cut kept with a Slide', () => {
     let s = emptyState();
-    for (let d = 1; d <= 30; d++) s = playDay(s, on(d), prefer(lens), area);
+    for (let d = 1; d <= ROTATION.length; d++) s = playDay(s, on(d));
+    const probes = s.runs.filter((r) => r.role === 'probe').map((r) => r.mechanic);
+    expect(probes).toEqual(ROTATION);
+    const day2 = s.runs.filter((r) => r.session === localDay(on(2)));
+    const cut = day2[0];
+    expect(cut.mechanic).toBe('cut');
+    const winner = cut.mechanic === 'cut' ? cut.items.find((i) => i.id === cut.winner)!.factor : null;
+    const stress = day2[1] as SlideRun;
+    expect(stress.mechanic).toBe('slide');
+    expect(stress.tradeoff).toContain(winner);
+  });
+
+  it('puts a price on what an open call protects first', () => {
+    const draft: CallDraft = {
+      kind: 'buying',
+      title: 'Which laptop',
+      options: ['Air', 'Pro'],
+      items: KINDS[0].features.slice(0, 5),
+      order: ['price', 'quality', 'daily'],
+      winner: 'return',
+      lean: 'a',
+      unknowns: [],
+    };
+    draft.order = ['price', 'quality', 'daily', 'reliable'];
+    const s = startSet(addCall(emptyState(), draft, 14, on(1)), CARDS, on(1));
+    // "Easy to return or resell" is flexibility: the first Slide pricing it.
+    expect(s.session!.steps[0]).toMatchObject({ card: 'sl-fare', reason: 'Your open call “Which laptop” protects flexibility. This puts a price on it.' });
+  });
+
+  it('checks a condition that changed an answer once in another setting', () => {
+    // On day one the deadline moves the shop answer by three intervals.
+    const s = playDay(emptyState(), on(1), { switchAt: (_, step) => (step.condition ? 0 : 3) });
+    expect(patterns(s.runs, 'GBP').filter((p) => p.kind === 'change').map((p) => p.tag)).toEqual(['deadline']);
+    let t = playDay(s, on(2)); // a Cut day
+    t = startSet(t, CARDS, on(3));
+    expect(t.session!.steps[0]).toMatchObject({ card: 'sl-delivery', reason: expect.stringMatching(/^Having a deadline changed one of your answers/) });
+  });
+
+  it('retests a result once it is three weeks old', () => {
+    let s = emptyState();
+    let d = 0;
+    // Play daily until a probe is a retest.
+    for (; d < 60 && !s.runs.some((r) => r.role === 'probe' && s.runs.some((x) => x.card === r.card && x.at < r.at)); d++) s = playDay(s, on(1 + d));
+    const retest = s.runs.find((r) => r.role === 'probe' && s.runs.some((x) => x.card === r.card && x.at < r.at))!;
+    const before = s.runs.filter((x) => x.card === retest.card && x.at < retest.at && !(x.mechanic === 'slide' && x.condition)).at(-1)!;
+    expect(daysBetween(before.day, retest.day)).toBeGreaterThanOrEqual(RETEST_DAYS);
+    expect(s.session!.steps[0].reason).toMatch(/days ago\. A retest shows/);
+  });
+
+  it('adds an “It depends” experiment inside the set, without counting it towards the three', () => {
+    const s = playDay(emptyState(), on(1), { depends: (c, step) => (step.role === 'probe' && c.alt ? 'alt' : undefined) });
+    expect(steps(s)).toEqual(['probe:sl-shop', 'depends:sl-shop~alt', 'stress:sl-shop+', 'connect:sl-taxi']);
+    // A depends on the stress-test still connects to the same trade-off elsewhere.
+    const t = playDay(emptyState(), on(1), { depends: (c, step) => (step.role === 'stress' && c.alt ? 'alt' : undefined) });
+    expect(steps(t)).toEqual(['probe:sl-shop', 'stress:sl-shop+', 'depends:sl-shop+~alt', 'connect:sl-taxi']);
+    const alt = s.runs[1] as SlideRun;
+    expect(alt.measure).toBe('How far away the supermarket can be');
+    expect(alt.tradeoff).toEqual(['time', 'money']);
+    expect(s.session!.steps[1]).toMatchObject({ hold: 3, reason: 'You said it depends on how far away the supermarket is. This tests it.' });
+    expect(runResult(s.runs[0], 'GBP').headline).toBe('It depended on how far away the supermarket is.');
+  });
+
+  it('plays sixty days in a row: a set every day, every experiment reached, all of it repeatable', () => {
+    const run = () => {
+      let s = emptyState();
+      const days: number[] = [];
+      for (let d = 0; d < 60; d++) {
+        const now = new Date(2026, 9, 1 + d, 9);
+        expect(setStatus(s, CARDS, now), `day ${d + 1}`).toBe('ready');
+        s = playDay(s, now, { switchAt: (c, step) => (step.condition ? 1 : c.id.length % 7) });
+        days.push(s.runs.filter((r) => r.day === localDay(now)).length);
+        if (charted(s.runs, CARDS).done === charted(s.runs, CARDS).total) break;
+      }
+      return { s, days };
+    };
+    const { s, days } = run();
+    expect(charted(s.runs, CARDS)).toEqual({ done: charted(s.runs, CARDS).total, total: 70 });
+    expect(days.every((n) => n >= 2)).toBe(true);
+    expect(run().s).toEqual(s); // the same state in, the same sets out
+  });
+});
+
+describe('what a run shows', () => {
+  const slideRun = (outcome: SlideRun['outcome'], guess?: number): SlideRun => ({
+    id: 'x-0',
+    session: 'x',
+    role: 'probe',
+    card: 'sl-flight',
+    v: 1,
+    context: 'travel',
+    title: 'The 06:05 flight',
+    at: '2026-10-01T08:00:00.000Z',
+    day: '2026-10-01',
+    mechanic: 'slide',
+    tradeoff: ['money', 'energy'],
+    dial: 'main',
+    measure: 'What skipping a 03:30 alarm is worth to you',
+    unit: 'money',
+    steps: [5, 10, 20, 40, 80, 150, 300],
+    rises: 'a',
+    asked: [],
+    outcome,
+    ...(guess !== undefined ? { guess } : {}),
+  });
+
+  it('states a Slide’s switch point, a non-factor within the range tested, or a close call', () => {
+    expect(runResult(slideRun({ kind: 'switch', at: 4 }, 4), 'GBP')).toEqual({
+      headline: 'What skipping a 03:30 alarm is worth to you: between £40 and £80.',
+      lines: ['You guessed between £40 and £80. Your choices landed there.'],
+    });
+    expect(runResult(slideRun({ kind: 'switch', at: 0 }), 'EUR').headline).toBe('What skipping a 03:30 alarm is worth to you: €5 or less.');
+    expect(runResult(slideRun({ kind: 'switch', at: 7 }, 2), 'USD')).toEqual({
+      headline: 'What skipping a 03:30 alarm is worth to you: more than $300.',
+      lines: ['Within the range tested, the amount didn’t move your answer.', 'You guessed between $10 and $20.'],
+    });
+    expect(runResult(slideRun({ kind: 'close', at: 3 }), 'GBP').headline).toBe('What skipping a 03:30 alarm is worth to you: about £40.');
+  });
+
+  it('gives every Spend a result, even when the coins are tied', () => {
+    let s = emptyState();
+    for (let d = 1; d <= 5; d++) s = playDay(s, on(d));
+    const spendOn = (coins: number[]) => runResult(playDay(s, on(6), { coins }).runs.find((r) => r.mechanic === 'spend')!, 'GBP').headline;
+    expect(spendOn([2, 2, 2, 2, 2])).toBe('Your coins were tied, so your choices set the order: price, then camera, then battery, then updates.');
+    expect(spendOn([4, 3, 2, 1, 0])).toBe('Your coins and your choices agreed in 4 of 4 clashes where the coins differed.');
+  });
+
+  it('names the Peek facts that moved the lean, with denominators', () => {
+    let s = emptyState();
+    for (let d = 1; d <= 4; d++) s = playDay(s, on(d));
+    const peek = s.runs.find((r) => r.mechanic === 'peek')!;
+    const r = runResult(peek, 'GBP');
+    expect(r.headline).toMatch(/^Of the 2 facts you opened, only .+ moved your lean\.$/);
+    expect(r.lines.at(-1)).toBe('None of the 3 facts you didn’t open would have changed your pick.');
+  });
+
+  it('keeps past results when the content is later edited', () => {
+    const s = playDay(emptyState(), on(1));
+    const before = s.runs.map((r) => runResult(r, 'GBP'));
+    const edited = CARDS.map((c) => (c.id === 'sl-shop' ? { ...c, dial: { ...(c as SlideCard).dial, measure: 'Changed', steps: [1, 2, 3, 4, 5, 6, 7] } } : c));
+    expect(s.runs.map((r) => runResult(r, 'GBP'))).toEqual(before);
+    expect(chart(s.runs, edited).find((r) => r.tradeoff.join() === 'money,time')!.cells[0].base!.measure).toBe('How much cheaper the supermarket has to be');
+  });
+});
+
+describe('patterns', () => {
+  const cutDays = (n: number) => {
+    let s = emptyState();
+    let d = 1;
+    while (s.runs.filter((r) => r.mechanic === 'cut').length < n) s = playDay(s, on(d++));
     return s;
   };
-  /** How many lens rounds in an area offer this angle: the deck's own number, not a constant. */
-  const offersIn = (lens: LensId, area: 'world' | 'work') =>
-    DECK.filter((c) => c.kind !== 'switch' && c.area === area && c.options.some((o) => (o as LensCard['options'][number]).lens === lens)).length;
 
-  /** A synthetic lens round answered on `day`, offering Identity, Power, Capacity and Structure. */
-  const round = (i: number, pick: string, day: string): Answer => ({
-    card: `x-${i}`,
-    v: 1,
-    kind: 'mirror',
-    area: 'work',
-    title: `Scene ${i}`,
-    at: `${day}T08:00:00.000Z`,
-    day,
-    shown: (['identity', 'power', 'capacity', 'structure'] as const).map((lens) => ({ id: lens, lens })),
-    pick,
-    pickText: pick,
+  it('shows a repeated choice only at three times and three in four, and keeps it once shown', () => {
+    // Cutting the first shown item each time: rotation spreads first cuts across factors.
+    const s = cutDays(6);
+    const cuts = protectedRecord(s.runs);
+    const money = cuts.find((r) => r.factor === 'money')!;
+    expect(money.offered).toBe(6);
+    const shown = patterns(s.runs, 'GBP').filter((p) => p.kind === 'repeat');
+    for (const p of shown) {
+      const [k, n] = p.first.counts.split(' of ').map(Number);
+      expect(k >= 3 && k >= 0.75 * n, p.id).toBe(true);
+    }
   });
 
-  it('appears only when an angle clears the published bar', () => {
-    const s = playAll('identity', 'work');
-    const n = offersIn('identity', 'work');
-    expect(lensRecord(s.answers, 'work').find((r) => r.lens === 'identity')).toMatchObject({ offered: n, chosen: n });
-    const obs = observations(s.answers).find((o) => o.id === 'lean:work:identity')!;
-    expect(obs).toMatchObject({ counts: `${n} of ${n}`, clears: true });
+  it('counts a context change only when the two results are at least two intervals apart', () => {
+    const near = playDay(emptyState(), on(1), { switchAt: (_, step) => (step.condition ? 2 : 3) });
+    expect(patterns(near.runs, 'GBP').some((p) => p.kind === 'change')).toBe(false);
+    const far = playDay(emptyState(), on(1), { switchAt: (_, step) => (step.condition ? 3 - CHANGE_GAP : 3) });
+    expect(patterns(far.runs, 'GBP').find((p) => p.kind === 'change')).toMatchObject({
+      id: 'change:sl-shop',
+      text: 'How much cheaper the supermarket has to be: between £4 and £8. With friends due in an hour: between £1 and £2.',
+    });
   });
 
-  it('stays once shown, marked with both counts, when later rounds bring it under the bar', () => {
-    const answers = [1, 2, 3, 4, 5].map((i) => round(i, 'identity', `2026-10-0${i}`));
-    expect(observations(answers)).toEqual([
-      expect.objectContaining({ id: 'lean:work:identity', counts: '5 of 5', clears: true, first: { counts: '5 of 5', day: '2026-10-05' } }),
-    ]);
-    const later = [...answers, round(6, 'power', '2026-10-06'), round(7, 'capacity', '2026-10-07')];
-    expect(observations(later)).toEqual([
-      expect.objectContaining({ id: 'lean:work:identity', counts: '5 of 7', clears: false, first: { counts: '5 of 5', day: '2026-10-05' } }),
-    ]);
-  });
-
-  it('counts its walk exactly as the record does, ways out and all', () => {
-    // Cleared on the very last answer, so the walk's counts at that moment are its final counts.
-    const answers = [round(1, 'else', '2026-10-01'), ...[2, 3, 4, 5, 6].map((i) => round(i, 'identity', `2026-10-0${i}`))];
-    const obs = observations(answers)[0];
-    const row = lensRecord(answers, 'work').find((r) => r.lens === 'identity')!;
-    expect(obs.first.counts).toBe(`${row.chosen} of ${row.offered}`);
-    expect(obs.counts).toBe('5 of 6');
-  });
-
-  it('does not appear for an angle picked at chance-like rates', () => {
-    let s = emptyState();
-    for (let d = 1; d <= 3; d++) s = playDay(s, on(d), first, 'world');
-    const record = lensRecord(s.answers, 'world');
-    expect(s.answers).toHaveLength(12);
-    expect(Math.max(...record.map((r) => r.chosen))).toBe(3); // at most 3 of 6
-    expect(observations(s.answers)).toEqual([]);
-  });
-
-  it('is never changed by the player’s verdict', () => {
-    const s = playAll('identity', 'work');
-    const noted = addNote(s, 'lean:work:identity', 'doesnt', '6 of 6', on(7));
-    expect(observations(noted.answers)).toEqual(observations(s.answers));
-    expect(noted.notes.at(-1)).toMatchObject({ verdict: 'doesnt', counts: '6 of 6' });
+  it('never changes a pattern because of the player’s verdict', () => {
+    const s = playDay(emptyState(), on(1), { switchAt: (_, step) => (step.condition ? 0 : 3) });
+    const p = patterns(s.runs, 'GBP')[0];
+    const noted = addNote(s, p.id, 'coincidence', p.counts, on(1));
+    expect(patterns(noted.runs, 'GBP')).toEqual(patterns(s.runs, 'GBP'));
+    expect(noted.notes).toEqual([{ pattern: p.id, verdict: 'coincidence', counts: p.counts, at: on(1).toISOString() }]);
   });
 });
 
-describe('matched scenes and pairs', () => {
-  it('compares only twins answered on both sides', () => {
-    let s = playDay(emptyState(), on(1), prefer('capacity'));
-    expect(matchedPairs(s.answers)).toEqual([]);
-    s = playDay(s, on(2), prefer('capacity'));
-    const pairs = matchedPairs(s.answers);
-    expect(pairs.map((p) => [p.world.card, p.work.card])).toEqual([
-      ['w-newsroom', 'k-focus'],
-      ['w-cycle', 'k-plan'],
+describe('calls and lessons', () => {
+  const SECRET = 'zebra-secret';
+  const kindB = KINDS[0];
+  const draft: CallDraft = {
+    kind: 'buying',
+    title: `Camera ${SECRET}`,
+    options: [`Keep ${SECRET}`, `Buy ${SECRET}`],
+    items: [...kindB.features.slice(0, 4), { id: 'own-1', factor: 'quality', text: `Low light ${SECRET}`, own: true }],
+    order: ['price', 'quality', 'daily', 'reliable'],
+    winner: 'own-1',
+    lean: 'b',
+    slide: { unit: 'money', steps: kindB.dial.steps, phrase: kindB.dial.phrase, asked: [], outcome: { kind: 'switch', at: 4 } },
+    unknowns: [
+      { id: 'u1', text: 'The return window', check: 'return-window', answer: 'yes' },
+      { id: 'u2', text: `Charger ${SECRET}`, answer: 'no' },
+    ],
+  };
+
+  it('comes back due, closes with a follow-up and summarises only what was answered', () => {
+    let s = addCall(emptyState(), draft, 14, on(1));
+    expect(dueCalls(s, on(14))).toHaveLength(0);
+    expect(dueCalls(s, on(15))).toHaveLength(1);
+    expect(callSummary(s.calls[0], 'GBP')).toEqual([
+      `What matters most here: low light ${SECRET}, then reliable for years. First to go: the price.`,
+      `You’re leaning towards Buy ${SECRET}.`,
+      `You’d still pick Buy ${SECRET} if it cost £200 more, but not if it cost £400 more.`,
+      'Could change your pick, so worth finding out: the return window.',
+      `Wouldn’t change it, so you can skip: charger ${SECRET}.`,
     ]);
-    expect(pairs.every((p) => p.worldLens === 'capacity' && p.workLens === 'capacity')).toBe(true);
+    expect(brief(s.calls[0], kindB.name, 'GBP')).toContain(`A decision I’m making: Camera ${SECRET} (buying something).`);
+    s = followUp(s, s.calls[0].id, { lesson: 'f00d0001', chose: 'b', went: 'worse', mattered: [{ item: 'price', how: 'more' }, { item: 'own-1', how: 'less' }], missed: [{ check: 'running-costs' }, { text: `Strap ${SECRET}` }] }, on(15));
+    expect(dueCalls(s, on(16))).toHaveLength(0);
+    expect(() => followUp(s, s.calls[0].id, s.calls[0].follow!, on(16))).toThrow(/already closed/);
   });
 
-  it('reports whether the answer changed once both halves are in', () => {
-    let s = emptyState();
-    for (let d = 1; d <= 4; d++) {
-      s = playDay(s, on(d), (c) => (c.kind === 'switch' && c.pair === 'workshop' ? (c.variant === 'a' ? 'go' : 'stay') : first(c)));
-    }
-    const workshop = pairResults(s.answers, PAIRS).find((r) => r.pair.id === 'workshop')!;
-    expect(workshop).toMatchObject({ changed: true });
-    expect(workshop.first.pickText).toBe('Go');
-    expect(workshop.second!.pickText).toBe('Stay home');
+  it('shares lessons in fixed vocabulary only: none of the player’s words leave the device', () => {
+    let s = addCall(emptyState(), draft, 14, on(1));
+    s = followUp(s, s.calls[0].id, { lesson: 'f00d0001', chose: 'b', went: 'worse', mattered: [{ item: 'price', how: 'more' }, { item: 'own-1', how: 'less' }], missed: [{ check: 'running-costs' }, { text: `Strap ${SECRET}` }] }, on(15));
+    s = addPrinciple(s, `Principle ${SECRET}`, on(15), s.calls[0].id);
+    const file = lessonsFile(s);
+    expect(file).not.toContain(SECRET);
+    expect(JSON.parse(file)).toEqual({
+      tell: 'lessons',
+      v: 1,
+      lessons: [{ id: 'f00d0001', kind: 'buying', went: 'worse', mattered: [{ feature: 'price', how: 'more' }], missed: ['running-costs'], other: 1 }],
+    });
+  });
+
+  it('counts each shared call once, however many files it arrives in, and never your own', () => {
+    const lesson = (id: string): Lesson => ({ id, kind: 'buying', went: 'expected', mattered: [], missed: ['return-window'], other: 0 });
+    let s = addCall(emptyState(), draft, 14, on(1));
+    s = followUp(s, s.calls[0].id, { lesson: 'mine0001', chose: 'a', went: 'better', mattered: [], missed: [] }, on(15));
+    const add = (lessons: Lesson[]) => {
+      const r = addPool(s, lessons, on(16));
+      if (r.ok) s = r.state;
+      return r;
+    };
+    expect(add(JSON.parse(lessonsFile(s)).lessons)).toEqual({ ok: false, error: 'Those lessons are already here.' });
+    // A friend shares two calls, then closes one more and shares all three again.
+    expect(add([lesson('a1'), lesson('a2')])).toMatchObject({ ok: true, added: 2, skipped: 0 });
+    expect(noticed(s, 'buying').shared).toMatchObject({ calls: 2, missed: [], below: 1 });
+    expect(add([lesson('a1'), lesson('a2')])).toEqual({ ok: false, error: 'Those lessons are already here.' });
+    expect(add([lesson('a1'), lesson('a2'), lesson('a3')])).toMatchObject({ ok: true, added: 1, skipped: 2 });
+    expect(noticed(s, 'buying').shared).toMatchObject({ calls: 3, missed: [{ id: 'return-window', count: 3 }], below: 0 });
+    expect(myLessons(s).map((l) => l.id)).toEqual(['mine0001']);
+  });
+});
+
+describe('ratings', () => {
+  it('keeps one rating per set and credits it to the experiments in that set', () => {
+    let s = playDay(emptyState(), on(1));
+    s = rate(s, localDay(on(1)), 'meh', on(1));
+    s = rate(s, localDay(on(1)), 'useful', on(1, 10));
+    expect(ratingRecord(s)).toEqual({ good: 1, of: 1 });
+    expect(ratingsByCard(s).get('sl-taxi')).toEqual({ useful: 1, interesting: 0, meh: 0 });
   });
 });
