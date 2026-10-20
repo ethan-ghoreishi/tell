@@ -58,7 +58,7 @@ function Choose({ step, before, onAnswer }: { step: Extract<Step, { kind: 'choos
         </p>
         <div className="options">
           {offered(step, asked).map((o) => (
-            <button key={o.id} className={`option${o.id === step.ask?.adds.id ? ' new' : ''}`} onClick={() => onAnswer({ kind: 'choose', pick: o.id, asked })}>
+            <button key={o.id} className={`option${o.id === step.ask?.adds?.id ? ' new' : ''}`} onClick={() => onAnswer({ kind: 'choose', pick: o.id, asked })}>
               <span className="option-title">{o.text}</span>
               {o.detail && <span className="option-line small dim">{o.detail}</span>}
             </button>

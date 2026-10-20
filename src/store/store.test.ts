@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import tell20 from '../../tests/fixtures/tell-2.0.json';
+import tell30 from '../../tests/fixtures/tell-3.0.json';
 import { everything, SAMPLE } from '../../tests/sample';
 import { emptyState, recordPlay } from '../domain/engine';
 import { SITUATIONS } from '../domain/situations';
@@ -26,11 +27,12 @@ function memory(initial?: string) {
 const now = new Date(2026, 9, 1, 9);
 const played = (s: TellState = emptyState()) => recordPlay(s, SITUATIONS, 'oak', SAMPLE.oak, now);
 
-/** Documents as earlier versions of Tell really stored them. 2.0's was written by its own engine. */
+/** Documents as earlier versions of Tell really stored them. 2.0's and 3.0's were written by their own engines. */
 const EARLIER = {
   1: { schema: 1, answers: [{ card: 'w-01', pick: 'power', at: '2026-10-08T09:00:00.000Z' }], deal: null, kept: [{ text: 'Kept line' }], disagreed: [], notes: [] },
   2: { schema: 2, currency: 'GBP', runs: [{ id: '2026-10-14-0', mechanic: 'slide', card: 'sl-shop' }], session: null, calls: [], notes: [], principles: [{ id: 'p-1', text: 'Light beats fast', at: '2026-10-14T10:00:00.000Z' }], ratings: [], pool: [] },
   3: tell20,
+  4: tell30,
 };
 
 describe('store', () => {
@@ -67,7 +69,7 @@ describe('store', () => {
   });
 
   it('refuses data from a newer version, saying so, and leaves it untouched', () => {
-    const newer = JSON.stringify({ ...emptyState(), schema: 5 });
+    const newer = JSON.stringify({ ...emptyState(), schema: 6 });
     const storage = memory(newer);
     expect(createStore(storage).get()).toMatchObject({ status: 'refused', newer: true });
     expect(storage.data.get(STORAGE_KEY)).toBe(newer);
@@ -90,7 +92,7 @@ describe('store', () => {
     expect(validateState(JSON.parse(JSON.stringify(shown)), now)).toMatchObject({ ok: false, error: 'play 1 shows a different situation from the one it names' });
   });
 
-  it.each([1, 2, 3] as const)('keeps a schema-%i record whole in the archive of a fresh record', (schema) => {
+  it.each([1, 2, 3, 4] as const)('keeps a schema-%i record whole in the archive of a fresh record', (schema) => {
     const doc = EARLIER[schema];
     const storage = memory(JSON.stringify(doc));
     const snap = createStore(storage).get();
@@ -102,6 +104,11 @@ describe('store', () => {
     // And the same through Restore.
     const r = readBackup(JSON.stringify(doc), now);
     expect(r).toMatchObject({ ok: true, state: { plays: [], archive: [{ schema, doc }] } });
+  });
+
+  it('refuses a malformed record of what has been seen', () => {
+    expect(validateState({ ...emptyState(), seen: { a: 'yesterday' } }, now)).toMatchObject({ ok: false, error: 'what has been seen is malformed' });
+    expect(validateState({ ...emptyState(), seen: undefined }, now)).toMatchObject({ ok: false });
   });
 
   it('validates an import completely and changes nothing on refusal', () => {

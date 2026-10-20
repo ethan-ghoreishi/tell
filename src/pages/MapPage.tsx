@@ -1,59 +1,56 @@
-import { found, library, playView } from '../domain/engine';
-import { CONNECTIONS, SITUATIONS } from '../domain/situations';
+import { discoveries, playView } from '../domain/engine';
+import { CONNECTIONS } from '../domain/situations';
 import type { TellState } from '../domain/types';
-import { Section } from '../steps';
 import { shortDate } from '../ui';
-import { ConnectionCard } from './Play';
+import { DiscoveryCard, useFresh } from './Play';
 
-// Connections first, and only those whose situations have both been played;
-// then everything that was chosen, each with its source. Nothing to approve,
-// sort or maintain.
+// The distinctions your choices have turned up, newest first: each a heading
+// and a sentence or two, with the choices and limits behind a tap. Everything
+// played sits underneath, folded away. Nothing to approve, sort or maintain.
 
 export default function MapPage({ state }: { state: TellState }) {
-  const connections = found(state, CONNECTIONS);
-  const played = library(state, SITUATIONS).filter((x) => x.plays.length);
+  const found = discoveries(state, CONNECTIONS);
+  const fresh = useFresh(state, found);
+  const plays = [...state.plays].reverse();
 
   return (
     <div className="stack-xl">
       <header className="stack">
         <h1 className="title">Your map</h1>
         <p className="lede">
-          {played.length ? 'What connects the situations you’ve played, and what you chose in each.' : 'Nothing yet. Play a situation, and what you choose shows up here.'}
+          {found.length
+            ? 'Distinctions your choices have turned up, newest first.'
+            : 'Nothing yet. When two of your choices, in different stories, turn up the same distinction, it appears here. Not every pair does.'}
         </p>
       </header>
 
-      <Section title="Connections" id="connections">
-        {connections.length === 0 && (
-          <p className="empty">None yet. A connection appears once you’ve played two situations that share something. Not every two do.</p>
-        )}
-        {connections.map((f) => (
-          <ConnectionCard key={f.connection.id} f={f} />
-        ))}
-      </Section>
+      {found.length > 0 && (
+        <div className="stack-lg">
+          {found.map((d) => (
+            <DiscoveryCard key={d.connection.id} d={d} fresh={fresh.has(d.connection.id)} />
+          ))}
+        </div>
+      )}
 
-      {played.length > 0 && (
-        <Section title="What you chose" id="chose">
-          <ul className="cells">
-            {played.map(({ situation: s, plays }) => (
-              <li key={s.id} className="cell stack-tight">
-                <a className="cell-head shelf" href={`#/play/${plays[0].id}`}>
-                  <span className="section-title">{s.title}</span>
-                  <span className="small dim num">{shortDate(plays[0].day)}</span>
-                </a>
-                <p className="small dim">{playView(plays[0]).did.join(' ')}</p>
-                {plays.length > 1 && (
-                  <p className="small replays">
-                    {plays.slice(1).map((p) => (
-                      <a key={p.id} className="link" href={`#/play/${p.id}`}>
-                        Replay {p.replay}, {shortDate(p.day)}
-                      </a>
-                    ))}
-                  </p>
-                )}
+      {plays.length > 0 && (
+        <details className="card-quiet">
+          <summary className="link small">Everything you’ve played ({plays.length})</summary>
+          <ul className="results small">
+            {plays.map((p) => (
+              <li key={p.id}>
+                <a className="link" href={`#/play/${p.id}`}>
+                  {p.shown.title}
+                </a>{' '}
+                <span className="dim">
+                  {shortDate(p.day)}
+                  {p.replay ? `, replay ${p.replay}` : ''}
+                </span>
+                <br />
+                {playView(p).did.join(' ')}
               </li>
             ))}
           </ul>
-        </Section>
+        </details>
       )}
     </div>
   );

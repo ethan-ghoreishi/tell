@@ -2,7 +2,92 @@
 
 Durable record of non-obvious choices. Newest first.
 
-## Tell 3.0: situations and connections (2026-10-20)
+## Tell 3.1: connections that follow the path (2026-10-20)
+
+**What changed, and why.** The owner's review of 3.0: Map too long and explanatory; some
+connections flattened materially different choices into one interpretation (selling and keeping
+the boat; felling and fencing the oak); three fixed connections showed no growing personal value;
+some discoveries made the interesting choice too easy. Highest priority: the meaning of
+connections, then their presentation. The brief authorised revising conflicting rules and
+deleting test data, and set a vision and mission (now in `CHARTER.md`).
+
+**The backbone, reworked.** 3.0 labelled whole stories (the way back, finding out, waiting).
+3.1 describes every answer as a move in the four parts of a choice under uncertainty: action
+(final, undoable, undoable at a price, holds), uncertainty (looks first, goes without, tests,
+waits for news, moves before news, commits before news that can only come after), future options
+(closes, keeps open, guards, keeps by using, lets fade) and consequences (what it costs, what it
+risks). The logic: information is worth something only if it could change the move and arrives
+before the point of no return; flexibility only if a move can be undone or put off; consequences
+set how much either matters. Grounded in Howard (1966), Arrow and Fisher (1974) and Dixit and
+Pindyck (1994), each checked; Tell uses the concepts, never the mathematics.
+
+**Connections, rebuilt (owner-authorised).**
+1. *Path-specific.* Each connection names the exact answers it fits. The fixed story pairs and
+   their classes are gone. Felling, cutting and fencing the oak meet the bakery's shelf with three
+   different distinctions; selling the boat and keeping her for the summer meet the beans
+   differently, and keeping her whatever happens meets them with nothing.
+2. *Two rules, tested:* a side may group answers only if the model describes them identically
+   (the flattening fix, as a test); and at most one connection for any two ways through two
+   stories (the review walk checks every combination).
+3. *Observation apart from demonstration.* `says` describes the moves; the player's choices are
+   fixed record lines behind a tap; `breaks` says where the analogy stops; `question` is for a
+   real choice. The per-card "what the answers can't show" sentence is gone: said once in About.
+4. *Growth.* Twenty connections, every story in at least two, many across the old pairs (the
+   fence and the boat's summer: what waiting buys; the oak and the film: facts for sale, and
+   none). A full first run finds about three to seven; a replay down another path can find more.
+5. *Omission is valid.* Combinations with nothing true and useful get nothing; the review lists
+   them. Completing two stories doesn't earn an insight by right.
+   A connection that names only some steps must hold whatever the others were; the review prints
+   which steps each ignores, and cards show the whole path. Where the unnamed step changed the
+   meaning, the connection was split: not looking and then felling the oak ("What finding out
+   costs") meets asking at the bakery differently from not looking and then fencing it ("Finding
+   out later, behind a way back"); not looking and then cutting the crown gets nothing.
+6. *Anchored history.* A discovery is fixed at the earliest moment both sides fitted; later plays
+   add examples and never rewrite it. Replays now count (3.0 used first plays only), because the
+   anchor already protects history and a different path deserves its own distinction. Priming
+   guards built for fixed pairs (never adjacent, "one other story shares something") are dropped.
+7. *Seen.* `seen` records the first sighting of each connection; "New" is a word, shown until
+   then, never a count.
+
+**Map.** Connections only, newest first: a short heading and one or two sentences each; "Your
+choices, and where it breaks" behind a disclosure; everything played folded into one closed
+section. No lede beyond one line, no repeated summaries, no per-card disclaimer.
+
+**Play.**
+- *The oak:* the tree surgeon's fact said the crown cut was harmless, which made buying it settle
+  the choice. Now she says cutting eases the strain and big cuts can let rot in. The photograph
+  shows the same lean and no fungus. No fact settles it.
+- *The boat:* asking at the club gave a fee-free option that beat waiting outright, a guaranteed
+  reward for asking. Now the club keeps her until October, so no sale before then, and beginners
+  are hard on boats.
+- *The lighthouse is replaced by a film set* ("The last of the light"), the weakest story repaired
+  with a field that contributes a real constraint: on film, nobody can see what was caught until
+  a lab develops it, so the call between another take and the planned wide shot is made blind.
+  Asking the camera operator returns her honest limit, not a verdict. Facts checked against
+  Wikipedia ("Dailies", "Focus puller", "Video assist") and Roland Denning, RedShark News (2023);
+  "safety take" couldn't be sourced, so the story doesn't use the term. It says it is shot on
+  film, because digital footage can be checked at once, and what it invents.
+- *Sources for the others:* hollow oaks (Woodland Trust), rain splitting ripe grapes (University of
+  Wisconsin Fruit Program), bean seed life (Johnny's Selected Seeds' storage guide). Each page was
+  opened and each fact narrowed to what the page itself says. Each story's ending
+  has "What's real in this story".
+- *Endings:* "Other ways through" cut to a sentence or two. The teaser is gone.
+
+**Data.** Schema 5 (plays, seen, archive). Schemas 1–4 are archived whole; a real 3.0 document,
+written by 3.0's engine before it changed, joins the 2.0 one as a fixture.
+
+**The bridge.** Each play now keeps what a future Bring a choice would need: what was unknown,
+every option's move, and the path taken; each connection keeps where it breaks and a question.
+The plain-text download carries all of it. `FUTURE.md` describes the retrieval.
+
+**Editorial review.** Every path and every combination was printed and read. Changes from that
+read: four sentences that overclaimed for some paths ("a day's wait would have shown",
+"within a week", "meet a storm", "the light was the only clock"); a link that described waiting
+when the player had sold; a risk line that read as describing the player.
+
+---
+
+## Tell 3.0: situations and connections (2026-10-20; revised by 3.1)
 
 **What changed, and why.** The owner's brief (2026-10-20) redefined Tell as a collection of
 intriguing, playable situations that help people notice useful connections between choices,

@@ -4,15 +4,15 @@ import type { TellState } from '../domain/types';
 import { shortDate } from '../ui';
 
 // The collection, shown whole: nothing is locked, scheduled or replenished.
-// The order keeps situations that share something apart.
+// Stories are listed in a fixed order; nothing is ranked or recommended.
 
 export default function Home({ state }: { state: TellState }) {
   const shelf = library(state, SITUATIONS);
   return (
     <div className="stack-xl">
       <header className="stack">
-        <h1 className="title">Pick a situation</h1>
-        <p className="lede">Each is a small choice somewhere different, two or three minutes long. Some have more in common than they seem.</p>
+        <h1 className="title">Pick a story</h1>
+        <p className="lede">Each is a small choice somewhere unfamiliar, two or three minutes long. Some have more in common than they seem.</p>
       </header>
       <ul className="stack">
         {shelf.map(({ situation: s, plays }) => (

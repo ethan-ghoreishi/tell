@@ -1,0 +1,625 @@
+{
+  "schema": 4,
+  "plays": [
+    {
+      "id": "p1-1792486800000",
+      "situation": "oak",
+      "v": 1,
+      "at": "2026-10-20T09:00:00.000Z",
+      "day": "2026-10-20",
+      "replay": 0,
+      "shown": {
+        "id": "oak",
+        "v": 1,
+        "title": "The old oak",
+        "place": "A village green",
+        "hook": "Two hundred years old, and leaning over the school path.",
+        "setup": "The oak on the village green is about two hundred years old. It leans over the path to the school, and in March a big branch came down in the night. There is fungus at its base. The parish has left the decision to you, and the autumn storms are five weeks away.",
+        "steps": [
+          {
+            "kind": "uncover",
+            "id": "look",
+            "prompt": "Before you decide, you can find things out. Each takes time, and the work itself will need the last week.",
+            "budget": 4,
+            "unit": [
+              "week",
+              "weeks"
+            ],
+            "facts": [
+              {
+                "id": "climb",
+                "label": "Ask the tree surgeon to climb it",
+                "cost": 1,
+                "text": "The crown is healthy and full of leaf. She could take a third of its weight off without harming it."
+              },
+              {
+                "id": "photos",
+                "label": "Find old photographs of the green",
+                "cost": 1,
+                "text": "In a photograph from 1952, the oak leans exactly as far as it does today."
+              },
+              {
+                "id": "scan",
+                "label": "Have the trunk scanned",
+                "cost": 3,
+                "text": "About a third of the trunk is hollow. Hollow oaks often stand for decades. Some don’t."
+              }
+            ],
+            "bands": [
+              {
+                "id": "none",
+                "upTo": 0
+              },
+              {
+                "id": "some",
+                "upTo": 4
+              }
+            ]
+          },
+          {
+            "kind": "choose",
+            "id": "act",
+            "prompt": "What happens to the oak?",
+            "options": [
+              {
+                "id": "fell",
+                "text": "Fell it",
+                "detail": "No more risk from it, and no more oak."
+              },
+              {
+                "id": "crown",
+                "text": "Take a third of the weight off the crown",
+                "detail": "It stays, smaller. Less likely to fall; not certain."
+              },
+              {
+                "id": "fence",
+                "text": "Leave it, and fence off the path",
+                "detail": "The oak stays as it is. The children walk round by the road."
+              }
+            ]
+          }
+        ],
+        "ending": {
+          "closing": {
+            "step": "act",
+            "cases": {
+              "fell": "The oak comes down in a day. The stump is wider than a kitchen table, and a boy from the school counts 214 rings. The path is open again by Friday.",
+              "crown": "The tree surgeon spends two days in the crown. From the pub the oak looks thinner, and still very much itself. The path stays open, and the storms will test it.",
+              "fence": "A fence goes up around the oak, and the school sends a letter about the longer walk. The oak meets the storms as it is."
+            }
+          },
+          "others": "Some fell it straight away: the fungus is enough. Some spend three weeks on the scan, because a felled oak can’t be put back. Some fence it off and keep every option open, and the children pay with a longer walk."
+        },
+        "structure": {
+          "undo": "none",
+          "news": "buy",
+          "waiting": "risks"
+        }
+      },
+      "answers": {
+        "look": {
+          "kind": "uncover",
+          "opened": [
+            "scan"
+          ]
+        },
+        "act": {
+          "kind": "choose",
+          "pick": "crown",
+          "asked": false
+        }
+      }
+    },
+    {
+      "id": "p2-1792490400000",
+      "situation": "harvest",
+      "v": 1,
+      "at": "2026-10-20T10:00:00.000Z",
+      "day": "2026-10-20",
+      "replay": 0,
+      "shown": {
+        "id": "harvest",
+        "v": 1,
+        "title": "The harvest",
+        "place": "A small vineyard",
+        "hook": "Every day the grapes get sweeter. A storm may be coming.",
+        "setup": "Your grapes are nearly ripe. Each extra day on the vine makes them sweeter and the wine better. A storm may be on its way: if it hits before you pick, the rain will split half the grapes. Picking takes your crew one full day, and the forecast changes every morning.",
+        "steps": [
+          {
+            "kind": "days",
+            "id": "pick",
+            "days": [
+              {
+                "label": "Monday",
+                "text": "Forecast: a three-in-ten chance of a storm this week, most likely Friday. This far ahead, forecasts are often a day or two out. Picked today, the grapes would make a good, light wine."
+              },
+              {
+                "label": "Tuesday",
+                "text": "Forecast: five in ten, Thursday or Friday. Picked today, a good wine."
+              },
+              {
+                "label": "Wednesday",
+                "text": "Forecast: seven in ten, on Friday, perhaps Thursday night. Picked today, a very good wine."
+              },
+              {
+                "label": "Thursday",
+                "text": "Forecast: nine in ten, from Friday midday. Storms like this sometimes arrive a day early. Picked today, the best wine in years."
+              }
+            ],
+            "act": "Pick today",
+            "wait": "Wait a day",
+            "last": "Wait for the storm to pass",
+            "bands": [
+              {
+                "id": "mon",
+                "upTo": 0
+              },
+              {
+                "id": "tue",
+                "upTo": 1
+              },
+              {
+                "id": "wed",
+                "upTo": 2
+              },
+              {
+                "id": "thu",
+                "upTo": 3
+              },
+              {
+                "id": "out",
+                "upTo": 4
+              }
+            ]
+          }
+        ],
+        "ending": {
+          "closing": {
+            "step": "pick",
+            "cases": {
+              "mon": "Your crew picks on Monday in sunshine. Every grape is in, whatever the week brings: a good, light wine.",
+              "tue": "You pick on Tuesday, before the forecasts firm up. Every grape is in: a good wine, whatever the storm does.",
+              "wed": "You pick on Wednesday under a high, thin sky. Every grape is in: a very good wine, whatever Friday brings.",
+              "thu": "You pick all Thursday under a darkening sky. If the storm keeps to its forecast, every grape is in: the best wine in years. If it comes a day early, rain catches the last rows.",
+              "out": "You wait. If the storm misses, as it does one time in ten, you’ll make an extraordinary wine. If it comes, you lose half the crop, and the half that’s left is still very fine."
+            }
+          },
+          "others": "Some pick on Monday: a good wine in hand beats a better one in the forecast. Some wait for clearer news on Wednesday and stop there. Some hold on for Thursday’s sugar. A few let the storm decide."
+        },
+        "structure": {
+          "undo": "none",
+          "news": "comes",
+          "waiting": "risks"
+        }
+      },
+      "answers": {
+        "pick": {
+          "kind": "days",
+          "day": 2
+        }
+      }
+    },
+    {
+      "id": "p3-1792494000000",
+      "situation": "boat",
+      "v": 1,
+      "at": "2026-10-20T11:00:00.000Z",
+      "day": "2026-10-20",
+      "replay": 0,
+      "shown": {
+        "id": "boat",
+        "v": 1,
+        "title": "Your uncle’s boat",
+        "place": "A harbour",
+        "hook": "A wooden boat, a fair offer, and a summer you haven’t had yet.",
+        "setup": "Your uncle has left you his wooden sailing boat. You’ve never sailed. A buyer has made a fair offer, good until Friday. Keeping her means a mooring fee every month and weekends of sanding and varnish. Sailing lessons start at the harbour next week: by autumn, you’d know whether you like it.",
+        "steps": [
+          {
+            "kind": "choose",
+            "id": "keep",
+            "prompt": "What do you do?",
+            "options": [
+              {
+                "id": "sell",
+                "text": "Sell her on Friday",
+                "detail": "A fair price now. You’d learn in the club’s dinghies."
+              },
+              {
+                "id": "summer",
+                "text": "Keep her for the summer, then decide",
+                "detail": "Mooring and upkeep until autumn. The buyer may not wait."
+              },
+              {
+                "id": "always",
+                "text": "Keep her, whatever happens",
+                "detail": "She stays in the family, and so do the fees."
+              }
+            ],
+            "ask": {
+              "label": "Ask at the sailing club first",
+              "did": "Asked at the sailing club",
+              "answer": "The club secretary says they’d look after her for the summer and use her for lessons. No fees for you, and beginners at the helm.",
+              "adds": {
+                "id": "club",
+                "text": "Lend her to the club for the summer",
+                "detail": "No fees until autumn. Other people learn on her."
+              }
+            }
+          }
+        ],
+        "ending": {
+          "closing": {
+            "step": "keep",
+            "cases": {
+              "sell": "The buyer sails her away on Saturday and promises a photo from the water. Your lessons start in a club dinghy. If you love it, there will be other boats, though not this one.",
+              "summer": "You pay the mooring and spend Saturdays sanding. By autumn you’ll know about sailing. Whether the buyer will still be interested, the story doesn’t say.",
+              "always": "You paint her name fresh on the stern. Whether you’ll sail her, the summer will tell. She’s yours either way.",
+              "club": "The club takes her for the summer, and beginners learn on her, you among them. By autumn you’ll know about sailing, and she’ll have a few new scratches."
+            }
+          },
+          "others": "Some sell on Friday: a fair price is certain, and there are other boats to learn in. Some pay to keep the question open until the lessons answer it. Some keep her whatever happens, because not everything turns on whether you like sailing."
+        },
+        "structure": {
+          "undo": "costly",
+          "news": "comes",
+          "waiting": "holds"
+        }
+      },
+      "answers": {
+        "keep": {
+          "kind": "choose",
+          "pick": "club",
+          "asked": true
+        }
+      }
+    },
+    {
+      "id": "p4-1792497600000",
+      "situation": "loaf",
+      "v": 1,
+      "at": "2026-10-20T12:00:00.000Z",
+      "day": "2026-10-20",
+      "replay": 0,
+      "shown": {
+        "id": "loaf",
+        "v": 1,
+        "title": "The new loaf",
+        "place": "A small bakery",
+        "hook": "Eleven years of the same six breads. Now, maybe, a seventh.",
+        "setup": "Your bakery has sold the same six breads for eleven years, and your regulars like it that way. One night you worked out a seventh: dark rye with figs and fennel. You love it. You have no idea whether anyone else will.",
+        "steps": [
+          {
+            "kind": "choose",
+            "id": "plan",
+            "prompt": "What do you do with it first?",
+            "options": [
+              {
+                "id": "shelf",
+                "text": "Put twelve on the shelf on Saturday",
+                "detail": "Costs a batch. If they don’t sell, you stop."
+              },
+              {
+                "id": "taste",
+                "text": "Hand out tasting slices all week",
+                "detail": "Costs a week and half a batch. You hear what people say."
+              },
+              {
+                "id": "regulars",
+                "text": "Give a loaf each to three regulars",
+                "detail": "Costs three loaves. You hear from people who know your bread."
+              }
+            ]
+          },
+          {
+            "kind": "choose",
+            "id": "next",
+            "before": {
+              "step": "plan",
+              "cases": {
+                "shelf": "By closing time on Saturday, seven of the twelve have gone. A man in a green coat asks whether it will be there next week. Five come home with you.",
+                "taste": "All week the slices disappear. Most people say it’s lovely, a few say “interesting”, and one asks what fennel is. Nobody asks to buy a loaf.",
+                "regulars": "Two of them love it. Mrs Okafor says the fennel is far too strong, and that she’d buy it anyway."
+              }
+            },
+            "prompt": "What now?",
+            "options": [
+              {
+                "id": "weekly",
+                "text": "Bake it every Saturday"
+              },
+              {
+                "id": "change",
+                "text": "Change the recipe, then try again"
+              },
+              {
+                "id": "own",
+                "text": "Keep it as your own bread, not the shop’s"
+              }
+            ]
+          }
+        ],
+        "ending": {
+          "closing": {
+            "step": "next",
+            "cases": {
+              "weekly": "It goes up on the board as the seventh bread. Over the winter you’ll find out what eleven years of regulars make of it.",
+              "change": "You take out half the fennel and try again in a fortnight. The rye stays dark.",
+              "own": "You bake it on Sundays, for the house. The six breads carry on as they were."
+            }
+          },
+          "others": "Some put it straight on the shelf: a batch is cheap to lose, and only a sale shows who would buy it. Some taste first, because a shelf can’t tell you why a loaf didn’t sell. Some ask the regulars, whose opinion matters most if it’s to last."
+        },
+        "structure": {
+          "undo": "cheap",
+          "news": "act",
+          "waiting": "holds"
+        }
+      },
+      "answers": {
+        "plan": {
+          "kind": "choose",
+          "pick": "shelf",
+          "asked": false
+        },
+        "next": {
+          "kind": "choose",
+          "pick": "weekly",
+          "asked": false
+        }
+      }
+    },
+    {
+      "id": "p5-1792501200000",
+      "situation": "lighthouse",
+      "v": 1,
+      "at": "2026-10-20T13:00:00.000Z",
+      "day": "2026-10-20",
+      "replay": 0,
+      "shown": {
+        "id": "lighthouse",
+        "v": 1,
+        "title": "The winter order",
+        "place": "A lighthouse",
+        "hook": "Whatever the boat brings today has to last until spring.",
+        "setup": "You keep the lighthouse on a small island. The last supply boat of the year leaves this afternoon, and what it brings has to last until spring. Most winters the usual order is plenty, but one winter in five the sound freezes and nothing gets through until April. The winter forecast comes out in November.",
+        "steps": [
+          {
+            "kind": "choose",
+            "id": "order",
+            "prompt": "What do you order?",
+            "options": [
+              {
+                "id": "usual",
+                "text": "The usual order",
+                "detail": "Plenty for most winters, and money left for new lamp glass."
+              },
+              {
+                "id": "more",
+                "text": "Half as much again",
+                "detail": "Enough for a long winter. The lamp glass waits a year."
+              },
+              {
+                "id": "promise",
+                "text": "The usual order, and a promise from the boatman",
+                "detail": "He’ll try one run in January if you radio. It costs you a favour."
+              }
+            ]
+          }
+        ],
+        "ending": {
+          "closing": {
+            "step": "order",
+            "cases": {
+              "usual": "November. The forecast is out: a long winter is twice as likely as usual this year, two chances in five. There is nothing to add now. The new glass is in the lamp, and you count the tins.",
+              "more": "November. The forecast is out: a long winter is twice as likely as usual this year, two chances in five. The extra tins are stacked in the store. Long winter or short, you’ll eat them.",
+              "promise": "November. The forecast is out: a long winter is twice as likely as usual this year, two chances in five. You write the boatman’s frequency on the wall by the radio. The favour may be needed."
+            }
+          },
+          "others": "Some send the usual order: four winters in five, it’s plenty. Some order half as much again, because no forecast in November can change what October’s boat carried. Some keep the usual order and arrange a way out, at the price of a favour."
+        },
+        "structure": {
+          "undo": "none",
+          "news": "after",
+          "waiting": "risks"
+        }
+      },
+      "answers": {
+        "order": {
+          "kind": "choose",
+          "pick": "promise",
+          "asked": false
+        }
+      }
+    },
+    {
+      "id": "p6-1792504800000",
+      "situation": "beans",
+      "v": 1,
+      "at": "2026-10-20T14:00:00.000Z",
+      "day": "2026-10-20",
+      "replay": 0,
+      "shown": {
+        "id": "beans",
+        "v": 1,
+        "title": "The last packet",
+        "place": "A vegetable plot",
+        "hook": "Ten rows, and a packet of beans nobody grows any more.",
+        "setup": "At the village seed swap, an old man presses a packet of climbing beans into your hand: a local kind nobody sells any more. Seeds this old don’t keep. Each year fewer will sprout, and in a few years none will. Your plot has ten rows, and your household eats from it all summer.",
+        "steps": [
+          {
+            "kind": "allocate",
+            "id": "rows",
+            "prompt": "How do you plant your ten rows this spring?",
+            "total": 10,
+            "unit": [
+              "row",
+              "rows"
+            ],
+            "items": [
+              {
+                "id": "old",
+                "text": "The old beans",
+                "detail": "Nobody knows how many will come up."
+              },
+              {
+                "id": "usual",
+                "text": "Your usual vegetables",
+                "detail": "They come up every year."
+              }
+            ],
+            "measure": "old",
+            "bands": [
+              {
+                "id": "none",
+                "upTo": 0
+              },
+              {
+                "id": "few",
+                "upTo": 3
+              },
+              {
+                "id": "many",
+                "upTo": 10
+              }
+            ]
+          }
+        ],
+        "ending": {
+          "closing": {
+            "step": "rows",
+            "cases": {
+              "none": "You keep the packet in a drawer, and the plot gives you its usual summer. Next spring, fewer of the beans will sprout; the spring after, fewer still.",
+              "few": "About one seed in three comes up. By September a handful of plants hang heavy with pods: just enough fresh seed to try again next year. The rest of the plot does what it always does.",
+              "many": "About one seed in three comes up, so those rows stand half empty and you buy vegetables in August. By September there is fresh seed to give away at next year’s swap."
+            }
+          },
+          "others": "Some plant none: the household eats from those rows, and a packet in a drawer is still a packet. Some give it a row or two, enough to save fresh seed. Some give it half the plot, because a kind that’s lost is lost for good."
+        },
+        "structure": {
+          "undo": "cheap",
+          "news": "act",
+          "waiting": "erodes"
+        }
+      },
+      "answers": {
+        "rows": {
+          "kind": "allocate",
+          "amounts": {
+            "old": 2,
+            "usual": 8
+          }
+        }
+      }
+    },
+    {
+      "id": "p7-1792519200000",
+      "situation": "oak",
+      "v": 1,
+      "at": "2026-10-20T18:00:00.000Z",
+      "day": "2026-10-20",
+      "replay": 1,
+      "shown": {
+        "id": "oak",
+        "v": 1,
+        "title": "The old oak",
+        "place": "A village green",
+        "hook": "Two hundred years old, and leaning over the school path.",
+        "setup": "The oak on the village green is about two hundred years old. It leans over the path to the school, and in March a big branch came down in the night. There is fungus at its base. The parish has left the decision to you, and the autumn storms are five weeks away.",
+        "steps": [
+          {
+            "kind": "uncover",
+            "id": "look",
+            "prompt": "Before you decide, you can find things out. Each takes time, and the work itself will need the last week.",
+            "budget": 4,
+            "unit": [
+              "week",
+              "weeks"
+            ],
+            "facts": [
+              {
+                "id": "climb",
+                "label": "Ask the tree surgeon to climb it",
+                "cost": 1,
+                "text": "The crown is healthy and full of leaf. She could take a third of its weight off without harming it."
+              },
+              {
+                "id": "photos",
+                "label": "Find old photographs of the green",
+                "cost": 1,
+                "text": "In a photograph from 1952, the oak leans exactly as far as it does today."
+              },
+              {
+                "id": "scan",
+                "label": "Have the trunk scanned",
+                "cost": 3,
+                "text": "About a third of the trunk is hollow. Hollow oaks often stand for decades. Some don’t."
+              }
+            ],
+            "bands": [
+              {
+                "id": "none",
+                "upTo": 0
+              },
+              {
+                "id": "some",
+                "upTo": 4
+              }
+            ]
+          },
+          {
+            "kind": "choose",
+            "id": "act",
+            "prompt": "What happens to the oak?",
+            "options": [
+              {
+                "id": "fell",
+                "text": "Fell it",
+                "detail": "No more risk from it, and no more oak."
+              },
+              {
+                "id": "crown",
+                "text": "Take a third of the weight off the crown",
+                "detail": "It stays, smaller. Less likely to fall; not certain."
+              },
+              {
+                "id": "fence",
+                "text": "Leave it, and fence off the path",
+                "detail": "The oak stays as it is. The children walk round by the road."
+              }
+            ]
+          }
+        ],
+        "ending": {
+          "closing": {
+            "step": "act",
+            "cases": {
+              "fell": "The oak comes down in a day. The stump is wider than a kitchen table, and a boy from the school counts 214 rings. The path is open again by Friday.",
+              "crown": "The tree surgeon spends two days in the crown. From the pub the oak looks thinner, and still very much itself. The path stays open, and the storms will test it.",
+              "fence": "A fence goes up around the oak, and the school sends a letter about the longer walk. The oak meets the storms as it is."
+            }
+          },
+          "others": "Some fell it straight away: the fungus is enough. Some spend three weeks on the scan, because a felled oak can’t be put back. Some fence it off and keep every option open, and the children pay with a longer walk."
+        },
+        "structure": {
+          "undo": "none",
+          "news": "buy",
+          "waiting": "risks"
+        }
+      },
+      "answers": {
+        "look": {
+          "kind": "uncover",
+          "opened": [
+            "scan"
+          ]
+        },
+        "act": {
+          "kind": "choose",
+          "pick": "fell",
+          "asked": false
+        }
+      }
+    }
+  ],
+  "archive": []
+}

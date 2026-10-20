@@ -15,49 +15,60 @@ export default function About({ state }: { state: TellState }) {
       <header className="stack">
         <h1 className="title">How Tell works</h1>
         <p className="lede">
-          Tell is a collection of small situations to play. Each works on its own. Some share a shape with another set somewhere quite different, and putting
-          what you chose in the two side by side may show something neither shows alone. That last part is an idea Tell is testing, not a promise.
+          Short stories to play, each a small choice somewhere unfamiliar. Now and then two of your choices, side by side, turn up a distinction worth keeping.
+          Those go on your map, to draw on when a real choice comes.
         </p>
       </header>
 
-      <Section title="Situations" id="situations">
+      <Section title="Play" id="play">
         <ul className="rules">
           <li>
-            The collection has {plural(SITUATIONS.length, 'invented situation')}, each two or three minutes long, each ending when its story does. Play them in any order, as often as
-            you like. Nothing unlocks, expires or arrives by itself.
+            The collection has {plural(SITUATIONS.length, 'invented story', 'invented stories')}, two or three minutes each. Each ends when its story does. Play them in any order, as often as you
+            like; nothing unlocks, expires or arrives by itself.
           </li>
-          <li>There are no right answers and nothing is scored. Every situation has several reasonable ways through, and its ending shows some of them.</li>
+          <li>There are no right answers and nothing is scored. Every ending shows other reasonable ways through.</li>
           <li>
-            Every situation is written around three questions. Can what you do be undone, and at what price? What can you find out, and when? What does waiting
-            do to what’s still possible?
+            Some stories rest on real facts, like how film is developed or how long seed keeps. Each says what’s real, with sources, and what’s invented. A few
+            taps don’t make anyone an expert.
           </li>
         </ul>
       </Section>
 
-      <Section title="Connections" id="connections">
+      <Section title="Your map" id="map">
         <ul className="rules">
           <li>
-            There are {plural(CONNECTIONS.length, 'connection')}, each written by hand between two situations that share a tension and differ on one of those three
-            questions.
-            Tell never matches words.
-          </li>
-          <li>A connection appears once you’ve played both of its situations, and not before: knowing which two go together could shape how you play the second.</li>
-          <li>
-            It shows what connects them, what you chose in each, a note written for that combination of choices, and a question to take elsewhere. It uses your
-            first play of each, since later plays come after you’ve seen how they compare.
+            A connection is written by hand for particular ways through two stories: felling the oak and fencing it off meet the bakery differently. Tell
+            never matches words.
           </li>
           <li>
-            Your answers show what you chose, never why. Two situations always differ in more than one way, so different answers can’t show which difference
-            mattered. Tell never describes you, and never treats an answer as a trait.
+            It appears when your plays first fit it, and stays as it was found. A later play can fit it again, or turn up a new one, marked New until you’ve seen
+            it.
           </li>
+          <li>
+            It describes the moves, not you. It shows what you chose, never why, and two stories always differ in more than one way. Tell never describes
+            you or treats an answer as a trait.
+          </li>
+          <li>Not every pair of choices has a connection. Where nothing true and useful can be said, nothing is.</li>
         </ul>
+      </Section>
+
+      <Section title="Underneath" id="model">
+        <p className="small">
+          Every answer in every story is described as a move, in four parts: whether it can be taken back, what it does about what isn’t known, what it leaves
+          possible, and what it costs and risks.
+        </p>
+        <p className="small dim">
+          Finding out is worth something only if it could change what you do and arrives before the point of no return. Keeping options open is worth something
+          only if a move can be undone or put off. What’s at stake decides how much either matters. These ideas come from decision analysis: the value of
+          information (Ronald Howard, 1966), the irreversibility effect (Kenneth Arrow and Anthony Fisher, 1974) and real options (Avinash Dixit and Robert
+          Pindyck, 1994). Tell uses them to write stories, never to measure anyone.
+        </p>
       </Section>
 
       <Section title="What Tell can’t show" id="limits">
         <ul className="rules">
-          <li>What you’d choose in an invented situation can differ from what you’d do for real. One play is one moment.</li>
-          <li>A connection is an idea to try against your own choices, not a finding about you.</li>
-          <li>Untested so far: whether the situations stay interesting from one to the next, and whether the connections are useful. That is what the pilot is for.</li>
+          <li>What you’d choose in an invented situation can differ from what you’d do for real.</li>
+          <li>Untested so far: whether the stories stay interesting, and whether the connections help with real choices.</li>
         </ul>
       </Section>
 

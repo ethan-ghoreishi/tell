@@ -1,20 +1,20 @@
-import { useState } from 'react';
-import { connectionOf, earlierPlays, found, keyed, limitLine, playView, recordPlay, type Found } from '../domain/engine';
+import { useEffect, useState } from 'react';
+import { discoveries, earlierPlays, fitsAgain, keyed, madeBy, markSeen, playView, recordPlay, type Discovery } from '../domain/engine';
 import { CONNECTIONS, SITUATIONS, situation as situationOf } from '../domain/situations';
-import { MODEL, type Answers, type StepAnswer, type TellState } from '../domain/types';
+import type { Answers, Situation, StepAnswer, TellState } from '../domain/types';
 import { Section, StepPlay, useFocus } from '../steps';
 import { store } from '../store/store';
 import { shortDate } from '../ui';
 
 // A situation, played step by step, then its ending. Only a finished play is
-// recorded. When both situations of a connection have been played, the
-// ending shows it; until then it says only that one exists, never which.
+// recorded. An ending shows a connection only when this play found it; a
+// replay that fits one found earlier says so quietly, and never as new.
 
 export function SituationPage({ state, id }: { state: TellState; id: string }) {
   const s = situationOf(id);
   const [answers, setAnswers] = useState<Answers>({});
   const [moved, setMoved] = useState(false);
-  if (!s) return <Missing what="That situation" />;
+  if (!s) return <Missing what="That story" />;
   const index = s.steps.findIndex((step) => !answers[step.id]);
   const step = s.steps[index];
   const before = state.plays.filter((p) => p.situation === s.id);
@@ -46,7 +46,7 @@ export function SituationPage({ state, id }: { state: TellState; id: string }) {
         <>
           {before.length > 0 && (
             <p className="notice">
-              You played this on {shortDate(before[0].day)}. Playing again keeps both; connections use your first play.
+              You played this on {shortDate(before[0].day)}. Playing again keeps both.
             </p>
           )}
           <p className="scene">{s.setup}</p>
@@ -81,11 +81,13 @@ export function SituationPage({ state, id }: { state: TellState; id: string }) {
 export function PlayPage({ state, id }: { state: TellState; id: string }) {
   const p = state.plays.find((x) => x.id === id);
   const ref = useFocus<HTMLHeadingElement>(id);
+  const found = discoveries(state, CONNECTIONS);
+  const made = p ? madeBy(found, p) : [];
+  const again = p ? fitsAgain(found, p) : [];
+  const fresh = useFresh(state, made);
   if (!p) return <Missing what="That play" />;
   const v = playView(p);
   const earlier = earlierPlays(state, p);
-  const shared = connectionOf(CONNECTIONS, p.situation);
-  const f = found(state, CONNECTIONS).find((x) => x.connection === shared);
 
   return (
     <article className="stack-xl reveal">
@@ -117,15 +119,20 @@ export function PlayPage({ state, id }: { state: TellState; id: string }) {
         <p>{v.others}</p>
       </Section>
 
-      {f ? (
-        <ConnectionCard f={f} />
-      ) : shared ? (
-        <p className="notice">One other situation here shares something with this one. Once you’ve played both, Tell shows what connects them.</p>
-      ) : null}
+      {made.map((d) => (
+        <DiscoveryCard key={d.connection.id} d={d} fresh={fresh.has(d.connection.id)} heading="h2" />
+      ))}
+      {again.map((d) => (
+        <p key={d.connection.id} className="small dim">
+          This play fits “{d.connection.title}” too, already on <a className="link" href="#/map">your map</a>.
+        </p>
+      ))}
+
+      {p.shown.real && <Real s={p.shown} />}
 
       <div className="stack">
         <a className="btn btn-primary btn-block" href="#/">
-          Back to the situations
+          Back to the stories
         </a>
         <a className="btn btn-ghost btn-block" href={`#/situation/${p.situation}`}>
           Play it again
@@ -135,30 +142,90 @@ export function PlayPage({ state, id }: { state: TellState; id: string }) {
   );
 }
 
-/** What connects two situations, what was chosen in each, and what that can and can't show. */
-export function ConnectionCard({ f }: { f: Found }) {
-  const c = f.connection;
+/**
+ * Which of these discoveries the player hadn't seen when this screen opened.
+ * The answer is held for the life of the screen, so marking them seen doesn't
+ * take the label away while it's being read.
+ */
+export function useFresh(state: TellState, shown: Discovery[]) {
+  const ids = shown.map((d) => d.connection.id);
+  const [fresh] = useState(() => new Set(ids.filter((id) => !state.seen[id])));
+  const key = ids.join();
+  useEffect(() => {
+    if (key) store.update((s) => markSeen(s, key.split(','), new Date()));
+  }, [key]);
+  return fresh;
+}
+
+/** A distinction first, in a sentence or two; the choices behind it, and its limits, on request. */
+export function DiscoveryCard({ d, fresh, heading = 'h3' }: { d: Discovery; fresh: boolean; heading?: 'h2' | 'h3' }) {
+  const c = d.connection;
+  const H = heading;
   return (
-    <section className="card connection stack reveal" aria-labelledby={`c-${c.id}`}>
-      <p className="eyebrow">Connection · {MODEL[c.on].name.toLowerCase()}</p>
-      <h2 className="section-title" id={`c-${c.id}`}>
+    <section className="card connection stack" aria-labelledby={`c-${c.id}`}>
+      {fresh && <p className="tag">New</p>}
+      <H className="section-title" id={`c-${c.id}`}>
         {c.title}
-      </h2>
-      <p>{c.link}</p>
-      <ul className="results small">
-        {f.plays.map((p, i) => (
-          <li key={p.id}>
-            <strong>{p.shown.title}:</strong> {f.chose[i]}
-          </li>
-        ))}
-      </ul>
-      <p>{f.note}</p>
-      <p className="condition">{c.question}</p>
-      <p className="small dim">
-        {limitLine(c)}
-        {f.replayed ? ' It uses your first play of each.' : ''}
-      </p>
+      </H>
+      <p>{c.says}</p>
+      <details className="more">
+        <summary className="link small">Your choices, and where it breaks</summary>
+        <dl className="facts small">
+          <dt>Your choices</dt>
+          <dd>
+            <ul className="stack-tight">
+              {d.plays.map((p) => (
+                <li key={p.id}>
+                  <a className="link" href={`#/play/${p.id}`}>
+                    {p.shown.title}
+                  </a>
+                  : {playView(p).did.join(' ')}
+                </li>
+              ))}
+            </ul>
+          </dd>
+          <dt>Where it breaks</dt>
+          <dd>{c.breaks}</dd>
+          <dt>To carry</dt>
+          <dd>{c.question}</dd>
+          {d.also.length > 0 && (
+            <>
+              <dt>Fits again</dt>
+              <dd>{d.also.map((p) => `${p.shown.title}${p.replay ? `, replay ${p.replay}` : ''} (${shortDate(p.day)})`).join('; ')}</dd>
+            </>
+          )}
+        </dl>
+      </details>
     </section>
+  );
+}
+
+/** What a story takes from the real world, with sources, and what it invents. */
+function Real({ s }: { s: Situation }) {
+  return (
+    <details className="card-quiet">
+      <summary className="link small">What’s real in this story</summary>
+      <div className="stack small">
+        {s.real!.facts.map((f) => (
+          <p key={f.fact}>
+            {f.fact}{' '}
+            <span className="dim">
+              (
+              {f.sources.map((src, i) => (
+                <span key={src.url}>
+                  {i > 0 && '; '}
+                  <a className="link" href={src.url} target="_blank" rel="noreferrer">
+                    {src.name}
+                  </a>
+                </span>
+              ))}
+              )
+            </span>
+          </p>
+        ))}
+        <p className="dim">{s.real!.invented}</p>
+      </div>
+    </details>
   );
 }
 
@@ -167,7 +234,7 @@ export function Missing({ what }: { what: string }) {
     <div className="stack-lg">
       <h1 className="title">{what} isn’t here</h1>
       <a className="link" href="#/">
-        Back to the situations
+        Back to the stories
       </a>
     </div>
   );

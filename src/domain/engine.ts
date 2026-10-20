@@ -1,12 +1,12 @@
 import { list, plural, shortDate } from './text';
-import { SCHEMA, type Answers, type Band, type Connection, type Keyed, type Play, type Situation, type Step, type StepAnswer, type TellState } from './types';
+import { MOVES, SCHEMA, type Answers, type Band, type Connection, type ConnectionSide, type Keyed, type Move, type Option, type Play, type Situation, type Step, type StepAnswer, type TellState } from './types';
 
 // Pure domain logic. Nothing here reads a clock or touches storage: callers
 // pass `now` and get new state back. Everything shown about a play is read
 // from its snapshot, never from today's content. Connections are derived
-// from the plays each time, never stored.
+// from the plays each time; only whether one has been seen is stored.
 
-export const emptyState = (): TellState => ({ schema: SCHEMA, plays: [], archive: [] });
+export const emptyState = (): TellState => ({ schema: SCHEMA, plays: [], seen: {}, archive: [] });
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -19,10 +19,11 @@ const isInt = (x: unknown): x is number => Number.isInteger(x);
 
 // ---- Steps: what each answer amounts to ------------------------------------
 
-export const band = (bands: Band[], n: number) => bands.find((b) => n <= b.upTo)!.id;
+const bandOf = (bands: Band[], n: number) => bands.find((b) => n <= b.upTo)!;
+export const band = (bands: Band[], n: number) => bandOf(bands, n).id;
 
-/** The options a choose step offers once asked: its own, plus the one asking brought. */
-export const offered = (s: Extract<Step, { kind: 'choose' }>, asked: boolean) => (asked && s.ask ? [...s.options, s.ask.adds] : s.options);
+/** The options a choose step offers once asked: its own, plus any asking brought. */
+export const offered = (s: Extract<Step, { kind: 'choose' }>, asked: boolean): Option[] => (asked && s.ask?.adds ? [...s.options, s.ask.adds] : s.options);
 
 export const spent = (s: Extract<Step, { kind: 'uncover' }>, opened: string[]) => opened.reduce((n, id) => n + s.facts.find((f) => f.id === id)!.cost, 0);
 
@@ -36,6 +37,13 @@ export function most(s: Step): number {
 
 /** Every key a step's answer can have: option ids for a choice, band ids otherwise. */
 export const keysOf = (s: Step): string[] => (s.kind === 'choose' ? offered(s, true).map((o) => o.id) : s.bands.map((b) => b.id));
+
+/** The move behind one key of a step. */
+export function moveOf(s: Step, key: string): Move {
+  const found = s.kind === 'choose' ? offered(s, true).find((o) => o.id === key) : s.bands.find((b) => b.id === key);
+  if (!found) throw new Error(`“${s.id}” has no answer “${key}”`);
+  return found.move;
+}
 
 /** What one answer amounts to, as a key: the option picked, or the band its number fell in. */
 export function keyOf(s: Step, a: StepAnswer): string {
@@ -103,21 +111,17 @@ export function recordPlay(state: TellState, situations: Situation[], id: string
   return { ...state, plays: [...state.plays, play] };
 }
 
-/** One step's answer as a fixed sentence, filled from the record. `brief` keeps only what a connection compares. */
-export function stepLine(s: Step, a: StepAnswer, brief = false): string {
+/** One step's answer as a fixed sentence, filled from the record. */
+export function stepLine(s: Step, a: StepAnswer): string {
   if (s.kind === 'choose' && a.kind === 'choose') {
     return `${a.asked && s.ask ? `${s.ask.did}, then chose` : 'Chose'} “${offered(s, a.asked).find((o) => o.id === a.pick)!.text}”.`;
   }
   if (s.kind === 'uncover' && a.kind === 'uncover') {
     if (!a.opened.length) return 'Decided without spending time finding out.';
-    const n = spent(s, a.opened);
-    if (brief) return `Spent ${n} of ${plural(s.budget, s.unit[0], s.unit[1])} finding out.`;
     const labels = a.opened.map((id) => `“${s.facts.find((f) => f.id === id)!.label}”`);
-    return `Spent ${n} of ${plural(s.budget, s.unit[0], s.unit[1])} finding out: ${list(labels)}.`;
+    return `Spent ${spent(s, a.opened)} of ${plural(s.budget, s.unit[0], s.unit[1])} finding out: ${list(labels)}.`;
   }
   if (s.kind === 'allocate' && a.kind === 'allocate') {
-    const item = s.items.find((i) => i.id === s.measure)!.text;
-    if (brief) return `Gave ${a.amounts[s.measure]} of ${plural(s.total, s.unit[0], s.unit[1])} to ${item.charAt(0).toLowerCase()}${item.slice(1)}.`;
     return `${s.items.map((i) => `${i.text}: ${plural(a.amounts[i.id], s.unit[0], s.unit[1])}`).join('. ')}.`;
   }
   if (s.kind === 'days' && a.kind === 'days') {
@@ -148,67 +152,84 @@ export const library = (state: TellState, situations: Situation[]) => situations
 /** Earlier plays of the same situation, so a replay is shown as one. */
 export const earlierPlays = (state: TellState, play: Play) => state.plays.filter((p) => p.situation === play.situation && p.at < play.at);
 
-// ---- Connections: authored, shown only when both sides were played ----------
+// ---- Connections: a distinction between two specific ways through ---------
 
-export interface Found {
-  connection: Connection;
-  /** The first play of each side, in the connection's order. */
-  plays: [Play, Play];
-  classes: [string, string];
-  note: string;
-  /** Lines showing what each side's play chose, at the step the connection compares. */
-  chose: [string, string];
-  /** Either situation has been played again since. */
-  replayed: boolean;
-}
-
-/** The class one play falls in for one side of a connection, read from the play's own snapshot. */
-export function classOf(side: Connection['sides'][number], play: Play): string {
-  const step = play.shown.steps.find((s) => s.id === side.step)!;
-  const key = keyOf(step, play.answers[step.id]);
-  return Object.entries(side.classes).find(([, keys]) => keys.includes(key))![0];
-}
-
-/**
- * Connections whose two situations have both been played, at the version the
- * connection was written for. The first play of each counts: later plays come
- * after the player may have seen how the two compare.
- */
-export function found(state: TellState, connections: Connection[]): Found[] {
-  return connections.flatMap((connection) => {
-    const plays = connection.sides.map((side) => state.plays.find((p) => p.situation === side.situation && p.v === side.v));
-    if (!plays[0] || !plays[1]) return [];
-    const pair = plays as [Play, Play];
-    const classes = connection.sides.map((side, i) => classOf(side, pair[i])) as [string, string];
-    const chose = connection.sides.map((side, i) => {
-      const step = pair[i].shown.steps.find((s) => s.id === side.step)!;
-      return stepLine(step, pair[i].answers[step.id], true);
-    }) as [string, string];
-    const replayed = connection.sides.some((side) => state.plays.filter((p) => p.situation === side.situation).length > 1);
-    return [{ connection, plays: pair, classes, note: connection.notes[classes.join('+')], chose, replayed }];
+/** Does this play take a way through that this side of a connection fits? Read from the play's own snapshot. */
+export function fits(side: ConnectionSide, play: Play): boolean {
+  if (play.situation !== side.situation || play.v !== side.v) return false;
+  return Object.entries(side.when).every(([stepId, keys]) => {
+    const step = play.shown.steps.find((s) => s.id === stepId);
+    return !!step && keys.includes(keyOf(step, play.answers[stepId]));
   });
 }
 
-/** The fixed line that keeps a connection from claiming more than the answers show. */
-export const limitLine = (c: Connection) =>
-  `Your answers show what you chose, not why. These two situations also differ in ${c.differs}, so they can’t show which difference mattered.`;
+export interface Discovery {
+  connection: Connection;
+  /** The two plays that first fitted, in the connection's order. */
+  plays: [Play, Play];
+  /** When it was found: the later of those two plays. */
+  at: string;
+  /** Later plays that fit it too. */
+  also: Play[];
+}
 
-/** The connection that includes a situation, if any. */
-export const connectionOf = (connections: Connection[], situationId: string) => connections.find((c) => c.sides.some((s) => s.situation === situationId));
+const later = (a: Play, b: Play) => (a.at > b.at ? a : b);
 
-// ---- Plain text --------------------------------------------------------------
+/**
+ * Every connection the plays so far have found, newest first. Each is
+ * anchored to the earliest moment both sides fitted, so a later play can add
+ * an example but never change what was found, or when.
+ */
+export function discoveries(state: TellState, connections: Connection[]): Discovery[] {
+  return connections
+    .flatMap((connection) => {
+      const [a, b] = connection.sides.map((side) => state.plays.filter((p) => fits(side, p)));
+      if (!a.length || !b.length) return [];
+      const pairs = a.flatMap((pa) => b.map((pb) => [pa, pb] as [Play, Play]));
+      const order = ([x, y]: [Play, Play]) => [later(x, y).at, x.at < y.at ? x.at : y.at].join();
+      pairs.sort((p, q) => (order(p) < order(q) ? -1 : order(p) > order(q) ? 1 : 0));
+      const first = pairs[0];
+      const also = [...a, ...b].filter((p) => !first.includes(p)).sort((p, q) => (p.at < q.at ? -1 : 1));
+      return [{ connection, plays: first, at: later(...first).at, also }];
+    })
+    .sort((x, y) => (x.at < y.at ? 1 : x.at > y.at ? -1 : 0));
+}
 
-/** Everything, as plain text: for notes, for sharing by choice, or for pasting elsewhere. */
+/** Discoveries this play made: it completed them. */
+export const madeBy = (found: Discovery[], play: Play) => found.filter((d) => d.plays.includes(play) && d.at === play.at);
+/** Discoveries made earlier that this play fits too. */
+export const fitsAgain = (found: Discovery[], play: Play) => found.filter((d) => d.also.includes(play));
+
+/** Note that these connections have been seen. The first sighting is kept. */
+export function markSeen(state: TellState, ids: string[], now: Date): TellState {
+  const fresh = ids.filter((id) => !state.seen[id]);
+  if (!fresh.length) return state;
+  return { ...state, seen: { ...state.seen, ...Object.fromEntries(fresh.map((id) => [id, now.toISOString()])) } };
+}
+
+// ---- Plain text: the record, and what a future Bring a choice would draw on --
+
+const shape = (m: Move) =>
+  (Object.keys(MOVES) as (keyof typeof MOVES)[])
+    .filter((p) => m[p])
+    .map((p) => (MOVES[p] as Record<string, string>)[m[p]!])
+    .join('; ');
+
+/** Everything, as plain text: the connections found, and every play with what was uncertain and what each move risked. */
 export function recordText(state: TellState, connections: Connection[]): string {
   const out = ['Tell: what I played', ''];
-  for (const f of found(state, connections)) {
-    out.push(`Connection: ${f.connection.title}`, f.connection.link);
-    f.plays.forEach((p, i) => out.push(`  ${p.shown.title}: ${f.chose[i]}`));
-    out.push(`  ${f.note}`, `  ${limitLine(f.connection)}`, `  Question: ${f.connection.question}`, '');
+  for (const d of discoveries(state, connections)) {
+    const c = d.connection;
+    out.push(`Connection: ${c.title}`, `  ${c.says}`);
+    d.plays.forEach((p) => out.push(`  ${p.shown.title}: ${playView(p).did.join(' ')}`));
+    out.push(`  Where it breaks: ${c.breaks}`, `  To carry: ${c.question}`, '');
   }
   for (const p of state.plays) {
-    out.push(`${p.shown.title}${p.replay ? ` (replay ${p.replay})` : ''}, ${shortDate(p.day)}`);
-    for (const line of playView(p).did) out.push(`  ${line}`);
+    out.push(`${p.shown.title}${p.replay ? ` (replay ${p.replay})` : ''}, ${shortDate(p.day)}`, `  Unknown: ${p.shown.uncertain}`);
+    for (const step of p.shown.steps) {
+      const m = moveOf(step, keyOf(step, p.answers[step.id]));
+      out.push(`  ${stepLine(step, p.answers[step.id])} It ${shape(m) || 'is one way through'}; costs ${m.costs}; risks ${m.risks}.`);
+    }
     out.push('');
   }
   return out.join('\n');

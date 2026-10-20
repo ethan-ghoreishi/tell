@@ -46,7 +46,7 @@ describe.each([
       });
 
       await page.goto(url);
-      await page.getByRole('heading', { name: 'Pick a situation' }).waitFor();
+      await page.getByRole('heading', { name: 'Pick a story' }).waitFor();
       expect(await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content')).toContain("connect-src 'self'");
 
       if (engine === 'chromium') {
@@ -57,7 +57,7 @@ describe.each([
       }
 
       // Play a situation to its end.
-      await page.getByRole('link', { name: /The winter order/ }).click();
+      await page.getByRole('link', { name: /The last of the light/ }).click();
       await page.locator('button.option').first().click();
       await page.getByRole('heading', { name: 'What you did' }).waitFor();
 
@@ -67,7 +67,8 @@ describe.each([
         await page.reload();
         await page.getByRole('heading', { name: 'What you did' }).waitFor();
         await page.getByRole('link', { name: 'Map', exact: true }).click();
-        await page.getByRole('heading', { name: 'What you chose' }).waitFor();
+        await page.getByRole('heading', { name: 'Your map' }).waitFor();
+        await page.getByText('Everything you’ve played (1)').waitFor();
         await context.setOffline(false);
       }
 

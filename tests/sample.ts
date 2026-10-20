@@ -10,7 +10,7 @@ export const SAMPLE: Record<string, Answers> = {
   harvest: { pick: { kind: 'days', day: 2 } },
   boat: { keep: { kind: 'choose', pick: 'club', asked: true } },
   loaf: { plan: { kind: 'choose', pick: 'shelf', asked: false }, next: { kind: 'choose', pick: 'weekly', asked: false } },
-  lighthouse: { order: { kind: 'choose', pick: 'promise', asked: false } },
+  take: { light: { kind: 'choose', pick: 'again', asked: true } },
   beans: { rows: { kind: 'allocate', amounts: { old: 2, usual: 8 } } },
 };
 

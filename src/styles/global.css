@@ -437,7 +437,43 @@ summary.link::-webkit-details-marker {
 }
 
 .connection {
-  border-color: var(--accent);
+  border-color: var(--border-strong);
+}
+
+/* "New" is a word, not just a colour. */
+.tag {
+  align-self: flex-start;
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--pill);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.connection .tag + .section-title {
+  margin-top: 8px;
+}
+
+.more > summary {
+  margin-left: -2px;
+}
+
+.facts {
+  margin: 4px 0 0;
+}
+
+.facts dt {
+  margin-top: 10px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.facts dd {
+  margin: 2px 0 0;
 }
 
 .option.new {
