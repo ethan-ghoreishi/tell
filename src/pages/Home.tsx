@@ -1,42 +1,44 @@
 import { library } from '../domain/engine';
-import { SITUATIONS } from '../domain/situations';
+import { STORIES, variantOf } from '../domain/situations';
 import type { TellState } from '../domain/types';
 import { shortDate } from '../ui';
 
 // The collection, shown whole: nothing is locked, scheduled or replenished.
-// Stories are listed in a fixed order; nothing is ranked or recommended.
+// Stories are listed in a fixed order; nothing is ranked or recommended. A
+// story's variant is reached from its ending, and from here once it's played.
 
 export default function Home({ state }: { state: TellState }) {
-  const shelf = library(state, SITUATIONS);
+  const shelf = library(state, STORIES);
   return (
     <div className="stack-xl">
       <header className="stack">
         <h1 className="title">Pick a story</h1>
-        <p className="lede">Each is a small choice somewhere unfamiliar, two or three minutes long. Your map keeps the moves you make.</p>
-        <p className="small dim">
-          Facing a real choice?{' '}
-          <a className="link" href="#/bring">
-            Bring a choice
-          </a>
-          , whether or not you’ve played.
-        </p>
+        <p className="lede">Small choices in unfamiliar places, two or three minutes each. Every option is a move, and the moves are the same in every story.</p>
       </header>
       <ul className="stack">
-        {shelf.map(({ situation: s, plays }) => (
-          <li key={s.id}>
-            <a className="card tile" href={`#/situation/${s.id}`}>
-              <span className="eyebrow">{s.place}</span>
-              <span className="section-title">{s.title}</span>
-              <span className="small dim">{s.hook}</span>
-              {plays.length > 0 && (
-                <span className="tiny faint num">
-                  Played {shortDate(plays[0].day)}
-                  {plays.length > 1 ? `, and ${plays.length - 1} more ${plays.length > 2 ? 'times' : 'time'}` : ''}
-                </span>
+        {shelf.map(({ situation: s, plays }) => {
+          const variant = variantOf(s.id);
+          return (
+            <li key={s.id} className="stack-tight">
+              <a className="card tile" href={`#/situation/${s.id}`}>
+                <span className="eyebrow">{s.place}</span>
+                <span className="section-title">{s.title}</span>
+                <span className="small dim">{s.hook}</span>
+                {plays.length > 0 && (
+                  <span className="tiny faint num">
+                    Played {shortDate(plays[0].day)}
+                    {plays.length > 1 ? `, and ${plays.length - 1} more ${plays.length > 2 ? 'times' : 'time'}` : ''}
+                  </span>
+                )}
+              </a>
+              {plays.length > 0 && variant && (
+                <a className="btn btn-ghost btn-block what-if" href={`#/situation/${variant.id}`}>
+                  {variant.whatIf}
+                </a>
               )}
-            </a>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
       {shelf.every((x) => x.plays.length) && <p className="small dim">You’ve played them all. Any of them again, whenever you like.</p>}
     </div>

@@ -115,6 +115,13 @@ describe('store', () => {
     expect(validateState(JSON.parse(JSON.stringify({ ...s, plays: [{ ...s.plays[0], shown }] })), now)).toMatchObject({ ok: false, error: expect.stringMatching(/^play 1 shows a story that step “act” needs two to four options/) });
   });
 
+  it('keeps a variant’s play, and refuses one whose story half-names a variant', () => {
+    const s = recordPlay(emptyState(), SITUATIONS, 'harvest-blind', SAMPLE['harvest-blind'], now);
+    expect(validateState(JSON.parse(JSON.stringify(s)), now)).toEqual({ ok: true, state: s });
+    const { whatIf: _, ...half } = s.plays[0].shown;
+    expect(validateState(JSON.parse(JSON.stringify({ ...s, plays: [{ ...s.plays[0], shown: half }] })), now)).toMatchObject({ ok: false, error: 'play 1 shows a story that is a malformed variant' });
+  });
+
   it('refuses a malformed play, naming it, and changes nothing', () => {
     const bad = JSON.stringify({ ...emptyState(), plays: [{ id: 'x' }] });
     const storage = memory(bad);

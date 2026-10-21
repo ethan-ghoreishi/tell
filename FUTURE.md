@@ -5,17 +5,14 @@ entry when it ships or is abandoned. `PILOT.md` comes first: most of these wait 
 
 ## Stories for what no story shows yet
 
-Three moves have no story (make it undoable, ask for more time, set a tripwire), and they did
-much of the work in the reference choices; nor do the answers "at a cost" and "maybe never". In
-order of cost:
-- *Variants before worlds:* one changed fact of a story that already works. The boat with a
-  buyer who might wait a week (ask for more time); the harvest where, before Monday, the
-  player names the forecast at which they'll pick (set a tripwire); the harvest where the
-  forecast stops on Tuesday (maybe never).
-- *A new world only where a variant can't do it:* a shop lease with a break fee (at a cost; make
-  it undoable).
-Variants are also the only honest way to show a player how their move changed when the
-situation changed: one fact differs, and the two plays are listed side by side, never explained.
+Two moves still have no story (make it undoable, ask for more time), and they did much of the work
+in the reference choices; nor do the answers "at a cost" and "maybe never", or a variant that flips
+"can it be undone?". Variants come before new worlds: one changed fact of a story that already
+works, as the harvest, the boat and the film now have. Candidates: the boat with a buyer who might
+wait a week (ask for more time); the harvest where nobody will ever know how the week would have
+gone (maybe never). A new world only where a variant can't do it: a shop lease with a break fee (at
+a cost; make it undoable). The oak, the loaf and the beans have no variant yet: none found had a
+clean one-fact flip that left every option reasonable (DECISIONS, 4.1).
 
 ## Research files, by the player's choice
 
@@ -36,7 +33,6 @@ while every move is still a proposal and there is one version.
 
 ## Smaller ideas from the proposal, waiting on the pilot
 
-- *Which story does this remind you of?* after Bring a choice, if pilots look for one.
 - *Your own moves:* a move the player names, matched only by the answers they tap, in its own
   section. Only if pilots name moves the language lacks.
 - *The spread:* every way a story could have gone, so no outcome vindicates a move. Only if

@@ -1,7 +1,7 @@
 {
   "name": "tell",
   "private": true,
-  "version": "4.0.0",
+  "version": "4.1.0",
   "type": "module",
   "description": "Short stories to play, a small language for choices under uncertainty, and a way to bring a real choice. Local-first PWA: no accounts, no runtime AI, nothing leaves the device.",
   "scripts": {

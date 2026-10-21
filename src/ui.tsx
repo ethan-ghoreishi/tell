@@ -18,6 +18,13 @@ export const PlayIcon = (p: IconProps) => (
     <path d="M10 9l5 3l-5 3z" {...stroke} />
   </svg>
 );
+export const BringIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" {...p}>
+    <path d="M12 21V3" {...stroke} />
+    <path d="M12 5h6l2 2.5L18 10h-6z" {...stroke} />
+    <path d="M12 12H6l-2 2.5L6 17h6z" {...stroke} />
+  </svg>
+);
 export const MapIcon = (p: IconProps) => (
   <svg viewBox="0 0 24 24" aria-hidden="true" {...p}>
     <path d="M9 5L4 7v12l5-2l6 2l5-2V5l-5 2z" {...stroke} />

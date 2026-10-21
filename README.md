@@ -10,23 +10,25 @@ sharing ten rows, asking someone) and ends when its story does, with other reaso
 through. Stories that borrow from a real field say what's real, with sources, and what's
 invented.
 
-Every answer in them is a **move** in a small language for choices under uncertainty: look first,
+Every option in them is a **move** in a small language for choices under uncertainty: look first,
 try it small, hold it open, buy a spare, rule it out and ten more, each with its price and the
-point where it breaks. Every ending names the moves the path made and shows the shape of the
-step the story turns on: can it be undone, when will you know, what waiting does, how bad it
-could get.
+point where it breaks. The moves show on the options as you choose, under the **shape** of the step
+the story turns on, four cells: can it be undone, when will you know, what waiting does, how bad it
+could get. Each ending says what your moves cost and risked there. Three stories can be played
+again with **one fact changed** (the harvest without forecasts, the boat with no deadline, the film
+with a second camera), and the two plays sit side by side. Tap any move or cell for its card.
 
-The **Map** keeps the moves you've made, and the stories side by side where their shapes differ.
-It shows what you chose, never why, and never describes you.
+The **Map** is the language with your plays on it: every move, and where you made each. It shows
+what you chose, never why, and never describes you.
 
 **Bring a choice** asks those four questions about a real step you're unsure of, in taps, and
-shows the moves that fit, by rule: the same answers always show the same moves, nothing is
-ranked, and settling it is always there. Keep the choice if you like, mark what you're trying,
-add a note. Tell never reads what you type.
+shows the moves that fit, by rule, each with the question it puts: the same answers always show
+the same moves, nothing is ranked, and settling it is always there. Keep the choice if you like,
+mark what you're trying, add a note. Tell never reads what you type.
 
 No accounts, analytics or AI. Everything stays on your device.
 
-Nobody but its builder has used 4.0 yet: whether people read a choice the same way, and whether
+Nobody but its builder has used 4.1 yet: whether people read a choice the same way, and whether
 the moves help, is for the pilot to show ([PILOT.md](PILOT.md)).
 
 Why it exists: [CHARTER.md](CHARTER.md). Rules for changing it: [AGENTS.md](AGENTS.md). The
@@ -75,10 +77,11 @@ src/
   domain/   language (four questions, fifteen moves, the rules), situations (stories and
             sources), engine (plays, kept choices, what the record holds, plain text),
             validate (the one door), types, text
-  steps.tsx the four controls: choose, uncover, allocate, days
+  steps.tsx the four controls: choose, uncover, allocate, days, each showing its moves
+  lens.tsx  what every screen shares: a move's pill, a shape's four cells, and the card each opens
   store/    persistence and data safety
-  pages/    Home (the collection), Play (a story and its ending), Map, Bring (a real choice,
-            and a kept one), About
+  pages/    Home (the collection), Play (a story, its ending, a story beside its variant), Map
+            (the language and your plays), Bring (a real choice, and kept ones), About
   styles/   design tokens and components
 tests/      review walk, wording rules, contrast, browser journeys, production build, real 2.0,
             3.0 and 3.1 documents, the reference choices

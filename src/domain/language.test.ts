@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { allShapes, everything } from '../../tests/sample';
 import { ADVICE, CURRENCY, DESCRIBES_YOU, PSYCHOLOGY, VERDICT } from '../../tests/wording';
 import { emptyState, recordChoice, shownFor } from './engine';
-import { LANGUAGE_MOVES, NONE, NOT_SURE, OUTSIDE, PARTLY, QUESTIONS, SCOPE, STRATEGIES, fitOf, outside, partly, results, shapeProblem, type Shape } from './language';
+import { LANGUAGE_MOVES, NONE, NOT_SURE, OUTSIDE, PARTLY, QUESTIONS, SCOPE, STRATEGIES, differs, fitOf, outside, partly, results, shapeProblem, shortText, type Shape } from './language';
+import { SITUATIONS } from './situations';
 
 // What the language must be, and what Bring a choice may do with it. These
 // checks catch structure, the rules and the wording; whether a move helps
@@ -42,8 +43,8 @@ describe('the language', () => {
   it('keeps every string to its word limits and wording rules: nothing about the player, no verdicts, no advice', () => {
     const all: [string, number][] = [[SCOPE, 50], [OUTSIDE, 25], [PARTLY, 25]];
     for (const q of QUESTIONS) {
-      all.push([q.ask, 10], [q.principle, 25]);
-      for (const a of q.answers) all.push([a.text, 8], [a.said, 10], ...(a.like ? [[a.like, 18] as [string, number]] : []));
+      all.push([q.ask, 10], [q.short, 4], [q.principle, 25]);
+      for (const a of q.answers) all.push([a.text, 8], [a.short, 3], [a.said, 10], [a.like, 18]);
     }
     for (const m of LANGUAGE_MOVES) all.push([m.name, 4], [m.is, 14], [m.costs, 14], [m.breaks, 20], [m.like, 14], ...(m.asks ? [[m.asks, 12] as [string, number]] : []));
     const because = new Set(SHAPES.flatMap((s) => results(s).flatMap((l) => [l.because, ...l.moves.map((m) => m.because)])));
@@ -56,6 +57,20 @@ describe('the language', () => {
 
   it('puts each principle as a condition on a move’s worth, never as an instruction', () => {
     for (const q of QUESTIONS) expect(q.principle, q.id).toMatch(/is worth .*only (if|when)/);
+  });
+
+  it('gives every answer an everyday moment, so no answer leans on a story the player may not have played', () => {
+    for (const q of QUESTIONS) {
+      for (const a of q.answers) for (const s of SITUATIONS) for (const name of [s.title, s.turnsOn]) expect(a.like, `${q.id}.${a.id}`).not.toContain(name.toLowerCase());
+    }
+  });
+
+  it('puts a shape in a few words for its cells, and says which questions two shapes differ on', () => {
+    const shape: Shape = { undo: 'no', know: ['check', 'after'], wait: 'risk', bad: 'hard' };
+    expect(QUESTIONS.map((q) => shortText(shape, q.id))).toEqual(['No', 'Check first, once done', 'Risk grows', 'Hard to recover']);
+    expect(shortText({ ...shape, know: [NOT_SURE] }, 'know')).toBe('Not sure');
+    expect(differs(shape, { ...shape, bad: 'over' })).toEqual(['bad']);
+    expect(differs(shape, shape)).toEqual([]);
   });
 
   it('asks rather than claims where the four questions can’t read a condition', () => {

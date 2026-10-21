@@ -24,8 +24,10 @@ export const NONE = 'none';
 export interface Answer {
   id: string;
   text: string;
-  /** A moment from the stories with this answer, or an everyday one where no story has it yet. */
-  like?: string;
+  /** The answer in a cell of the shape, a few words: "Risk grows". */
+  short: string;
+  /** An everyday moment with this answer. Stories the player has played add their own steps (`playedWith`). */
+  like: string;
   /** The answer inside a sentence: "Because you said it can’t be undone." */
   said: string;
 }
@@ -33,6 +35,8 @@ export interface Answer {
 export interface Question {
   id: QuestionId;
   ask: string;
+  /** The question as a cell's label in the shape: "If you wait". */
+  short: string;
   /** Tap all that fit. */
   multi?: boolean;
   /** When the moves this question reads are worth anything. Never about the player. */
@@ -54,43 +58,47 @@ export const QUESTIONS: Question[] = [
   {
     id: 'undo',
     ask: 'If you take it, can it be undone?',
+    short: 'Undo',
     principle: 'A way back is worth something only when the step would be hard to undo.',
     answers: [
-      { id: 'easily', text: 'Easily', like: 'twelve loaves on a shelf', said: 'it’s easily undone' },
-      { id: 'cost', text: 'Yes, at a cost', like: 'a lease with a break fee', said: 'undoing it would cost something' },
-      { id: 'no', text: 'No', like: 'felling the oak, or picking the grapes', said: 'it can’t be undone' },
+      { id: 'easily', text: 'Easily', short: 'Easily', like: 'moving a meeting', said: 'it’s easily undone' },
+      { id: 'cost', text: 'Yes, at a cost', short: 'At a cost', like: 'a lease with a break fee', said: 'undoing it would cost something' },
+      { id: 'no', text: 'No', short: 'No', like: 'posting a letter', said: 'it can’t be undone' },
     ],
   },
   {
     id: 'know',
     ask: 'When will you know whether it was right?',
+    short: 'Know when',
     multi: true,
     principle: 'Finding out first is worth something only if it could change the step, and comes before the step must be taken.',
     answers: [
-      { id: 'check', text: 'Before, by checking or asking', like: 'the oak’s trunk, scanned', said: 'there’s something to check or ask first' },
-      { id: 'wait', text: 'In time, by waiting', like: 'the vineyard’s forecast, each morning', said: 'news will come in time' },
-      { id: 'after', text: 'Only once it’s done', like: 'the film’s reels, back on Thursday', said: 'it will only show once it’s done' },
-      { id: 'never', text: 'Maybe never', like: 'how the road not taken would have gone', said: 'it may never be known' },
+      { id: 'check', text: 'Before, by checking or asking', short: 'Check first', like: 'a survey before buying a house', said: 'there’s something to check or ask first' },
+      { id: 'wait', text: 'In time, by waiting', short: 'News comes', like: 'a second offer, due next week', said: 'news will come in time' },
+      { id: 'after', text: 'Only once it’s done', short: 'Once done', like: 'whether a new city suits you', said: 'it will only show once it’s done' },
+      { id: 'never', text: 'Maybe never', short: 'Maybe never', like: 'how the road not taken would have gone', said: 'it may never be known' },
     ],
   },
   {
     id: 'wait',
     ask: 'If you wait, what happens?',
+    short: 'If you wait',
     principle: 'Waiting is worth its cost only if something useful arrives while you wait.',
     answers: [
-      { id: 'nothing', text: 'Not much', like: 'the new loaf, which could go on the shelf any Saturday', said: 'waiting changes little' },
-      { id: 'closes', text: 'The chance goes', like: 'the buyer’s offer for the boat, good until Friday, or old seed, fewer sprouting each spring', said: 'waiting lets the chance go' },
-      { id: 'risk', text: 'The risk grows', like: 'the leaning oak, with the storms coming', said: 'waiting raises the risk' },
-      { id: 'better', text: 'Better, but riskier', like: 'grapes left on the vine before a storm', said: 'waiting makes it better but riskier' },
+      { id: 'nothing', text: 'Not much', short: 'Little changes', like: 'a course that runs every term', said: 'waiting changes little' },
+      { id: 'closes', text: 'The chance goes', short: 'Chance goes', like: 'an offer good until Friday', said: 'waiting lets the chance go' },
+      { id: 'risk', text: 'The risk grows', short: 'Risk grows', like: 'a leak in the roof', said: 'waiting raises the risk' },
+      { id: 'better', text: 'Better, but riskier', short: 'Better, riskier', like: 'holding out for a higher offer', said: 'waiting makes it better but riskier' },
     ],
   },
   {
     id: 'bad',
     ask: 'If it goes badly, how bad?',
+    short: 'If it goes badly',
     principle: 'Limiting the harm is worth its price only when the bad case would be hard to recover from.',
     answers: [
-      { id: 'over', text: 'Something to get over', like: 'loaves coming home unsold', said: 'it’s something to get over' },
-      { id: 'hard', text: 'Hard to recover from', like: 'a fault in the film’s only good take', said: 'it would be hard to recover from' },
+      { id: 'over', text: 'Something to get over', short: 'Get over it', like: 'a bad haircut', said: 'it’s something to get over' },
+      { id: 'hard', text: 'Hard to recover from', short: 'Hard to recover', like: 'losing the only copy', said: 'it would be hard to recover from' },
     ],
   },
 ];
@@ -300,7 +308,7 @@ export const LANGUAGE_MOVES: LanguageMove[] = [
     is: 'Deciding now what would mean acting, or stopping, later.',
     costs: 'A rule that may fire at the wrong moment.',
     breaks: 'When it watches the wrong signal.',
-    like: 'if it isn’t paying by March, it stops',
+    like: 'a rule that if it isn’t paying by March, it stops',
   },
 ];
 
@@ -318,6 +326,18 @@ export const answersTo = (shape: Shape, q: QuestionId): string[] => (q === 'know
 
 /** An answer's words, the two escapes included. */
 export const answerText = (q: QuestionId, a: string) => (a === NOT_SURE ? 'Not sure' : a === NONE ? 'None of these' : question(q).answers.find((x) => x.id === a)!.text);
+
+/** The answers given to one question, in a few words, for a cell of the shape: "Check first, once done". */
+export const shortText = (shape: Shape, q: QuestionId) =>
+  answersTo(shape, q)
+    .map((a, i) => {
+      const t = a === NOT_SURE ? 'Not sure' : a === NONE ? 'None of these' : question(q).answers.find((x) => x.id === a)!.short;
+      return i ? t.replace(/^./, (c) => c.toLowerCase()) : t;
+    })
+    .join(', ');
+
+/** The questions on which two shapes differ. */
+export const differs = (a: Shape, b: Shape): QuestionId[] => QUESTIONS.filter((q) => answersTo(a, q.id).join() !== answersTo(b, q.id).join()).map((q) => q.id);
 
 /** The answers given to one question, as one phrase: "Before, by checking or asking; only once it’s done". */
 export const answersText = (shape: Shape, q: QuestionId) =>

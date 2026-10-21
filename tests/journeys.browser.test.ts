@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import type { Page } from 'playwright';
+import type { Locator, Page } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { TellState } from '../src/domain/types';
 import { PHONE, SMALL_PHONE, openApp, overflowsSideways, pageScrolls, smallTargets, startApp, type Engine, type Session } from './browser';
@@ -21,19 +21,20 @@ const day = (d: number) => new Date(Date.UTC(2026, 9, d, 8, 0, 0));
 const stored = async (page: Page): Promise<TellState> => JSON.parse((await page.evaluate(() => localStorage.getItem('tell')))!);
 const button = (page: Page, name: string | RegExp) => page.getByRole('button', { name, exact: typeof name === 'string' });
 const heading = (page: Page, name: string) => page.getByRole('heading', { name, exact: true });
-const region = (page: Page, name: string) => page.getByRole('region', { name, exact: true });
+const region = (page: Page | Locator, name: string) => page.getByRole('region', { name, exact: true });
 const ending = (page: Page) => heading(page, 'What you did');
-const tab = (page: Page, name: 'Play' | 'Map' | 'About') => page.getByRole('link', { name, exact: true });
+const tab = (page: Page, name: 'Play' | 'Bring a choice' | 'Map' | 'About') => page.getByRole('link', { name, exact: true });
 const FIXTURE = readFileSync(new URL('./fixtures/tell-2.0.json', import.meta.url), 'utf8');
 const FIXTURE_3 = readFileSync(new URL('./fixtures/tell-3.0.json', import.meta.url), 'utf8');
 const FIXTURE_31 = readFileSync(new URL('./fixtures/tell-3.1.json', import.meta.url), 'utf8');
 
-/** The checks every screen must pass: nothing sideways, only <main> scrolls, tap targets of 44px, and no word about the player or urging them. */
+/** The checks every screen must pass: nothing sideways, only <main> scrolls, tap targets of 44px, and no word about the player or urging them, in the page or an open card. */
 async function sound(s: Session, name?: string) {
   expect(await overflowsSideways(s.page), name).toBe(false);
   expect(await pageScrolls(s.page), name).toBe(false);
   expect(await smallTargets(s.page), name).toEqual([]);
-  const text = await s.page.locator('main').innerText();
+  const card = s.page.locator('dialog[open]');
+  const text = (await s.page.locator('main').innerText()) + ((await card.count()) ? await card.innerText() : '');
   expect(text, name).not.toMatch(DESCRIBES_YOU);
   expect(text, name).not.toMatch(ADVICE);
   if (name) await s.shot(name);
@@ -54,35 +55,63 @@ async function open(page: Page, title: string) {
 }
 
 describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
-  it('plays every kind of story, names the moves each path made, keeps them on the map through a replay and a reload, and brings a real choice', async () => {
+  it('plays every kind of story with its moves in view, a variant beside its story, the map of moves, and a real choice', async () => {
     const s = await openApp(engine, app.url, { time: day(1), colorScheme: scheme, viewport });
     const t = tag(viewport);
     const { page } = s;
     const did = () => region(page, 'What you did').locator('ul.results');
+    const pills = (where = did()) => where.locator('.move-name').allTextContents();
+    const card = () => page.getByRole('dialog');
+    const close = async () => {
+      await button(page, 'Close').click();
+      await card().waitFor({ state: 'hidden' });
+    };
     try {
       await heading(page, 'Pick a story').waitFor();
-      expect(await page.getByRole('link', { name: 'Bring a choice' }).getAttribute('href')).toBe('#/bring');
+      for (const name of ['Play', 'Bring a choice', 'Map', 'About'] as const) expect(await tab(page, name).isVisible()).toBe(true);
       await sound(s, `1-home${t}`);
 
-      // Find things out from a budget, then choose with what was found in view.
+      // The shape of the step is there from the start; each question opens its card.
       await open(page, 'The old oak');
+      const shape = page.getByRole('group', { name: 'The step: felling the oak' });
+      expect(await shape.getByRole('button').allTextContents()).toEqual(['UndoNo', 'Know whenCheck first, once done', 'If you waitRisk grows', 'If it goes badlyHard to recover']);
       await sound(s, `2-start${t}`);
+      await button(page, 'If you wait: Risk grows').click();
+      await heading(page, 'If you wait, what happens?').waitFor();
+      expect(await card().locator('li.on').textContent()).toBe('The risk growsLike a leak in the roof.');
+      expect(await card().textContent()).toContain('Waiting is worth its cost only if something useful arrives while you wait.');
+      await sound(s, `2-question${t}`);
+      await close();
+
+      // Finding out from a budget: the move it makes shows before deciding.
       await button(page, /^Have the trunk scanned/).click();
       await page.getByText('About a third of the trunk is hollow.', { exact: false }).waitFor();
       expect(await page.getByText('1 week left to find things out.').isVisible()).toBe(true);
+      expect(await button(page, /^Decide/).textContent()).toBe('DecideLook first');
       await sound(s, `3-uncover${t}`);
-      await button(page, 'Decide').click();
+      await button(page, /^Decide/).click();
       await page.getByText('What happens to the oak?').waitFor();
       expect(await page.locator('.condition').textContent()).toContain('About a third of the trunk is hollow.');
+      // Every option shows the moves it makes before it's chosen.
+      expect(await page.locator('button.option .moves').allTextContents()).toEqual(['Commit', 'Guard', 'Hold it openGuard']);
       await button(page, /^Leave it, and fence off the path/).click();
       await ending(page).waitFor();
       expect(await page.evaluate(() => document.activeElement?.textContent)).toBe('The old oak');
-      // Each step names the moves it made, New the first time; the shape of the step follows.
-      expect(await did().textContent()).toBe('Spent 3 of 4 weeks finding out: “Have the trunk scanned”.Look firstNewChose “Leave it, and fence off the path”.Hold it openNewGuardNew');
-      expect(await region(page, 'Other ways through').textContent()).toContain('Other moves in this story: Commit.');
-      expect(await region(page, 'The shape of it').textContent()).toContain('The four questions, about felling the oak.If you take it, can it be undone?No');
-      expect(await region(page, 'What you did').locator('p').first().textContent()).toBe('Moves here are about felling the oak.');
+      // Each step names its moves, New the first time, with what it cost and risked here.
+      expect(await did().textContent()).toBe(
+        'Spent 3 of 4 weeks finding out: “Have the trunk scanned”.Look firstNewCost: weeks closer to the storms. Risk: facts that still don’t settle it.' +
+          'Chose “Leave it, and fence off the path”.Hold it openNewGuardNewCost: a longer walk to school while it stands. Risk: the oak coming down inside the fence.',
+      );
+      expect(await region(page, 'Other ways through').textContent()).toContain('Other moves in this story:Commit');
       await sound(s, `4-ending${t}`);
+      // A move opens its card: what it is, the answers it fits, where the player made it, and the stories with it.
+      await region(page, 'What you did').getByRole('button', { name: /^Guard/ }).click();
+      await heading(page, 'Guard').waitFor();
+      expect(await card().textContent()).toContain('Fits a step withIf it goes badlyHard to recover');
+      expect(await card().textContent()).toContain('The old oak: Chose “Leave it, and fence off the path”.');
+      expect(await region(card(), 'Stories with it').textContent()).toBe('Stories with itThe old oak');
+      await sound(s, `4-card${t}`);
+      await close();
 
       // Choose, see what follows, choose again.
       await page.getByRole('link', { name: 'Back to the stories' }).click();
@@ -91,31 +120,53 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       await button(page, /^Put twelve on the shelf on Saturday/).click();
       await page.getByText('By closing time on Saturday, seven of the twelve have gone.', { exact: false }).waitFor();
       await sound(s, `5-follows${t}`);
-      await button(page, 'Bake it every Saturday').click();
+      await button(page, /^Bake it every Saturday/).click();
       await ending(page).waitFor();
-      expect(await did().textContent()).toBe('Chose “Put twelve on the shelf on Saturday”.Try it smallNewChose “Bake it every Saturday”.CommitNew');
+      expect(await pills()).toEqual(['Try it smallNew', 'CommitNew']);
 
-      // Day by day.
+      // Day by day: what picking today would make changes as the days pass.
       await open(page, 'The harvest');
       await button(page, 'Wait a day').click();
       await page.getByText('Forecast: five in ten, Thursday or Friday.', { exact: false }).waitFor();
+      expect(await page.locator('.live').textContent()).toMatch(/^If you pick today:\s*Commit$/);
       await button(page, 'Wait a day').click();
       await page.getByText('Forecast: seven in ten', { exact: false }).waitFor();
-      await sound(s, `7-days${t}`);
+      expect(await page.locator('.live').textContent()).toMatch(/^If you pick today:\s*Wait for it$/);
+      await sound(s, `6-days${t}`);
       await button(page, 'Pick today').click();
       await ending(page).waitFor();
-      expect(await did().textContent()).toBe('“Pick today” on Wednesday.Wait for itNew');
+      expect(await did().textContent()).toBe('“Pick today” on Wednesday.Wait for itNewCost: Thursday’s extra sweetness. Risk: a storm two days early.');
+
+      // One fact changed: the variant, offered at the ending with the answer it changes, then both plays side by side.
+      const whatIf = region(page, 'What if the forecasts stopped after Monday?');
+      expect(await whatIf.getByRole('button', { name: 'Know when: Once done, was News comes' }).count()).toBe(1);
+      await whatIf.getByRole('link', { name: 'Play it that way' }).click();
+      await heading(page, 'The harvest, without forecasts').waitFor();
+      expect(await button(page, 'Know when: Once done, was News comes').count()).toBe(1);
+      expect(await page.locator('button.option .moves').allTextContents()).toEqual(['Commit', 'Split it', 'Set a tripwire']);
+      await sound(s, `7-variant${t}`);
+      await button(page, /^Pick half today, the rest on Thursday/).click();
+      await ending(page).waitFor();
+      expect(await region(page, 'Both ways').textContent()).toBe(
+        'Both waysWhen will you know whether it was right?' +
+          'The harvestNews comes“Pick today” on Wednesday.Wait for it' +
+          'The harvest, without forecastsOnce doneChose “Pick half today, the rest on Thursday”.Split it' +
+          'Finding out first is worth something only if it could change the step, and comes before the step must be taken.',
+      );
+      await sound(s, `7-both${t}`);
 
       // Asking brings only an answer here, and is a move of its own; moves already shown aren't New again.
       await open(page, 'The last of the light');
-      await button(page, 'Ask the camera operator about take four').click();
+      expect(await button(page, /^Ask the camera operator/).textContent()).toBe('Ask the camera operator about take fourLook first');
+      await button(page, /^Ask the camera operator/).click();
       await page.getByText('On film, you only know on Thursday.', { exact: false }).waitFor();
       expect(await page.locator('button.option').count()).toBe(2);
       await sound(s, `8-ask${t}`);
       await button(page, /^The wide shot of the lighthouse/).click();
       await ending(page).waitFor();
-      expect(await did().textContent()).toBe('Asked the camera operator, then chose “The wide shot of the lighthouse”.Look firstCommit');
+      expect(await pills()).toEqual(['Look first', 'Commit']);
       expect(await page.getByText('On Thursday the lab will show whether take four', { exact: false }).count()).toBe(1);
+      expect(await heading(page, 'What if a second camera had filmed the scene from the side?').count()).toBe(1);
       await page.getByText('What’s real in this story').click();
       await page.getByRole('link', { name: 'Wikipedia, “Dailies”' }).waitFor();
       expect(await page.getByText('this story is shot on film', { exact: false }).count()).toBe(1);
@@ -123,50 +174,55 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       // Asking brings another option, with its own costs.
       await open(page, 'Your uncle’s boat');
       expect(await button(page, /^Lend her to the club/).count()).toBe(0);
-      await button(page, 'Ask at the sailing club first').click();
+      await button(page, /^Ask at the sailing club first/).click();
       await page.getByText('beginners are hard on boats', { exact: false }).waitFor();
       await button(page, /^Lend her to the club for the season/).click();
       await ending(page).waitFor();
-      expect(await did().textContent()).toBe('Asked at the sailing club, then chose “Lend her to the club for the season”.Make another optionNewHand it overNew');
+      expect(await pills()).toEqual(['Make another optionNew', 'Hand it overNew']);
 
-      // Share something scarce.
+      // Share something scarce: the moves change as the rows do.
       await open(page, 'The last packet');
+      expect(await page.locator('.live').textContent()).toBe('No move: holding off.');
       await button(page, 'One row more').click();
       await button(page, 'One row more').click();
-      expect(await page.getByRole('group', { name: 'The old beans' }).textContent()).toContain('2');
+      expect(await page.getByRole('group', { name: 'The old beans', exact: true }).textContent()).toContain('2');
+      expect(await pills(page.locator('.live'))).toEqual(['Try it small', 'Keep it by using']);
+      for (let i = 0; i < 3; i++) await button(page, 'One row more').click();
+      expect(await pills(page.locator('.live'))).toEqual(['Split it', 'Keep it by using']);
+      for (let i = 0; i < 3; i++) await button(page, 'One row fewer').click();
       await sound(s, `9-allocate${t}`);
       await button(page, 'Done').click();
       await ending(page).waitFor();
-      expect(await did().textContent()).toBe('The old beans: 2 rows. Your usual vegetables: 8 rows.Try it smallKeep it by usingNew');
+      expect(await pills()).toEqual(['Try it small', 'Keep it by usingNew']);
 
-      // The map, after a reload: the moves made, by what they deal with, and the shapes that differed.
+      // The map, after a reload: every move, by what it deals with, the same for everyone; under each, where the player made it.
       await page.reload();
       await tab(page, 'Map').click();
       await heading(page, 'Your map').waitFor();
-      const moves = region(page, 'Your moves');
-      expect(await moves.locator('summary').allTextContents()).toEqual([
-        'Look firstThe old oak, The last of the light',
-        'Wait for itThe harvest',
-        'Try it smallThe new loaf, The last packet',
-        'Hold it openThe old oak',
-        'Hand it overYour uncle’s boat',
-        'Keep it by usingThe last packet',
-        'GuardThe old oak',
-        'Make another optionYour uncle’s boat',
-        'CommitThe new loaf, The last of the light',
+      const moves = region(page, 'Moves');
+      expect(await moves.getByRole('button').allTextContents()).toEqual([
+        'Look firstIn The old oak, The last of the light',
+        'Wait for itIn The harvest',
+        'Try it smallIn The new loaf, The last packet',
+        'Make it undoableLike renting before buying',
+        'Split itIn The harvest, without forecasts',
+        'Hold it openIn The old oak',
+        'Ask for more timeLike a week more before answering an offer',
+        'Hand it overIn Your uncle’s boat',
+        'Keep it by usingIn The last packet',
+        'GuardIn The old oak',
+        'Buy a spareLike a backup copy, kept somewhere else',
+        'Make another optionIn Your uncle’s boat',
+        'CommitIn The new loaf, The last of the light',
+        'Rule it outLike telling the buyer no, and meaning it',
+        'Set a tripwireLike a rule that if it isn’t paying by March, it stops',
       ]);
       expect(await page.locator('.tag').count()).toBe(0);
-      const shapes = region(page, 'The shapes you’ve played');
-      expect(await shapes.locator('summary').allTextContents()).toEqual([
-        'If you take it, can it be undone?Easily · No',
-        'When will you know whether it was right?Before, by checking or asking · In time, by waiting · Only once it’s done',
-        'If you wait, what happens?Not much · The chance goes · The risk grows · Better, but riskier',
-        'If it goes badly, how bad?Something to get over · Hard to recover from',
-      ]);
-      expect(await shapes.textContent()).toContain('Easily: The new loaf (Try it small, Commit); The last packet (Try it small, Keep it by using)');
+      expect(await region(page, 'Both ways').getByRole('link').allTextContents()).toEqual(['The harvest', 'The harvest, without forecasts']);
       await sound(s, `10-map${t}`);
-      await moves.getByText('Look first').click();
-      expect(await moves.textContent()).toContain('The last of the light: Asked the camera operator, then chose “The wide shot of the lighthouse”.');
+      await moves.getByRole('button', { name: /^Look first/ }).click();
+      expect(await card().textContent()).toContain('The last of the light: Asked the camera operator, then chose “The wide shot of the lighthouse”.');
+      await close();
 
       // A replay down another path keeps every play, and what was made before stays.
       await page.getByText('Everything you’ve played').click();
@@ -177,13 +233,15 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       await button(page, /^Fell it/).click();
       await ending(page).waitFor();
       expect(await page.locator('article .eyebrow').first().textContent()).toBe('A village green · replay 1');
-      expect(await did().textContent()).toBe('Decided without spending time finding out.Chose “Fell it”.Commit');
+      expect(await did().textContent()).toBe(
+        'Decided without spending time finding out.Cost: no time at all. Risk: acting on a lean and some fungus alone.Chose “Fell it”.CommitCost: a two-hundred-year-old tree. Risk: felling a tree that would have stood for decades.',
+      );
       await tab(page, 'Map').click();
       await heading(page, 'Your map').waitFor();
-      expect(await region(page, 'Your moves').locator('summary').allTextContents()).toContain('CommitThe new loaf, The last of the light, The old oak');
+      expect(await region(page, 'Moves').getByRole('button').allTextContents()).toContain('CommitIn The new loaf, The last of the light, The old oak');
 
-      // Bring a choice: four questions in taps, then the moves that fit, by rule.
-      await page.getByRole('link', { name: 'Bring a choice' }).click();
+      // Bring a choice: four questions in taps, the shape building as they're answered, then the moves that fit, by rule.
+      await tab(page, 'Bring a choice').click();
       await heading(page, 'Bring a choice').waitFor();
       // A long word the player types wraps rather than running off the screen.
       await page.getByLabel('The step, in a few words, if you like').fill('Supercalifragilisticexpialidociousrewriteofeverything');
@@ -194,6 +252,8 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       await sound(s, `11-bring${t}`);
       await button(page, 'Start').click();
       await heading(page, 'If you take it, can it be undone?').waitFor();
+      // An everyday moment for every answer; the steps of stories the player has played as well.
+      expect(await button(page, /^Easily/).textContent()).toBe('EasilyLike moving a meeting; as in putting the new bread on sale and sowing the old beans.');
       await button(page, /^No\b/).click();
       await heading(page, 'When will you know whether it was right?').waitFor();
       const next = button(page, 'Next');
@@ -206,46 +266,59 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       await button(page, /^Before, by checking or asking/).click();
       await button(page, /^Only once it’s done/).click();
       expect(await page.locator('button[aria-pressed="true"]').count()).toBe(2);
+      expect(await button(page, 'Undo: No').count()).toBe(1);
+      expect(await button(page, 'Know when: Check first, once done').count()).toBe(1);
       await sound(s, `12-question${t}`);
       await next.click();
       await button(page, /^The chance goes/).click();
       await button(page, /^Hard to recover from/).click();
       await heading(page, 'Open-source my app').waitFor();
-      const lines = page.locator('details.cell > summary');
-      expect(await lines.allTextContents()).toEqual([
-        'Find out firstLook first · Try it small',
-        'Soften the stepMake it undoable · Split it',
-        'Keep it openHold it open · Ask for more time · Hand it over · Keep it by using',
-        'Limit the harmGuard · Buy a spare',
-        'Find another wayMake another option',
-        'Settle itCommit · Rule it out · Set a tripwire',
-      ]);
+      const fits = region(page, 'Moves that fit what you said');
+      const rows = fits.getByRole('button');
+      expect(await fits.locator('h3').allTextContents()).toEqual(['Find out first', 'Soften the step', 'Keep it open', 'Limit the harm', 'Find another way', 'Settle it']);
+      expect(await rows.count()).toBe(14);
+      expect(await rows.first().textContent()).toBe('Look firstChecking or asking before the step.Because you said there’s something to check or ask first.');
+      expect(await rows.nth(1).textContent()).toBe('Try it smallCould part of it go first, and be stopped?Because you said it will only show once it’s done.');
       await sound(s, `13-results${t}`);
-      await lines.nth(2).click();
-      const opened = page.locator('details.cell[open]');
-      expect(await opened.textContent()).toContain('Does someone else set the deadline?');
-      expect(await opened.textContent()).toContain('In your play of The old oak: Chose “Leave it, and fence off the path”.');
-      expect(await opened.textContent()).toContain('For instance, a week more before answering an offer.');
-      await opened.scrollIntoViewIfNeeded();
-      await sound(s, `14-line${t}`);
+      // An answer changes from its cell, and the moves follow it.
+      await button(page, 'If it goes badly: Hard to recover').click();
+      await heading(page, 'If it goes badly, how bad?').waitFor();
+      await button(page, /^Something to get over/).click();
+      await heading(page, 'Open-source my app').waitFor();
+      expect(await rows.count()).toBe(12);
+      await button(page, 'If it goes badly: Get over it').click();
+      await button(page, /^Hard to recover from/).click();
+      await heading(page, 'Open-source my app').waitFor();
+      expect(await rows.count()).toBe(14);
+      // A row opens the move's card: its price, its limit, an example, and the player's own where there is one.
+      await rows.filter({ hasText: 'Ask for more time' }).click();
+      await heading(page, 'Ask for more time').waitFor();
+      expect(await card().textContent()).toContain('Does someone else set the deadline?');
+      expect(await card().textContent()).toContain('For instanceA week more before answering an offer.');
+      expect(await card().getByText('Stories with it').count()).toBe(0);
+      await sound(s, `14-card${t}`);
+      await close();
+      await rows.filter({ hasText: 'Hold it open' }).click();
+      expect(await card().textContent()).toContain('The old oak: Chose “Leave it, and fence off the path”.');
+      await close();
 
-      // Kept only when the player keeps it; then a move can be marked, and a note added.
+      // Kept only when the player keeps it; then a move can be marked from its card, and a note added.
       expect((await stored(page)).choices).toEqual([]);
       await button(page, 'Keep this choice').click();
       await page.getByText(/^Kept 1 Oct/).waitFor();
-      await lines.first().click();
-      await button(page, 'I’m trying this').nth(1).click();
+      await rows.filter({ hasText: 'Try it small' }).click();
+      await button(page, 'I’m trying this').click();
       await button(page, 'Trying this').waitFor();
+      await close();
+      expect(await rows.filter({ hasText: 'Try it small' }).locator('.tag').textContent()).toBe('Trying');
       await page.getByLabel('Notes').fill('One module first, for five friends.');
       await sound(s, `15-kept${t}`);
       await page.reload();
       await heading(page, 'Open-source my app').waitFor();
       expect(await page.getByLabel('Notes').inputValue()).toBe('One module first, for five friends.');
-      await tab(page, 'Map').click();
+      await tab(page, 'Bring a choice').click();
       expect(await region(page, 'Your choices').locator('ul').textContent()).toBe('Open-source my appKept 1 Oct. Trying: Try it small');
       // When a question doesn't describe the choice, Tell says so before the moves; leaving keeps nothing.
-      await tab(page, 'Play').click();
-      await page.getByRole('link', { name: 'Bring a choice' }).click();
       await button(page, 'Start').click();
       await button(page, /^Easily/).click();
       await button(page, /^Only once it’s done/).click();
@@ -253,12 +326,12 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       await button(page, /^Not much/).click();
       await button(page, 'None of these').click();
       await page.getByText('Some of the questions don’t describe this choice, so these moves cover only part of it.').waitFor();
-      await page.getByRole('link', { name: 'Leave without keeping' }).click();
-      await heading(page, 'Your map').waitFor();
+      await button(page, 'Leave without keeping').click();
+      await heading(page, 'Bring a choice').waitFor();
       expect((await stored(page)).choices).toHaveLength(1);
       await tab(page, 'About').click();
       await heading(page, 'How Tell works').waitFor();
-      expect(await page.getByText('Everything stays in this browser: 7 plays and 1 kept choice.').count()).toBe(1);
+      expect(await page.getByText('Everything stays in this browser: 8 plays and 1 kept choice.').count()).toBe(1);
       await sound(s, `16-about${t}`);
 
       const state = await stored(page);
@@ -266,6 +339,7 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
         ['oak', 0],
         ['loaf', 0],
         ['harvest', 0],
+        ['harvest-blind', 0],
         ['take', 0],
         ['boat', 0],
         ['beans', 0],
@@ -274,7 +348,7 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       expect(state.choices.map((c) => [c.label, c.shape, c.trying, c.note])).toEqual([
         ['Open-source my app', { undo: 'no', know: ['check', 'after'], wait: 'closes', bad: 'hard' }, ['small'], 'One module first, for five friends.'],
       ]);
-      expect(Object.keys(state.seen).sort()).toEqual(['another', 'by-using', 'commit', 'guard', 'hand-over', 'hold', 'look', 'small', 'wait-for-it']);
+      expect(Object.keys(state.seen).sort()).toEqual(['another', 'by-using', 'commit', 'guard', 'hand-over', 'hold', 'look', 'small', 'split', 'wait-for-it']);
       expect(s.errors).toEqual([]);
     } finally {
       await s.close();
@@ -362,7 +436,8 @@ describe.each<[Engine]>([['chromium'], ['webkit']])('data that can’t be used, 
       expect(state.choices).toEqual([]);
       expect(state.archive.map((a) => [a.schema, a.doc])).toEqual([[schema, JSON.parse(fixture)]]);
       await tab(page, 'Map').click();
-      await page.getByText('Nothing yet.', { exact: false }).waitFor();
+      await heading(page, 'Your map').waitFor();
+      expect(await region(page, 'Moves').getByText(/^In /).count()).toBe(0);
     } finally {
       await s.close();
     }

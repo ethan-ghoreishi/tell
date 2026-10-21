@@ -1,4 +1,4 @@
-import { LANGUAGE, LANGUAGE_MOVES, QUESTIONS, SCOPE, STRATEGIES, answersText, answersTo, languageMove, results, shapeProblem, type MoveId, type QuestionId, type Shape } from './language';
+import { LANGUAGE, LANGUAGE_MOVES, QUESTIONS, SCOPE, STRATEGIES, answersText, answersTo, differs, languageMove, results, shapeProblem, type MoveId, type QuestionId, type Shape } from './language';
 import { list, plural, shortDate } from './text';
 import { SCHEMA, type Answers, type Band, type Choice, type Keyed, type Option, type Play, type ShownLine, type Situation, type Step, type StepAnswer, type TellState } from './types';
 
@@ -20,7 +20,8 @@ const isInt = (x: unknown): x is number => Number.isInteger(x);
 
 // ---- Steps: what each answer amounts to ------------------------------------
 
-const bandOf = (bands: Band[], n: number) => bands.find((b) => n <= b.upTo)!;
+/** The band a number falls in, with the moves it makes. */
+export const bandOf = (bands: Band[], n: number) => bands.find((b) => n <= b.upTo)!;
 export const band = (bands: Band[], n: number) => bandOf(bands, n).id;
 
 /** The options a choose step offers once asked: its own, plus any asking brought. */
@@ -147,8 +148,8 @@ export function stepLine(s: Step, a: StepAnswer): string {
 
 export interface PlayView {
   closing: string;
-  /** What was done, as fixed sentences filled from the record, each with the moves it made. */
-  did: { line: string; moves: MoveId[] }[];
+  /** What was done, as fixed sentences filled from the record, each with the moves it made and what it cost and risked in the story. */
+  did: { line: string; moves: MoveId[]; costs: string; risks: string }[];
   others: string;
   /** Moves the story offers that this play didn't make. */
   unmade: MoveId[];
@@ -156,7 +157,11 @@ export interface PlayView {
 
 export function playView(play: Play): PlayView {
   const s = play.shown;
-  const did = s.steps.map((step) => ({ line: stepLine(step, play.answers[step.id]), moves: movesOf(step, play.answers[step.id]) }));
+  const did = s.steps.map((step) => {
+    const a = play.answers[step.id];
+    const { costs, risks } = answerOf(step, keyOf(step, a));
+    return { line: stepLine(step, a), moves: movesOf(step, a), costs, risks };
+  });
   const made = did.flatMap((d) => d.moves);
   return { closing: keyed(s.ending.closing, s, play.answers), did, others: s.ending.others, unmade: storyMoves(s).filter((m) => !made.includes(m)) };
 }
@@ -188,20 +193,32 @@ export function examples(state: TellState): { id: MoveId; examples: Example[] }[
   return LANGUAGE_MOVES.flatMap((m) => (by.has(m.id) ? [{ id: m.id, examples: by.get(m.id)! }] : []));
 }
 
-/**
- * The contrasts the player has lived: each question on which the stories they
- * played gave different answers, with the plays under each answer. A question
- * every played story answered alike shows nothing, since there is no contrast.
- */
-export function lived(state: TellState): { q: QuestionId; answers: { id: string; plays: Play[] }[] }[] {
-  return QUESTIONS.filter((q) => new Set(state.plays.map((p) => answersTo(p.shown.shape, q.id).join())).size > 1).map((q) => ({
-    q: q.id,
-    answers: q.answers.flatMap((a) => {
-      const plays = state.plays.filter((p) => answersTo(p.shown.shape, q.id).includes(a.id));
-      return plays.length ? [{ id: a.id, plays }] : [];
-    }),
-  }));
+export interface Pair {
+  base: Play;
+  variant: Play;
+  /** The questions on which the two steps differ: one, by the stories' rules. */
+  differ: QuestionId[];
 }
+
+/**
+ * A story and its variant, each played: the latest play of each, side by
+ * side, read from their own snapshots. Listed, never explained: what the
+ * player makes of the difference is theirs.
+ */
+export function pairs(state: TellState): Pair[] {
+  const latest = (id: string) => state.plays.filter((p) => p.situation === id).at(-1);
+  const variants = [...new Set(state.plays.filter((p) => p.shown.of).map((p) => p.situation))];
+  return variants.flatMap((id) => {
+    const variant = latest(id)!;
+    const base = latest(variant.shown.of!);
+    return base ? [{ base, variant, differ: differs(base.shown.shape, variant.shown.shape) }] : [];
+  });
+}
+
+/** The steps of played stories whose shape had this answer, by name ("felling the oak"), read from the plays' own snapshots. */
+export const playedWith = (state: TellState, q: QuestionId, a: string): string[] => [
+  ...new Set(state.plays.filter((p) => answersTo(p.shown.shape, q).includes(a)).map((p) => p.shown.turnsOn)),
+];
 
 /** Moves this play made that the player hasn't yet been shown as new. */
 export const fresh = (state: TellState, play: Play): MoveId[] => inOrder(playView(play).did.flatMap((d) => d.moves)).filter((m) => !state.seen[m]);
@@ -274,7 +291,7 @@ export function recordText(state: TellState): string {
   }
   if (state.choices.length) out.push(SCOPE, '');
   for (const p of state.plays) {
-    out.push(`${p.shown.title}${p.replay ? ` (replay ${p.replay})` : ''}, ${shortDate(p.day)}`, `  Unknown: ${p.shown.uncertain}`, `  About ${p.shown.turnsOn}: ${shapeText(p.shown.shape).join(' ')}`);
+    out.push(`${p.shown.title}${p.replay ? ` (replay ${p.replay})` : ''}, ${shortDate(p.day)}`, ...(p.shown.whatIf ? [`  ${p.shown.whatIf}`] : []), `  Unknown: ${p.shown.uncertain}`, `  About ${p.shown.turnsOn}: ${shapeText(p.shown.shape).join(' ')}`);
     for (const step of p.shown.steps) {
       const a = p.answers[step.id];
       const d = answerOf(step, keyOf(step, a));

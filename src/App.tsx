@@ -6,11 +6,13 @@ import { BringPage, ChoicePage } from './pages/Bring';
 import Home from './pages/Home';
 import MapPage from './pages/MapPage';
 import { PlayPage, SituationPage } from './pages/Play';
+import { CardHost } from './lens';
 import { store, useTell, type Snapshot } from './store/store';
-import { InfoIcon, MapIcon, MarkIcon, PlayIcon, download } from './ui';
+import { BringIcon, InfoIcon, MapIcon, MarkIcon, PlayIcon, download } from './ui';
 
 const TABS = [
   { route: 'home', href: '#/', label: 'Play', Icon: PlayIcon },
+  { route: 'bring', href: '#/bring', label: 'Bring a choice', Icon: BringIcon },
   { route: 'map', href: '#/map', label: 'Map', Icon: MapIcon },
   { route: 'about', href: '#/about', label: 'About', Icon: InfoIcon },
 ] as const;
@@ -41,56 +43,58 @@ export default function App() {
   const { state, saveError, archived } = snapshot;
   const [page, ...rest] = route.split('/');
   const arg = rest.join('/');
-  const tab = page === 'map' || page === 'bring' || page === 'choice' ? 'map' : page === 'about' ? 'about' : 'home';
+  const tab = page === 'bring' || page === 'choice' ? 'bring' : page === 'map' ? 'map' : page === 'about' ? 'about' : 'home';
 
   return (
-    <div className="app">
-      {/* The nav comes first for assistive tech; CSS places it at the bottom. */}
-      <nav className="tabbar" aria-label="Primary">
-        {TABS.map(({ route: r, href, label, Icon }) => (
-          <a key={r} className="tab" href={href} aria-current={tab === r ? 'page' : undefined}>
-            <Icon />
-            <span>{label}</span>
+    <CardHost state={state} inStory={page === 'situation'}>
+      <div className="app">
+        {/* The nav comes first for assistive tech; CSS places it at the bottom. */}
+        <nav className="tabbar" aria-label="Primary">
+          {TABS.map(({ route: r, href, label, Icon }) => (
+            <a key={r} className="tab" href={href} aria-current={tab === r ? 'page' : undefined}>
+              <Icon />
+              <span>{label}</span>
+            </a>
+          ))}
+        </nav>
+        <header className="app-header">
+          <a className="wordmark" href="#/">
+            <MarkIcon className="mark" />
+            Tell
           </a>
-        ))}
-      </nav>
-      <header className="app-header">
-        <a className="wordmark" href="#/">
-          <MarkIcon className="mark" />
-          Tell
-        </a>
-      </header>
-      <main className="main" ref={main}>
-        <div className="main-inner stack-lg">
-          {saveError && (
-            <p className="notice" role="alert">
-              {saveError}
-            </p>
-          )}
-          {archived && (
-            <p className="notice" role="status">
-              Tell has changed. Your record from {earlierName(archived)} is kept exactly as it was, and you can download it from About.
-            </p>
-          )}
-          <UpdateNotice />
-          {page === 'map' ? (
-            <MapPage state={state} />
-          ) : page === 'bring' ? (
-            <BringPage state={state} />
-          ) : page === 'choice' ? (
-            <ChoicePage key={arg} state={state} id={arg} />
-          ) : page === 'about' ? (
-            <About state={state} />
-          ) : page === 'situation' ? (
-            <SituationPage key={arg} state={state} id={arg} />
-          ) : page === 'play' ? (
-            <PlayPage key={arg} state={state} id={arg} />
-          ) : (
-            <Home state={state} />
-          )}
-        </div>
-      </main>
-    </div>
+        </header>
+        <main className="main" ref={main}>
+          <div className="main-inner stack-lg">
+            {saveError && (
+              <p className="notice" role="alert">
+                {saveError}
+              </p>
+            )}
+            {archived && (
+              <p className="notice" role="status">
+                Tell has changed. Your record from {earlierName(archived)} is kept exactly as it was, and you can download it from About.
+              </p>
+            )}
+            <UpdateNotice />
+            {page === 'map' ? (
+              <MapPage state={state} />
+            ) : page === 'bring' ? (
+              <BringPage state={state} />
+            ) : page === 'choice' ? (
+              <ChoicePage key={arg} state={state} id={arg} />
+            ) : page === 'about' ? (
+              <About state={state} />
+            ) : page === 'situation' ? (
+              <SituationPage key={arg} state={state} id={arg} />
+            ) : page === 'play' ? (
+              <PlayPage key={arg} state={state} id={arg} />
+            ) : (
+              <Home state={state} />
+            )}
+          </div>
+        </main>
+      </div>
+    </CardHost>
   );
 }
 

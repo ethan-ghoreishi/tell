@@ -76,6 +76,13 @@ export interface Real {
 export interface Situation {
   id: string;
   v: number;
+  /**
+   * A variant names the story it varies (`of`), and the one thing that differs,
+   * as the question its base's ending asks: "What if the forecasts stopped?".
+   * Its step is the same, and its shape differs from the base's on one question.
+   */
+  of?: string;
+  whatIf?: string;
   title: string;
   /** Where it happens: "A village green". */
   place: string;

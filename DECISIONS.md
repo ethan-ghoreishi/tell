@@ -2,7 +2,103 @@
 
 Durable record of non-obvious choices. Newest first.
 
-## Tell 4.0: a language of moves, and Bring a choice (2026-10-21)
+## Tell 4.1: the moves in view, one fact at a time (2026-10-21)
+
+**The brief.** The owner's review of 4.0: it took time and reflection to understand; it is wordy;
+a link is missing and there is no "aha"; play names the shapes and moves only at the end, so Tell
+journals moves the player made unawares instead of bringing them out of autopilot; examples from
+play need remembering and limit the collection; could Bring a choice point to stories, or to
+strategies? Authorised: treat the model, UI and docs as hypotheses, redesign fundamentally if
+that's the answer, keep the fun, low effort, no inference, no disguised advice and honest limits,
+then commit and push.
+
+**Diagnosis: placement, not missing explanation.** In 4.0 the move and the shape were absent at
+the moment of choice. Options were story words; the shape came after the choice, as a definition
+list apart from the moves; the moves came as names with nothing attached. What each answer costs
+and risks in its story, written for every option and band, reached only the plain-text download.
+Contrast, which is what makes a shape matter, existed only across different stories, and 4.0
+itself had ruled out reading anything from those. Each section showed the same unit differently
+(an option, a pill, a list item, a drawer), so nothing travelled. And Bring a choice, for the
+commonest real shape (hard to undo, check first and only once done, the chance goes, hard to
+recover), opened six drawers on 14 of 15 moves, six lines each.
+
+**What changed.**
+1. *One visual unit for each idea, everywhere.* A move is a named pill; a step's shape is four
+   cells (Undo, Know when, If you wait, If it goes badly), with short answers. Each opens one card,
+   as an overlay, never a page: a story in progress keeps its answers in the page. The move card
+   gives what the move is, the answers it fits (the rule, as cells), when that is worth something
+   (the question's principle), its price, its limit, an everyday instance, where the player made
+   it, the kept choices that showed it, and the stories that offer it. The question card gives the
+   answers, each with an everyday moment and the steps of played stories that had it, and the
+   principle.
+2. *Play shows the language at the moment of choice.* The shape of the step a story turns on sits
+   under its setup. Every option, and every ask, shows its moves before it is chosen. A number's
+   moves change as it does: rows of old beans go from try it small to split it; the harvest says
+   what picking today would make. That one is a line under the forecast, not a label on the
+   button: "Pick today · Wait for it" read backwards.
+3. *Endings show each step's cost and risk in the story's terms*, under the shape. "The shape of
+   it" and "Moves here are about…" are gone; the label "The step: felling the oak" and the cells
+   carry them.
+4. *One-fact variants.* Three stories have a variant, offered on their ending as a question ("What
+   if the forecasts stopped after Monday?") with the changed cell marked and what it was. Once both
+   are played, the variant's ending and the Map set the two plays side by side under the question
+   they differ on, with its principle, never explained. Each flips a different question:
+   - *The harvest, without forecasts* (when you'll know: news comes → once done). Wait for it gives
+     way to commit, split it and set a tripwire (pick the day the barometer falls).
+   - *Your uncle's boat, with no deadline* (waiting: the chance goes → little changes). Keeping
+     her for the summer is the same option, now try it small instead of hold it open.
+   - *The last of the light, with a second camera* (how bad: hard → something to get over). The
+     same options and moves; the spare's reason weakens.
+   Split it gains a second story and set a tripwire its first. Not built: an oak variant (in a
+   meadow, losing the oak itself is still the bad case, so no clean flip), a loaf variant (an undo
+   flip needed new options) and a beans variant (a freezer flips the same question as the boat and
+   shows less). This is the minimal pair that 4.0 said alone could carry contrast honestly.
+5. *The Map is the language, with the player's plays on it.* Every move by strategy, each opening
+   its card; under each, the stories where the player made it, or an everyday instance. Both read
+   the same (no dimming, no count, no "not yet"), so the list can't work as a completion meter.
+   Then each story played both ways, then everything played. "The shapes you've played", the
+   cross-story contrasts, is gone: those stories differ in many ways, and pairs now carry contrast.
+6. *Bring a choice is a tab*, and holds the kept choices. The shape fills in, cell by cell, as the
+   four questions are answered; on the results a cell changes its answer. Results are one row per
+   move (its name, the question it puts or what it is, and why it fits) under its strategy, in the
+   fixed order. Price, limit and examples are in the card, the player's own example included.
+7. *Anchors are everyday first.* Every answer has an everyday moment ("Like posting a letter");
+   the steps of stories the player has played follow it ("as in felling the oak"), read from the
+   plays' snapshots. A story is never an anchor before it has been played, so a larger collection
+   costs nobody anything to remember.
+
+**Bring a choice points to stories per move, not per choice.** A whole-choice pointer ("shaped
+like the old oak") was checked against the twenty in-scope reference choices before building. Most
+share three of four answers with five or six of the nine stories, and two stories matched twelve
+of the twenty: it would send nearly everyone to the same few stories and suggest an analogy beyond
+shape. Not built, and the FUTURE entry is closed. Instead each move's card lists the stories that
+offer it, in collection order, where it can be tried at no cost.
+
+**Kept.** The language (LANGUAGE 1: no meaning changed; answers gain a few-word form for the cells
+and everyday anchors, and set a tripwire's instance reads after "Like"), schema 6, and every rule:
+the answers alone decide which moves show, fixed order, settling it always there, New only on
+endings, nothing counted, nothing said about the player.
+
+**Data.** A variant's play is an ordinary play whose snapshot names the story it varies (`of`)
+and how (`whatIf`); validation wants both or neither. Earlier 4.0 records load unchanged, and an
+earlier 4.0 build reads a 4.1 record (the new fields are ignored there).
+
+**Tests.** Variants: each keeps its story's place and step, differs on exactly one question, asks
+"What if …?", comes after its story, and has a shape no other story has; between them they flip
+more than one question. Base stories keep the old rules. No answer's anchor names a story. The
+journeys play the new flow in both engines at both sizes, open cards (checked for wording, overflow
+and 44px targets like every screen), play the harvest both ways, change an answer from its cell,
+and mark a move as tried from its card. The review file prints each variant beside its story; every
+path was read.
+
+**Untested, for the pilot.** Whether moves shown on options make play feel like a test, or lead
+players to pick by move name rather than by the story; whether variants give the intended "aha" or
+feel like homework; whether the cards are found; whether four tabs crowd a small phone. Nobody but
+the builder has used 4.1.
+
+---
+
+## Tell 4.0: a language of moves, and Bring a choice (2026-10-21; revised by 4.1)
 
 **What changed, and why.** The owner's brief (2026-10-21): take `PROPOSAL-4.0.md` (revision 3;
 kept in history at `902278b`, and removed from the tree with this release, as its header asks

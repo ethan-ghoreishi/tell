@@ -15,10 +15,12 @@ people make in them, and, when a real choice comes, show the moves that fit its 
 
 Small, intriguing worlds to play: an old oak over a school path, a vineyard waiting on a storm,
 a film set losing its light. Each is a small choice somewhere unfamiliar, two or three minutes
-long, worthwhile by itself. Every answer in them is a move in a small language for choices
-under uncertainty, and each ending names the moves the path made. The Map keeps them. When a
-real choice comes, Bring a choice asks four questions about it, in taps, and shows the moves
-that fit, by rule.
+long, worthwhile by itself. Every option in them is a move in a small language for choices under
+uncertainty, shown as it's chosen, under the shape of the step the story turns on; each ending
+says what the moves cost and risked there. Some stories can be played again with one fact
+changed, and the two plays sit side by side. The Map is the language with the player's plays on
+it. When a real choice comes, Bring a choice asks four questions about it, in taps, and shows the
+moves that fit, by rule.
 
 Play must be worth playing without the Map. Bring a choice must work without play. Both stay
 light, tap-based and calm; nothing asks the player to write, reflect, approve or file. A label
@@ -61,29 +63,35 @@ move starts as a proposal, and counts as established only once real choices show
 
 ## What play is for
 
-Play is worth playing for itself. Beyond that it gives three things a plain list of moves can't:
+Play is worth playing for itself. Beyond that it gives four things a plain list of moves can't:
 
 - **Felt meaning.** A move met in a world comes with what it cost there and where it led: the
   shelf, the fence, the second take.
-- **Shapes to recognise.** Each story turns on one step, and its ending shows that step's shape,
-  so the four questions arrive already answered by somewhere the player has been.
+- **Shapes to recognise.** Each story turns on one step and shows that step's shape from the
+  start, so the four questions arrive already answered by somewhere the player has been, and the
+  moves are seen as they're chosen, not named afterwards.
+- **Contrast.** A variant changes one fact of a story, so one answer of its shape changes. Played
+  both ways, the two plays sit side by side under that question, with what makes its moves worth
+  something. It is the one honest way to feel why a shape matters: everything else is the same.
 - **Contextual evidence.** Every play keeps the whole situation: its shape, every option, what
   was found out first and what was chosen. The record therefore shows the player's moves *in
-  situations of known shape*. Tell keeps it, and lists it (the moves made, and the stories side
-  by side where their shapes differ), but never counts it, sums it up, turns it into a sentence
-  about the player, or uses it to choose what Bring a choice shows. Two stories differ in many
-  ways at once, so a change between them is the player's to read, never Tell's to explain.
+  situations of known shape*. Tell keeps it, and lists it (the moves made, and a story beside
+  its variant), but never counts it, sums it up, turns it into a sentence about the player, or
+  uses it to choose what Bring a choice shows. Even a variant's pair is the player's to read,
+  never Tell's to explain.
 
 Whether play makes real choices easier to read is a claim for the pilot, not something the
 product asserts.
 
 ## Bring a choice
 
-Four questions about a real step, answered by recognition ("can't be undone, like felling the
-oak"), each with Not sure and None of these. Tell then shows the moves that fit, one line per
-strategy in a fixed order, each move with the question it puts, why it fits, what it costs,
-where it breaks and an example (the player's own, from play, when they have one). The answers
-alone decide which moves show; settling it is always there; nothing is ranked or recommended.
+Four questions about a real step, answered by recognition: each answer with an everyday moment
+("can't be undone, like posting a letter") and the step of any story the player has played that
+had it ("as in felling the oak"), each with Not sure and None of these. Tell then shows the moves
+that fit, by strategy in a fixed order, one row each: the question it puts and why it fits. Its
+card holds what it costs, where it breaks, an example (the player's own, from play, when they
+have one) and the stories where it can be tried. The answers alone decide which moves show;
+settling it is always there; nothing is ranked or recommended.
 The scope is said before the questions and after the moves, and again before the moves when a
 question doesn't describe the choice. A choice is kept only if the player
 keeps it, with the moves exactly as shown, and whatever the player marks as being tried.
@@ -117,8 +125,9 @@ keeps it, with the moves exactly as shown, and whatever the player marks as bein
 
 ## Scope
 
-**Now (4.0):** a phone PWA with six stories, a language of four questions and fifteen moves,
-endings that name the moves, a Map of the moves made and the shapes lived, Bring a choice with
-kept choices, and local storage with backup, restore and plain text.
+**Now (4.1):** a phone PWA with six stories and three one-fact variants, a language of four
+questions and fifteen moves shown in play as they're chosen, a card for each move and question,
+a Map of the language with the player's plays on it, Bring a choice with kept choices, and local
+storage with backup, restore and plain text.
 
-**Later, only if 4.0 earns it:** see `FUTURE.md`. What would show it has: `PILOT.md`.
+**Later, only if 4.1 earns it:** see `FUTURE.md`. What would show it has: `PILOT.md`.

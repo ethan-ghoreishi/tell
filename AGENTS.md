@@ -44,9 +44,12 @@ why goes in a dated `DECISIONS.md` entry; deferred ideas go in `FUTURE.md`.
   `PILOT.md` says how one becomes established.
 - Bump `LANGUAGE` when a meaning changes. Never reuse or remove a move or answer id without a
   mapping for the records that name it: plays and kept choices record the version they used.
+- Every answer has a few-word form for the shape's cells (`short`) and an everyday moment
+  (`like`) that names no story. The steps of stories the player has played follow it as anchors
+  (`playedWith`, from the plays' snapshots), never before they're played.
 - Wording rules (`tests/wording.ts`) cover every string: no psychology vocabulary, nothing about
   the player, no verdicts, no advice words, no currency symbols. The journeys apply them to every
-  screen as shown.
+  screen as shown, and to every open card.
 
 ## Stories (`SITUATIONS` in `src/domain/situations.ts`; `situations.test.ts`)
 
@@ -63,6 +66,12 @@ why goes in a dated `DECISIONS.md` entry; deferred ideas go in `FUTURE.md`.
   (not looking first, the seed left in a drawer) may name none. No answer is free.
 - No two stories share an arrangement of steps or a shape; every kind is used; between them the
   stories give every question at least two different answers to live.
+- A variant (`of`, `whatIf`) is a story with one fact changed: it keeps its story's place and step,
+  differs from it on exactly one question, asks "What if …?", comes after it, has a shape no other
+  story has, and is reached from its story's ending (and Home, once that story is played). A story
+  has at most one. Every rule for stories applies to it, except sharing its story's arrangement.
+  Its options must still all be reasonable: if the changed fact makes one obviously right, drop the
+  variant.
 - Every path reaches an ending written for it, and `others` shows more than one reasonable way
   through. Asking or looking never guarantees a reward. An ending names each step's moves and says
   which step they're about (`turnsOn`): settling moves mean nothing without it.
@@ -74,21 +83,39 @@ why goes in a dated `DECISIONS.md` entry; deferred ideas go in `FUTURE.md`.
   moves and answers no story shows yet, and what Bring a choice shows for the reference choices
   (`tests/fixtures/reference-choices.json`, one coder, not evidence).
 
+## One unit everywhere (`src/lens.tsx`; journeys)
+
+- A move always shows as its named pill, and a step's shape as four cells. A pill or a cell opens
+  one card, as an overlay, never a page: a story in progress holds its answers in the page. Inside
+  a story a card offers no links. The same card opens from a story, an ending, the Map and Bring a
+  choice.
+- In a story, the shape of the step it turns on is shown with the setup; every option and ask shows
+  its moves before it's chosen; a number's moves show as it changes. An ending shows each step's
+  moves with what it cost and risked in the story's terms.
+- The move card: what it is, the answers it fits, when that's worth something, price, limit, an
+  everyday instance, where the player made it, kept choices that showed it, stories that offer it,
+  and, opened from a kept choice, whether the player is trying it. A kept choice's card reads the
+  move in the words it was shown with.
+
 ## The Map and Bring a choice (`src/pages/MapPage.tsx`, `src/pages/Bring.tsx`; journeys)
 
-- The Map lists: kept choices; the moves the player has made, by strategy, each with every play
-  that made it; and, only for questions the played stories answered differently, those stories
-  side by side with their moves. Never counted, summarised or compared in words.
+- The Map lists: each story the player has played both ways (its latest play beside its variant's,
+  under the question they differ on); every move by strategy, the same for everyone, each with the
+  stories where the player made it or an everyday instance, both in the same form; everything
+  played. Never counted, summarised, compared in words, dimmed or marked as still to find.
 - "New" is a word on an ending, shown until that move has been shown as new (`seen`, stored with
   its first sighting). Everything on the Map is derived from snapshots, never stored.
-- Bring a choice is taps: an optional label, four questions, the moves. Nothing is stored
-  unless the player keeps it. Tell never reads the label or the note.
+- Bring a choice is a tab and holds the kept choices. It is taps: an optional label, four
+  questions with the shape filling in, the moves as one row each (name, the question it puts or
+  what it is, why it fits); a cell changes its answer. Nothing is stored unless the player keeps
+  it. Tell never reads the label or the note. It points to stories only through each move's card,
+  never from the choice as a whole.
 
 ## Records and data safety (`store.ts`, `validate.ts`; `store.test.ts`; journey "data that can't be used")
 
 - One validated JSON document in localStorage (schema 6): plays, kept choices, `seen` and an
-  archive. A play snapshots the story it showed, tags included, and records the language
-  version. A kept choice snapshots the answers and the moves it showed (names, reasons, prices,
+  archive. A play snapshots the story it showed, tags included (a variant's `of` and `whatIf`
+  too), and records the language version. A kept choice snapshots the answers and the moves it showed (names, reasons, prices,
   limits), what the player marks as being tried, and their note; the example under each move is
   drawn from the record when it's opened, so it can become the player's own. Lists are derived,
   never stored.

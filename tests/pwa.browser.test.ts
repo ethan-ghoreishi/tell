@@ -72,12 +72,11 @@ describe.each([
       }
 
       // Bring a choice and keep it (offline, where the engine allows).
-      await page.getByRole('link', { name: 'Map', exact: true }).click();
-      await page.getByRole('link', { name: 'Bring a choice' }).click();
+      await page.getByRole('link', { name: 'Bring a choice', exact: true }).click();
       await page.getByRole('button', { name: 'Start' }).click();
       await page.getByRole('button', { name: /^Yes, at a cost/ }).click();
       await page.getByRole('button', { name: /^Only once it’s done/ }).click();
-      await page.getByRole('button', { name: 'Next' }).click();
+      await page.getByRole('button', { name: 'Next', exact: true }).click();
       await page.getByRole('button', { name: /^Not much/ }).click();
       await page.getByRole('button', { name: /^Something to get over/ }).click();
       await page.getByRole('button', { name: 'Keep this choice' }).click();

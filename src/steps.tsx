@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { offered, spent } from './domain/engine';
+import { bandOf, offered, spent } from './domain/engine';
 import { plural } from './domain/text';
-import type { Step, StepAnswer, Unit } from './domain/types';
+import type { Band, Step, StepAnswer, Unit } from './domain/types';
+import { Moves } from './lens';
 
 // The controls a situation is played with: pick one, find things out from a
 // budget, share something scarce, act or wait day by day. Each reports its
-// answer; the engine checks and records the play.
+// answer; the engine checks and records the play. Every option shows the
+// moves it makes before it's chosen, and a number's moves change as it does.
 
 /** When a new screen appears inside a page: back to the top, and focus its heading or question. */
 export function useFocus<T extends HTMLElement>(dep: unknown) {
@@ -28,6 +30,9 @@ export const Section = ({ title, children, id }: { title: string; children: Reac
 );
 
 const amount = (n: number, unit: Unit) => plural(n, unit[0], unit[1]);
+
+/** The moves a number makes. */
+const movesAt = (bands: Band[], n: number) => bandOf(bands, n).moves;
 
 /** `onMove` says a step has moved on inside itself (the next day), so the story can fold away. */
 export function StepPlay({ step, before, onAnswer, onMove }: { step: Step; before?: string; onAnswer: (a: StepAnswer) => void; onMove: () => void }) {
@@ -61,6 +66,7 @@ function Choose({ step, before, onAnswer }: { step: Extract<Step, { kind: 'choos
             <button key={o.id} className={`option${o.id === step.ask?.adds?.id ? ' new' : ''}`} onClick={() => onAnswer({ kind: 'choose', pick: o.id, asked })}>
               <span className="option-title">{o.text}</span>
               {o.detail && <span className="option-line small dim">{o.detail}</span>}
+              <Moves ids={o.moves} />
             </button>
           ))}
         </div>
@@ -70,8 +76,9 @@ function Choose({ step, before, onAnswer }: { step: Extract<Step, { kind: 'choos
               {step.ask.answer}
             </p>
           ) : (
-            <button className="btn btn-ghost btn-block" onClick={() => setAsked(true)}>
-              {step.ask.label}
+            <button className="option ask" onClick={() => setAsked(true)}>
+              <span className="option-title">{step.ask.label}</span>
+              <Moves ids={step.ask.moves} />
             </button>
           ))}
       </div>
@@ -106,8 +113,9 @@ function Uncover({ step, onAnswer }: { step: Extract<Step, { kind: 'uncover' }>;
           ),
         )}
       </div>
-      <button className="btn btn-block" onClick={() => onAnswer({ kind: 'uncover', opened })}>
-        {opened.length ? 'Decide' : 'Decide without finding out'}
+      <button className="option" onClick={() => onAnswer({ kind: 'uncover', opened })}>
+        <span className="option-title">{opened.length ? 'Decide' : 'Decide without finding out'}</span>
+        <Moves ids={movesAt(step.bands, spent(step, opened))} />
       </button>
     </div>
   );
@@ -130,6 +138,9 @@ function Allocate({ step, onAnswer }: { step: Extract<Step, { kind: 'allocate' }
           <span key={n} className={`plot-cell${k === 0 ? ' first' : ''}`} />
         ))}
       </div>
+      <p className="live small dim" aria-live="polite">
+        {movesAt(step.bands, amounts[step.measure]).length ? <Moves ids={movesAt(step.bands, amounts[step.measure])} /> : 'No move: holding off.'}
+      </p>
       <div className="options">
         {step.items.map((i) => (
           <div key={i.id} className="option alloc">
@@ -181,9 +192,13 @@ function Days({ step, onAnswer, onMove }: { step: Extract<Step, { kind: 'days' }
         </p>
         <p>{step.days[day].text}</p>
       </div>
+      {/* Acting today completes a move made over the days: said as a consequence, not a label on the button. */}
+      <p className="live small dim" aria-live="polite">
+        If you {step.act.toLowerCase()}:&nbsp;{movesAt(step.bands, day).length ? <Moves ids={movesAt(step.bands, day)} /> : 'no move.'}
+      </p>
       <div className="options">
         <button className="option" onClick={() => onAnswer({ kind: 'days', day })}>
-          {step.act}
+          <span className="option-title">{step.act}</span>
         </button>
         <button
           className="option"
@@ -193,7 +208,8 @@ function Days({ step, onAnswer, onMove }: { step: Extract<Step, { kind: 'days' }
             onMove();
           }}
         >
-          {last ? step.last : step.wait}
+          <span className="option-title">{last ? step.last : step.wait}</span>
+          {last && <Moves ids={movesAt(step.bands, step.days.length)} />}
         </button>
       </div>
     </div>

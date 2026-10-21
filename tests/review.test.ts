@@ -1,8 +1,8 @@
 import { writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { answerOf, emptyState, keyOf, keysOf, playView, recordPlay, spent, storyMoves } from '../src/domain/engine';
-import { LANGUAGE_MOVES, OUTSIDE, QUESTIONS, SCOPE, STRATEGIES, answersText, outside, results, type Shape } from '../src/domain/language';
-import { SITUATIONS } from '../src/domain/situations';
+import { LANGUAGE_MOVES, OUTSIDE, QUESTIONS, SCOPE, STRATEGIES, answersText, differs, outside, results, type Shape } from '../src/domain/language';
+import { SITUATIONS, situation } from '../src/domain/situations';
 import type { Answers, Situation, Step, StepAnswer } from '../src/domain/types';
 import reference from './fixtures/reference-choices.json';
 import { allShapes } from './sample';
@@ -68,7 +68,7 @@ describe('the review', () => {
     for (const s of SITUATIONS) {
       const all = paths(s);
       for (const step of s.steps) expect(new Set(all.map((a) => keyOf(step, a[step.id]))), `${s.id}.${step.id}`).toEqual(new Set(keysOf(step)));
-      printed.push(`==== ${s.title} (${s.place})`, s.setup, `  Unknown: ${s.uncertain}`, `  Turns on ${s.turnsOn}. ${shapeLine(s.shape)}`);
+      printed.push(`==== ${s.title} (${s.place})`, ...(s.whatIf ? [`  ${s.whatIf}`] : []), s.setup, `  Unknown: ${s.uncertain}`, `  Turns on ${s.turnsOn}. ${shapeLine(s.shape)}`);
       const seen = new Set<string>();
       for (const a of all) {
         const v = playView(recordPlay(emptyState(), SITUATIONS, s.id, a, on).plays[0]);
@@ -83,6 +83,22 @@ describe('the review', () => {
       }
       printed.push(`  Others: ${s.ending.others}`, '');
     }
+  });
+
+  it('prints each variant beside its story: the one fact, the answer it changes, and the moves each offers', () => {
+    printed.push('==== Variants: one fact changed');
+    for (const v of SITUATIONS.filter((x) => x.of)) {
+      const base = situation(v.of!)!;
+      const q = differs(base.shape, v.shape);
+      expect(q, v.id).toHaveLength(1);
+      const ask = QUESTIONS.find((x) => x.id === q[0])!;
+      printed.push(
+        `  ${base.title} → ${v.title}: ${v.whatIf}`,
+        `    ${ask.ask} ${answersText(base.shape, q[0])} → ${answersText(v.shape, q[0])}`,
+        `    Moves offered: ${storyMoves(base).map(name).join(', ')} → ${storyMoves(v).map(name).join(', ')}`,
+      );
+    }
+    printed.push('');
   });
 
   it('prints which moves and answers the stories show, so gaps are visible', () => {

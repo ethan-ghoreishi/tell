@@ -10,6 +10,10 @@ import type { Situation } from './types';
 //
 // Append; never reuse an id for different content, and bump `v` when a
 // story's meaning or tags change. Plays keep a copy of what they showed.
+//
+// A variant (`of`) is its base story with one fact changed: the same step,
+// a shape that differs on one question, reached from the base's ending.
+// Played after the base, the two sit side by side, and nothing explains them.
 
 export const SITUATIONS: Situation[] = [
   {
@@ -392,6 +396,205 @@ export const SITUATIONS: Situation[] = [
       invented: 'The packet, its age and “one seed in three” are invented.',
     },
   },
+  {
+    id: 'harvest-blind',
+    v: 1,
+    of: 'harvest',
+    whatIf: 'What if the forecasts stopped after Monday?',
+    title: 'The harvest, without forecasts',
+    place: 'A small vineyard',
+    hook: 'The same grapes, the same storm, and no more news.',
+    setup:
+      'Your grapes are nearly ripe, and each extra day on the vine makes the wine better. Monday’s forecast gives a three-in-ten chance of a storm this week, most likely Friday: if it hits before you pick, the rain will split half the grapes. Then the forecasts stop. The station is down until next week. Picking everything takes your crew one full day.',
+    uncertain: 'Whether the storm comes, and when, with no more news.',
+    turnsOn: 'picking the grapes',
+    shape: { undo: 'no', know: ['after'], wait: 'better', bad: 'over' },
+    steps: [
+      {
+        kind: 'choose',
+        id: 'pick',
+        prompt: 'With no more forecasts, how do you pick?',
+        options: [
+          {
+            id: 'now',
+            text: 'Pick everything today',
+            detail: 'A good, light wine, whatever the week brings.',
+            moves: ['commit'], costs: 'four more days of sweetness', risks: 'nothing from the storm',
+          },
+          {
+            id: 'half',
+            text: 'Pick half today, the rest on Thursday',
+            detail: 'Half a light wine now, half a rich one if the storm keeps to Friday.',
+            moves: ['split'], costs: 'half of each wine', risks: 'the second half, if the storm comes early',
+          },
+          {
+            id: 'glass',
+            text: 'Wait, and pick the day the barometer falls',
+            detail: 'It has fallen before most storms here. Not every one.',
+            moves: ['tripwire'], costs: 'days of watching the barometer', risks: 'a storm that comes without warning',
+          },
+        ],
+      },
+    ],
+    ending: {
+      closing: {
+        step: 'pick',
+        cases: {
+          now: 'Your crew picks on Monday in sunshine. Every grape is in, whatever the week brings: a good, light wine.',
+          half: 'Half the grapes come in on Monday, light and clean. The rest hang until Thursday: if the storm keeps to Friday, a rich wine to blend with the light one. If it comes early, rain splits the second half.',
+          glass: 'You tap the barometer every morning. If it falls first, your crew picks at once: the longer it held, the sweeter the wine. If the storm comes without warning, it splits half the crop.',
+        },
+      },
+      others: 'Some pick at once: with no news coming, waiting is a bet. Some split the crop between two days. Some decide now what will make them pick, and watch for it.',
+    },
+    real: {
+      facts: [
+        {
+          fact: 'Heavy rain close to harvest can split a large share of ripe grapes.',
+          sources: [{ name: 'University of Wisconsin Fruit Program, “Berry splitting in grapes, should you harvest?” (2020)', url: 'https://fruit.wisc.edu/2020/09/17/harvesting-decisions-after-heavy-rains-and-berry-splitting/' }],
+        },
+      ],
+      invented: 'The vineyard, the forecasts, the broken station, the barometer’s record and “half the grapes” are invented.',
+    },
+  },
+  {
+    id: 'boat-spring',
+    v: 1,
+    of: 'boat',
+    whatIf: 'What if she would sell just as well next spring?',
+    title: 'Your uncle’s boat, with no deadline',
+    place: 'A harbour',
+    hook: 'The same boat, and a buyer whenever you want one.',
+    setup:
+      'Your uncle has left you his wooden sailing boat. You’ve never sailed. A broker says boats like her sell every spring, for about what she’d fetch today. Keeping her means a mooring fee every month and weekends of sanding and varnish. Sailing lessons start at the harbour next week: by autumn, you’d know whether you like it.',
+    uncertain: 'Whether you’ll like sailing.',
+    turnsOn: 'selling the boat',
+    shape: { undo: 'no', know: ['after'], wait: 'nothing', bad: 'over' },
+    steps: [
+      {
+        kind: 'choose',
+        id: 'keep',
+        prompt: 'What do you do?',
+        options: [
+          {
+            id: 'sell',
+            text: 'Sell her now',
+            detail: 'A fair price now. You’d learn in the club’s dinghies.',
+            moves: ['commit'], costs: 'your uncle’s boat', risks: 'loving sailing, in someone else’s boat',
+          },
+          {
+            id: 'summer',
+            text: 'Keep her for the summer, then decide',
+            detail: 'Mooring and upkeep until autumn. She’ll sell as well in spring.',
+            moves: ['small'], costs: 'a summer of fees and sanding', risks: 'a summer that doesn’t settle it',
+          },
+          {
+            id: 'always',
+            text: 'Keep her, whatever happens',
+            detail: 'She stays in the family, and so do the fees.',
+            moves: ['rule-out'], costs: 'fees for as long as you keep her', risks: 'a boat that never leaves her mooring',
+          },
+        ],
+        ask: {
+          label: 'Ask at the sailing club first',
+          did: 'Asked at the sailing club',
+          answer: 'The club would take her for the season and teach beginners on her. No fees for you. She’d be theirs until October, so no sale before then, and beginners are hard on boats.',
+          moves: ['another'],
+          adds: {
+            id: 'club',
+            text: 'Lend her to the club for the season',
+            detail: 'No fees, no sale until October, and beginners at the helm.',
+            moves: ['hand-over'], costs: 'a season of wear on her', risks: 'a buyer put off by the scrapes',
+          },
+        },
+      },
+    ],
+    ending: {
+      closing: {
+        step: 'keep',
+        cases: {
+          sell: 'The broker finds a buyer in a fortnight, who promises a photo from the water. Your lessons start in a club dinghy. If you love it, there will be other boats, though not this one.',
+          summer: 'You pay the mooring and spend Saturdays sanding. By autumn you’ll know about sailing. If it isn’t for you, she goes to the broker in spring.',
+          always: 'You paint her name fresh on the stern. Whether you’ll sail her, the summer will tell. She’s yours either way.',
+          club: 'The club takes her for the season, and beginners learn on her, you among them. By October you’ll know about sailing, and she’ll have the scrapes to show for it.',
+        },
+      },
+      others: 'Some sell now: the price is fair, and there are other boats to learn in. Some keep her for a summer, since the buyers will still be there. Some keep her whatever happens.',
+    },
+  },
+  {
+    id: 'take-side',
+    v: 1,
+    of: 'take',
+    whatIf: 'What if a second camera had filmed the scene from the side?',
+    title: 'The last of the light, with a second camera',
+    place: 'A film set',
+    hook: 'The same take, and a second angle on it.',
+    setup:
+      'You’re directing a film, shot on 16mm. On the last evening at the lighthouse, take four of the farewell felt right: she held the pause before her last line. A second camera filmed it from the side, so a fault in one angle could be covered by the other. There’s light for one more set-up. Film can’t be seen until a lab develops it: Thursday, after the crew has left.',
+    uncertain: 'Whether take four is as good on film as it felt on set.',
+    turnsOn: 'spending the last light on the wide shot',
+    shape: { undo: 'no', know: ['check', 'after'], wait: 'closes', bad: 'over' },
+    steps: [
+      {
+        kind: 'choose',
+        id: 'light',
+        prompt: 'What do you use the last light for?',
+        options: [
+          {
+            id: 'again',
+            text: 'Another take of the scene',
+            detail: 'A second chance at the front angle. The film ends without its wide shot.',
+            moves: ['spare'], costs: 'the closing wide shot', risks: 'a second take with faults of its own',
+          },
+          {
+            id: 'wide',
+            text: 'The wide shot of the lighthouse',
+            detail: 'The ending you planned. If take four has a fault, the side angle covers it.',
+            moves: ['commit'], costs: 'nothing you planned', risks: 'a scene seen only from the side',
+          },
+        ],
+        ask: {
+          label: 'Ask the camera operator about take four',
+          did: 'Asked the camera operator',
+          answer: 'She watched it through the lens. “The frame was right, and it looked sharp to me. On film, you only know on Thursday.”',
+          moves: ['look'],
+        },
+      },
+    ],
+    ending: {
+      closing: {
+        step: 'light',
+        cases: {
+          again: 'You shoot take five as the light goes, and she rushes the pause a little. The reels leave on the morning boat. On Thursday the lab will show which take holds her last line, and from which side. The film will end on her face, not the lighthouse.',
+          wide: 'The wide shot catches the last light on the lighthouse, and the crew packs up in the dark. The reels leave on the morning boat. On Thursday the lab will show whether take four holds, from the front or only from the side.',
+        },
+      },
+      others: 'Some shoot the scene again: the front angle is the one they want. Some take the wide shot: the side angle is cover enough, and the ending matters too.',
+    },
+    real: {
+      facts: [
+        {
+          fact: 'Film has to be developed before anyone can see what it caught. In the film era, each day’s footage went to a lab overnight and was watched later as “dailies”.',
+          sources: [
+            { name: 'Wikipedia, “Dailies”', url: 'https://en.wikipedia.org/wiki/Dailies' },
+            { name: 'Roland Denning, “The golden age of film laboratories”, RedShark News (2023)', url: 'https://www.redsharknews.com/the-golden-age-of-film-laboratories' },
+          ],
+        },
+        {
+          fact: 'On a film camera only the operator looks through the lens; the focus puller works from marks and judgement, and a soft shot can’t be made sharp afterwards.',
+          sources: [{ name: 'Wikipedia, “Focus puller”', url: 'https://en.wikipedia.org/wiki/Focus_puller' }],
+        },
+      ],
+      invented: 'The film, the island, the takes, the second camera and the lab’s Thursday are invented. Digital footage can be checked at once; this story is shot on film.',
+    },
+  },
 ];
 
 export const situation = (id: string) => SITUATIONS.find((s) => s.id === id);
+
+/** The collection: every story that isn't a variant of another. */
+export const STORIES = SITUATIONS.filter((s) => !s.of);
+
+/** The variant of a story, if it has one. */
+export const variantOf = (id: string) => SITUATIONS.find((s) => s.of === id);

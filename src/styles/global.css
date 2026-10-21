@@ -101,6 +101,11 @@ button {
   outline-offset: 2px;
 }
 
+/* Headings take focus so a new screen or card is announced; they aren't controls, so no ring. */
+[tabindex='-1']:focus {
+  outline: none;
+}
+
 /* ---- Shell: header, scrolling main, bottom tabs ------------------------ */
 
 .app {
@@ -161,7 +166,7 @@ button {
   order: 3;
   flex: none;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   border-top: 1px solid var(--border);
   background: var(--bg);
   padding-bottom: env(safe-area-inset-bottom);
@@ -748,4 +753,177 @@ details > summary.stack-tight {
 
 .results li + li {
   border-top: 1px dashed var(--border);
+}
+
+/* ---- The shared pieces: moves, shapes, rows and the card -------------- */
+
+/* An option's moves sit under its words. */
+.option .moves {
+  margin-top: 8px;
+}
+
+/* Asking is a choice too, and a move of its own. */
+.option.ask {
+  border-style: dashed;
+}
+
+/* A move that opens its card: the whole 44px is the target, the pill is what shows. */
+.move-btn {
+  display: inline-flex;
+  align-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.move-btn:active .move-name {
+  background: var(--accent-soft);
+}
+
+/* A number's moves, as it changes. */
+.live {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+
+/* A step's shape: the four questions as cells. */
+.cells-q {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.cell-q {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+
+.cell-label {
+  color: var(--text-faint);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.cell-value {
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.cell-was {
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+/* The one fact a variant changed, and the question being answered. */
+.cell-q.changed {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.cell-q.current {
+  border-color: var(--accent);
+  border-width: 2px;
+}
+
+/* A row that opens a card: a move on the map, or a move that fits a choice. */
+.row {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 28px 10px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  position: relative;
+}
+
+.row::after {
+  content: '›';
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent);
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* A story and its variant, side by side. */
+.pair-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pair-head .cell-value {
+  flex: none;
+  text-align: right;
+}
+
+/* A variant offered under a played story. */
+.what-if {
+  justify-content: flex-start;
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--accent);
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+/* The card: a sheet from the bottom, over whatever was tapped. */
+.sheet {
+  width: 100%;
+  max-width: var(--column);
+  max-height: 88dvh;
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sheet::backdrop {
+  background: rgba(20, 16, 12, 0.45);
+}
+
+.sheet-inner {
+  padding: 22px var(--gutter) calc(env(safe-area-inset-bottom) + 20px);
+  overflow-wrap: break-word;
+}
+
+.sheet .option {
+  min-height: 0;
+}
+
+.row .option-title {
+  font-weight: 600;
 }

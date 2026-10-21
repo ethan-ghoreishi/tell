@@ -1,7 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { localDay, recordText } from '../domain/engine';
 import { LANGUAGE_MOVES, SCOPE, STRATEGIES } from '../domain/language';
-import { SITUATIONS } from '../domain/situations';
+import { SITUATIONS, STORIES } from '../domain/situations';
 import { list } from '../domain/text';
 import { earlierName, type TellState } from '../domain/types';
 import { Section } from '../steps';
@@ -17,18 +17,18 @@ export default function About({ state }: { state: TellState }) {
       <header className="stack">
         <h1 className="title">How Tell works</h1>
         <p className="lede">
-          Short stories to play, each a small choice somewhere unfamiliar. Every answer in them is a move in a small language for choices under uncertainty. Your
-          map keeps the moves you make, and Bring a choice shows the moves that fit a real one.
+          Short stories to play, each a small choice somewhere unfamiliar. Every option in them is a move in a small language for choices under uncertainty, and the
+          same moves come back when you bring a real choice.
         </p>
       </header>
 
       <Section title="Play" id="play">
         <ul className="rules">
           <li>
-            The collection has {plural(SITUATIONS.length, 'invented story', 'invented stories')}, two or three minutes each. Each ends when its story does. Play them in any order, as often as you
-            like; nothing unlocks, expires or arrives by itself.
+            The collection has {plural(STORIES.length, 'invented story', 'invented stories')}, two or three minutes each, and {plural(SITUATIONS.length - STORIES.length, 'variant')}: a story
+            with one fact changed, played from its ending. Play them in any order, as often as you like; nothing unlocks, expires or arrives by itself.
           </li>
-          <li>There are no right answers and nothing is scored. Every ending shows other reasonable ways through, and names the moves.</li>
+          <li>There are no right answers and nothing is scored. Every option shows the moves it makes, and every ending shows other reasonable ways through.</li>
           <li>
             Some stories rest on real facts, like how film is developed or how long seed keeps. Each says what’s real, with sources, and what’s invented. A few
             taps don’t make anyone an expert.
@@ -38,8 +38,9 @@ export default function About({ state }: { state: TellState }) {
 
       <Section title="The language" id="language">
         <p className="small">
-          Four questions read the shape of a step: can it be undone, when will you know whether it was right, what waiting does, and how bad it could get. For
-          what makes it hard there are {LANGUAGE_MOVES.length} moves, grouped by the difficulty each meets: {list(STRATEGIES.map((s) => s.name.toLowerCase()))}.
+          Four questions read the shape of a step: can it be undone, when will you know whether it was right, what waiting does, and how bad it could get. Each
+          story shows the shape of the step it turns on. For what makes a step hard there are {LANGUAGE_MOVES.length} moves, grouped by the difficulty each meets:{' '}
+          {list(STRATEGIES.map((s) => s.name.toLowerCase()))}. Which of them fit depends on the shape.
         </p>
         <p className="small dim">
           Finding out first is worth something only if it could change the step and arrives before it must be taken. A way back, or waiting, is worth its price
@@ -61,7 +62,7 @@ export default function About({ state }: { state: TellState }) {
 
       <Section title="Your map" id="map">
         <ul className="rules">
-          <li>It lists the moves you’ve made, and the shapes of the steps you made them in. A move is marked New the first time a story shows it to you.</li>
+          <li>It shows every move, the same for everyone, and under each the stories where you made it. Where you’ve played a story both ways, the two plays sit side by side.</li>
           <li>It shows what you chose, never why. It never counts your moves, sums them up or says what they mean about you.</li>
         </ul>
       </Section>

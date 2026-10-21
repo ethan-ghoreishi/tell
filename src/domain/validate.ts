@@ -34,6 +34,7 @@ export function situationProblem(x: unknown): string | null {
   if (!isObj(x)) return 'is not a story';
   for (const k of ['id', 'title', 'place', 'hook', 'setup', 'uncertain', 'turnsOn']) if (!text(x[k])) return `has no ${k}`;
   if (!isInt(x.v) || x.v < 1) return 'has no version';
+  if ((x.of === undefined) !== (x.whatIf === undefined) || (x.of !== undefined && !(text(x.of) && text(x.whatIf)))) return 'is a malformed variant';
   const shape = shapeProblem(x.shape, false);
   if (shape) return `has a shape that ${shape}`;
   const real = x.real;

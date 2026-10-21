@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SAMPLE, everything } from '../../tests/sample';
-import { emptyState, examples, fresh, keyed, lived, localDay, markSeen, playView, recordChoice, recordPlay, recordText, removeChoice, setNote, setTrying } from './engine';
+import { emptyState, examples, fresh, keyed, localDay, markSeen, pairs, playView, playedWith, recordChoice, recordPlay, recordText, removeChoice, setNote, setTrying } from './engine';
 import { LANGUAGE, type Shape } from './language';
 import { SITUATIONS } from './situations';
 import type { Answers, Situation, TellState } from './types';
@@ -48,22 +48,26 @@ describe('a play', () => {
     const view = (id: string) => playView(s.plays.find((p) => p.situation === id)!);
     expect(view('oak')).toMatchObject({
       did: [
-        { line: 'Spent 3 of 4 weeks finding out: “Have the trunk scanned”.', moves: ['look'] },
-        { line: 'Chose “Take a third of the weight off the crown”.', moves: ['guard'] },
+        { line: 'Spent 3 of 4 weeks finding out: “Have the trunk scanned”.', moves: ['look'], costs: 'weeks closer to the storms', risks: 'facts that still don’t settle it' },
+        { line: 'Chose “Take a third of the weight off the crown”.', moves: ['guard'], costs: 'a third of the crown, for good', risks: 'rot in the cuts, or a fall anyway' },
       ],
       closing: expect.stringMatching(/^The tree surgeon spends two days in the crown/),
       unmade: ['hold', 'commit'],
     });
-    expect(view('harvest').did).toEqual([{ line: '“Pick today” on Wednesday.', moves: ['wait-for-it'] }]);
+    expect(view('harvest').did).toMatchObject([{ line: '“Pick today” on Wednesday.', moves: ['wait-for-it'] }]);
     // Asking is a move of its own, made before the option it brought.
-    expect(view('boat').did).toEqual([{ line: 'Asked at the sailing club, then chose “Lend her to the club for the season”.', moves: ['another', 'hand-over'] }]);
-    expect(view('beans').did).toEqual([{ line: 'The old beans: 2 rows. Your usual vegetables: 8 rows.', moves: ['small', 'by-using'] }]);
-    expect(view('take').did).toEqual([{ line: 'Asked the camera operator, then chose “Another take of the scene”.', moves: ['look', 'spare'] }]);
+    expect(view('boat').did).toMatchObject([{ line: 'Asked at the sailing club, then chose “Lend her to the club for the season”.', moves: ['another', 'hand-over'] }]);
+    expect(view('beans').did).toMatchObject([{ line: 'The old beans: 2 rows. Your usual vegetables: 8 rows.', moves: ['small', 'by-using'] }]);
+    expect(view('take').did).toMatchObject([{ line: 'Asked the camera operator, then chose “Another take of the scene”.', moves: ['look', 'spare'] }]);
+    // The same option, under a different shape, is a different move: keeping the boat for the summer.
+    expect(view('boat-spring').did).toMatchObject([{ line: 'Chose “Keep her for the summer, then decide”.', moves: ['small'] }]);
     // The film's endings stop before the lab, so neither take is shown right in hindsight.
     expect(view('take').closing).toMatch(/On Thursday the lab will show/);
-    expect(playView(play(emptyState(), 'harvest', { pick: { kind: 'days', day: 4 } }).plays[0]).did).toEqual([{ line: '“Wait for the storm to pass” on Thursday.', moves: ['wait-for-it'] }]);
-    // Holding off with nothing done makes no move, and says so by naming none.
-    expect(playView(play(emptyState(), 'oak', oak('fence')).plays[0]).did[0]).toEqual({ line: 'Decided without spending time finding out.', moves: [] });
+    expect(playView(play(emptyState(), 'harvest', { pick: { kind: 'days', day: 4 } }).plays[0]).did).toEqual([
+      { line: '“Wait for the storm to pass” on Thursday.', moves: ['wait-for-it'], costs: 'nothing yet', risks: 'half the crop' },
+    ]);
+    // Holding off with nothing done makes no move, and says so by naming none; it still costs and risks something.
+    expect(playView(play(emptyState(), 'oak', oak('fence')).plays[0]).did[0]).toEqual({ line: 'Decided without spending time finding out.', moves: [], costs: 'no time at all', risks: 'acting on a lean and some fungus alone' });
     expect(playView(play(emptyState(), 'beans', beans(0)).plays[0]).did[0].moves).toEqual([]);
     expect(playView(play(emptyState(), 'beans', beans(6)).plays[0]).did[0].moves).toEqual(['split', 'by-using']);
     expect(playView(play(emptyState(), 'beans', beans(10)).plays[0]).closing).toMatch(/whole plot/);
@@ -106,21 +110,26 @@ describe('what the record holds', () => {
     ]);
   });
 
-  it('lists the contrasts played: each question the played stories answered differently, with the plays under each answer', () => {
+  it('sets a story and its variant side by side once both are played, latest plays first, with the question they differ on', () => {
+    let s = play(emptyState(), 'harvest');
+    expect(pairs(s)).toEqual([]);
+    s = play(s, 'harvest-blind', SAMPLE['harvest-blind'], 10);
+    s = play(s, 'oak', oak('fell'), 11);
+    expect(pairs(s).map((p) => [p.base.situation, p.variant.situation, p.differ])).toEqual([['harvest', 'harvest-blind', ['know']]]);
+    s = play(s, 'harvest', { pick: { kind: 'days', day: 0 } }, 12);
+    expect(pairs(s)[0].base.replay).toBe(1);
+    // A variant played alone has nothing beside it.
+    expect(pairs(play(emptyState(), 'boat-spring'))).toEqual([]);
+  });
+
+  it('names the played steps that had an answer, from the plays’ own snapshots', () => {
     let s = play(emptyState(), 'oak');
-    expect(lived(s)).toEqual([]);
-    s = play(s, 'oak', oak('fell'), 9);
-    expect(lived(s)).toEqual([]);
-    s = play(s, 'loaf', SAMPLE.loaf, 10);
-    expect(lived(s).map((x) => x.q)).toEqual(['undo', 'wait', 'bad']);
-    s = play(s, 'harvest', SAMPLE.harvest, 11);
-    const view = lived(s).map(({ q, answers }) => [q, answers.map((a) => [a.id, a.plays.map((p) => p.situation)])]);
-    expect(view).toEqual([
-      ['undo', [['easily', ['loaf']], ['no', ['oak', 'oak', 'harvest']]]],
-      ['know', [['check', ['oak', 'oak', 'loaf']], ['wait', ['harvest']], ['after', ['oak', 'oak', 'loaf']]]],
-      ['wait', [['nothing', ['loaf']], ['risk', ['oak', 'oak']], ['better', ['harvest']]]],
-      ['bad', [['over', ['loaf', 'harvest']], ['hard', ['oak', 'oak']]]],
-    ]);
+    expect(playedWith(s, 'undo', 'no')).toEqual(['felling the oak']);
+    expect(playedWith(s, 'undo', 'easily')).toEqual([]);
+    s = play(s, 'harvest', SAMPLE.harvest, 10);
+    s = play(s, 'harvest-blind', SAMPLE['harvest-blind'], 11);
+    expect(playedWith(s, 'undo', 'no')).toEqual(['felling the oak', 'picking the grapes']);
+    expect(playedWith(s, 'know', 'after')).toEqual(['felling the oak', 'picking the grapes']);
   });
 
   it('marks a move New until an ending has shown it, and keeps the first sighting', () => {
@@ -172,7 +181,7 @@ describe('plain text', () => {
     const text = recordText(s);
     expect(text).toContain('Choice: Open-source my app, 1 Oct\n  If you take it, can it be undone? No.');
     expect(text).toContain('  Trying: Try it small.\n  Note: One module first.');
-    for (const x of SITUATIONS) expect(text).toContain(`${x.title}, 1 Oct\n  Unknown: ${x.uncertain}\n  About ${x.turnsOn}: If you take it, can it be undone?`);
+    for (const x of SITUATIONS) expect(text).toContain(`${x.title}, 1 Oct\n${x.whatIf ? `  ${x.whatIf}\n` : ''}  Unknown: ${x.uncertain}\n  About ${x.turnsOn}: If you take it, can it be undone?`);
     expect(text).toContain('Chose “Take a third of the weight off the crown”. Moves: Guard. Costs a third of the crown, for good; risks rot in the cuts, or a fall anyway.');
   });
 });

@@ -1,6 +1,6 @@
 # Pilot plan
 
-Nothing in Tell 4.0 has been tried by anyone but its builder. What tests can't show: whether the stories are worth playing, whether people read a real choice
+Nothing in Tell 4.1 has been tried by anyone but its builder. What tests can't show: whether the stories are worth playing, whether people read a real choice
 the same way, and whether the moves help. There are no analytics: evidence comes from
 observation, what pilots say and, with their consent, the plain-text download they choose to send
 (About → "Download as plain text").
@@ -32,15 +32,19 @@ The language is only as useful as its questions are clear. This needs no app.
 ## 1. Is play worth it by itself?
 
 - **Watch** the first session, thinking aloud, without help. Where do they slow down, smile or
-  hesitate over a choice? Where do they tap through? Do they read the moves on an ending, or the
-  shape?
+  hesitate over a choice? Where do they tap through? Do they read the moves on the options before
+  choosing, and do they choose by the story or by the move's name? Do they open a card, play a
+  variant, and stop at the two plays side by side?
 - **Ask after two stories, before the third:** "What do you think the next one will ask you to
   do?" Then after it: was it what you expected?
 - **Ask at the end:** Which would you play again, and why? Did any feel like it had a right
-  answer? Did a move's name feel like a grade?
+  answer? Did a move's name feel like a grade? Did the version with one fact changed feel like a
+  new story, or like homework?
 - **Holds if:** most can't predict the third story's controls or turn, most play four of six in
   the first sitting unprompted, and nobody reports a right answer or a give-away.
-- **Fails if:** pilots predict the shape, skim the endings, or read the moves as marks.
+- **Fails if:** pilots predict the shape, skim the endings, read the moves as marks, or pick
+  options by the move shown on them rather than by the story. If they do, the moves leave the
+  options and stay on the endings.
 
 ## 2. Do the moves help with a real choice?
 

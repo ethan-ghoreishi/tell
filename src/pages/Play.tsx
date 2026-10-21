@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react';
-import { earlierPlays, fresh, keyed, markSeen, playView, recordPlay } from '../domain/engine';
-import { QUESTIONS, answersText, languageMove, type Shape } from '../domain/language';
-import { SITUATIONS, situation as situationOf } from '../domain/situations';
+import { earlierPlays, fresh, keyed, markSeen, playView, recordPlay, type Pair } from '../domain/engine';
+import { differs, question, shortText } from '../domain/language';
+import { SITUATIONS, situation as situationOf, variantOf } from '../domain/situations';
 import type { Answers, Play, Situation, StepAnswer, TellState } from '../domain/types';
+import { MoveButtons, ShapeCells } from '../lens';
 import { Section, StepPlay, useFocus } from '../steps';
 import { store } from '../store/store';
 import { shortDate } from '../ui';
 
-// A story, played step by step, then its ending. Only a finished play is
-// recorded. The ending names the moves the play made, marking New the first
-// time the player is shown each, and the shape of the step the story turns on.
+// A story, played step by step, then its ending. The shape of the step it
+// turns on is there from the start, and every option shows its moves before
+// it's chosen. Only a finished play is recorded. The ending names the moves
+// the play made, marking New the first time the player is shown each, with
+// what they cost and risked here; and, where the story has a variant, offers
+// it, or sets the two plays side by side.
 
 export function SituationPage({ state, id }: { state: TellState; id: string }) {
   const s = situationOf(id);
@@ -19,6 +23,8 @@ export function SituationPage({ state, id }: { state: TellState; id: string }) {
   const index = s.steps.findIndex((step) => !answers[step.id]);
   const step = s.steps[index];
   const before = state.plays.filter((p) => p.situation === s.id);
+  const base = s.of ? situationOf(s.of) : undefined;
+  const shape = <ShapeCells shape={s.shape} label={`The step: ${s.turnsOn}`} was={base?.shape} />;
 
   function answer(a: StepAnswer) {
     const next = { ...answers, [step.id]: a };
@@ -50,13 +56,18 @@ export function SituationPage({ state, id }: { state: TellState; id: string }) {
               You played this on {shortDate(before[0].day)}. Playing again keeps every play.
             </p>
           )}
+          {s.whatIf && <p className="condition">{s.whatIf}</p>}
           <p className="scene">{s.setup}</p>
+          {shape}
         </>
       ) : (
         <>
           <details className="card-quiet">
             <summary className="link small">Reread the story</summary>
-            <p>{s.setup}</p>
+            <div className="stack">
+              <p>{s.setup}</p>
+              {shape}
+            </div>
           </details>
           {/* What was found out stays in view for what comes next. */}
           {s.steps.slice(0, index).map((x) => {
@@ -78,7 +89,11 @@ export function SituationPage({ state, id }: { state: TellState; id: string }) {
   );
 }
 
-/** The ending of a recorded play: how the story closes, what was done and the moves it made, other ways through, and the shape of the step. */
+/**
+ * The ending of a recorded play: how the story closes; what was done, the
+ * moves it made and what each cost and risked here, under the step's shape;
+ * the variant, or both plays side by side; and other ways through.
+ */
 export function PlayPage({ state, id }: { state: TellState; id: string }) {
   const p = state.plays.find((x) => x.id === id);
   const ref = useFocus<HTMLHeadingElement>(id);
@@ -86,6 +101,8 @@ export function PlayPage({ state, id }: { state: TellState; id: string }) {
   if (!p) return <Missing what="That play" />;
   const v = playView(p);
   const earlier = earlierPlays(state, p);
+  const variant = p.shown.of ? undefined : variantOf(p.situation);
+  const base = p.shown.of ? state.plays.filter((x) => x.situation === p.shown.of).at(-1) : undefined;
 
   return (
     <article className="stack-xl reveal">
@@ -101,12 +118,15 @@ export function PlayPage({ state, id }: { state: TellState; id: string }) {
       </header>
 
       <Section title="What you did" id="did">
-        <p className="small dim">Moves here are about {p.shown.turnsOn}.</p>
+        <ShapeCells shape={p.shown.shape} label={`The step: ${p.shown.turnsOn}`} />
         <ul className="results">
           {v.did.map((d) => (
             <li key={d.line} className="stack-tight">
               <span>{d.line}</span>
-              <MoveNames ids={d.moves} fresh={isNew} />
+              <MoveButtons ids={d.moves} fresh={isNew} />
+              <span className="small dim">
+                Cost: {d.costs}. Risk: {d.risks}.
+              </span>
             </li>
           ))}
         </ul>
@@ -117,20 +137,44 @@ export function PlayPage({ state, id }: { state: TellState; id: string }) {
         )}
       </Section>
 
+      {variant && (
+        <section className="card stack" aria-labelledby="whatif">
+          <h2 className="section-title" id="whatif">
+            {variant.whatIf}
+          </h2>
+          <ShapeCells shape={variant.shape} was={p.shown.shape} />
+          <a className="btn btn-primary btn-block" href={`#/situation/${variant.id}`}>
+            Play it that way
+          </a>
+        </section>
+      )}
+
+      {p.shown.of && (
+        <Section title="Both ways" id="both">
+          {base ? (
+            <PairView pair={{ base, variant: p, differ: differs(base.shown.shape, p.shown.shape) }} />
+          ) : (
+            <a className="link" href={`#/situation/${p.shown.of}`}>
+              Play {situationOf(p.shown.of)?.title ?? 'the story'} as it was
+            </a>
+          )}
+        </Section>
+      )}
+
       <Section title="Other ways through" id="others">
         <p>{v.others}</p>
-        {v.unmade.length > 0 && <p className="small dim">Other moves in this story: {v.unmade.map(moveName).join(' · ')}.</p>}
-      </Section>
-
-      <Section title="The shape of it" id="shape">
-        <p className="small dim">The four questions, about {p.shown.turnsOn}.</p>
-        <ShapeList shape={p.shown.shape} />
+        {v.unmade.length > 0 && (
+          <div className="stack-tight">
+            <p className="small dim">Other moves in this story:</p>
+            <MoveButtons ids={v.unmade} />
+          </div>
+        )}
       </Section>
 
       {p.shown.real && <Real s={p.shown} />}
 
       <div className="stack">
-        <a className="btn btn-primary btn-block" href="#/">
+        <a className={`btn btn-block${variant ? '' : ' btn-primary'}`} href="#/">
           Back to the stories
         </a>
         <a className="btn btn-ghost btn-block" href={`#/situation/${p.situation}`}>
@@ -138,6 +182,42 @@ export function PlayPage({ state, id }: { state: TellState; id: string }) {
         </a>
       </div>
     </article>
+  );
+}
+
+/** A story and its variant, played: each play under the answer that differs, with its moves; then when that question's moves are worth something. Never explained. */
+export function PairView({ pair }: { pair: Pair }) {
+  return (
+    <div className="stack">
+      {pair.differ.map((q) => (
+        <p key={q} className="question">
+          {question(q).ask}
+        </p>
+      ))}
+      <ul className="stack">
+        {[pair.base, pair.variant].map((p) => (
+          <li key={p.id} className="card-quiet pair stack-tight">
+            <span className="pair-head">
+              <a className="link" href={`#/play/${p.id}`}>
+                {p.shown.title}
+              </a>
+              <span className="cell-value">{pair.differ.map((q) => shortText(p.shown.shape, q)).join('; ')}</span>
+            </span>
+            {playView(p).did.map((d) => (
+              <span key={d.line} className="stack-tight">
+                <span className="small">{d.line}</span>
+                <MoveButtons ids={d.moves} />
+              </span>
+            ))}
+          </li>
+        ))}
+      </ul>
+      {pair.differ.map((q) => (
+        <p key={q} className="small dim">
+          {question(q).principle}
+        </p>
+      ))}
+    </div>
   );
 }
 
@@ -153,37 +233,6 @@ function useFresh(state: TellState, play: Play | undefined) {
     if (key) store.update((s) => markSeen(s, key.split(','), new Date()));
   }, [key]);
   return shown;
-}
-
-export const moveName = (id: string) => languageMove(id)?.name ?? id;
-
-/** A step's moves, named, each marked New the first time it's shown. */
-export function MoveNames({ ids, fresh }: { ids: string[]; fresh?: Set<string> }) {
-  if (!ids.length) return null;
-  return (
-    <span className="moves">
-      {ids.map((id) => (
-        <span key={id} className="move-name">
-          {moveName(id)}
-          {fresh?.has(id) && <span className="tag">New</span>}
-        </span>
-      ))}
-    </span>
-  );
-}
-
-/** The four questions and these answers. */
-export function ShapeList({ shape }: { shape: Shape }) {
-  return (
-    <dl className="facts small">
-      {QUESTIONS.map((q) => (
-        <div key={q.id}>
-          <dt>{q.ask}</dt>
-          <dd>{answersText(shape, q.id)}</dd>
-        </div>
-      ))}
-    </dl>
-  );
 }
 
 /** What a story takes from the real world, with sources, and what it invents. */
