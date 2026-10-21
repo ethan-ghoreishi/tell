@@ -4,8 +4,9 @@ import type { TellState } from '../domain/types';
 import { validateState } from '../domain/validate';
 
 // One JSON document in localStorage, the source of truth on this device.
-// ponytail: localStorage caps out around 5 MB, a few thousand plays; move to
-// IndexedDB if a player ever gets near that.
+// ponytail: localStorage caps out around 5 MB; each play snapshots its story
+// (about 6 KB), so roughly 800 plays. Store each story version once, or move
+// to IndexedDB, if a player ever gets near that.
 //
 // Data safety: a document that can't be read (not JSON, malformed, or from a
 // newer Tell) is REFUSED. Nothing is written over it; the app offers its raw
@@ -86,10 +87,11 @@ export function createStore(storage: StorageLike) {
     },
     get: () => snapshot,
 
-    /** Apply a pure transition and persist it. Refused data is never written over. */
+    /** Apply a pure transition and persist it. Refused data is never written over; an unchanged state isn't rewritten. */
     update(transition: (state: TellState) => TellState) {
       if (snapshot.status !== 'ready') throw new Error('Tell’s saved data was refused; restore or start fresh first');
-      write(transition(snapshot.state));
+      const next = transition(snapshot.state);
+      if (next !== snapshot.state || snapshot.saveError) write(next);
     },
 
     /** Read a backup without changing anything, so the player can confirm what it holds. */

@@ -152,6 +152,8 @@ button {
 
 .main-inner {
   padding: 4px var(--gutter) 40px;
+  /* A long word the player typed wraps rather than running off the screen. */
+  overflow-wrap: break-word;
 }
 
 /* The nav comes first in the DOM (reached first by assistive tech); it sits at the bottom. */
@@ -436,10 +438,6 @@ summary.link::-webkit-details-marker {
   text-decoration: none;
 }
 
-.connection {
-  border-color: var(--border-strong);
-}
-
 /* "New" is a word, not just a colour. */
 .tag {
   align-self: flex-start;
@@ -454,8 +452,92 @@ summary.link::-webkit-details-marker {
   text-transform: uppercase;
 }
 
-.connection .tag + .section-title {
-  margin-top: 8px;
+/* A step's moves, named after what was done. */
+.moves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.move-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--pill);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.move-name .tag {
+  padding: 0 6px;
+  font-size: 0.68rem;
+}
+
+/* ---- Bring a choice ------------------------------------------------------ */
+
+/* A field's label, the field, and a note under it. */
+.field-group {
+  display: grid;
+  gap: 6px;
+}
+
+.field {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.field::placeholder {
+  color: var(--text-faint);
+}
+
+textarea.field {
+  resize: vertical;
+}
+
+.option.escape {
+  margin-top: 6px;
+}
+
+.btn.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+details > summary.strategy {
+  position: relative;
+  min-height: 48px;
+  padding: 10px 32px 10px 0;
+}
+
+details > summary.strategy::after {
+  content: '+';
+  position: absolute;
+  right: 6px;
+  top: 10px;
+  color: var(--accent);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+details[open] > summary.strategy::after {
+  content: '−';
+}
+
+.strategy-body {
+  padding-bottom: 16px;
+}
+
+.strategy-body h3 {
+  font-size: 1.05rem;
 }
 
 .more > summary {

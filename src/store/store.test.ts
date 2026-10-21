@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import tell20 from '../../tests/fixtures/tell-2.0.json';
 import tell30 from '../../tests/fixtures/tell-3.0.json';
+import tell31 from '../../tests/fixtures/tell-3.1.json';
 import { everything, SAMPLE } from '../../tests/sample';
-import { emptyState, recordPlay } from '../domain/engine';
+import { emptyState, recordChoice, recordPlay, setTrying } from '../domain/engine';
 import { SITUATIONS } from '../domain/situations';
 import type { TellState } from '../domain/types';
 import { validateState } from '../domain/validate';
@@ -27,13 +28,16 @@ function memory(initial?: string) {
 const now = new Date(2026, 9, 1, 9);
 const played = (s: TellState = emptyState()) => recordPlay(s, SITUATIONS, 'oak', SAMPLE.oak, now);
 
-/** Documents as earlier versions of Tell really stored them. 2.0's and 3.0's were written by their own engines. */
+/** Documents as earlier versions of Tell really stored them. 2.0's, 3.0's and 3.1's were written by their own engines. */
 const EARLIER = {
   1: { schema: 1, answers: [{ card: 'w-01', pick: 'power', at: '2026-10-08T09:00:00.000Z' }], deal: null, kept: [{ text: 'Kept line' }], disagreed: [], notes: [] },
   2: { schema: 2, currency: 'GBP', runs: [{ id: '2026-10-14-0', mechanic: 'slide', card: 'sl-shop' }], session: null, calls: [], notes: [], principles: [{ id: 'p-1', text: 'Light beats fast', at: '2026-10-14T10:00:00.000Z' }], ratings: [], pool: [] },
   3: tell20,
   4: tell30,
+  5: tell31,
 };
+const HARD = { undo: 'no', know: ['check', 'after'], wait: 'closes', bad: 'hard' };
+const kept = (s: TellState = emptyState()) => setTrying(recordChoice(s, 'Open-source my app', HARD, now), `c${s.choices.length + 1}-${now.getTime()}`, 'small', true);
 
 describe('store', () => {
   it('starts empty and persists every update', () => {
@@ -46,14 +50,23 @@ describe('store', () => {
     if (reopened.status === 'ready') expect(reopened.state.plays).toHaveLength(1);
   });
 
-  it('accepts everything the engine writes', () => {
-    const s = everything(now);
+  it('accepts everything the engine writes, kept choices included', () => {
+    const s = kept(everything(now));
     expect(validateState(JSON.parse(JSON.stringify(s)), now)).toEqual({ ok: true, state: s });
+  });
+
+  it('doesn’t rewrite storage when nothing changed', () => {
+    const storage = memory();
+    const store = createStore(storage);
+    store.update(played);
+    storage.data.set(STORAGE_KEY, 'sentinel');
+    store.update((s) => s);
+    expect(storage.data.get(STORAGE_KEY)).toBe('sentinel');
   });
 
   it('round-trips a backup through export and import exactly', () => {
     const a = createStore(memory());
-    a.update(() => everything(now));
+    a.update(() => kept(everything(now)));
     const b = createStore(memory());
     expect(b.importText(a.exportText())).toEqual({ ok: true });
     expect(b.get()).toEqual(a.get());
@@ -69,10 +82,37 @@ describe('store', () => {
   });
 
   it('refuses data from a newer version, saying so, and leaves it untouched', () => {
-    const newer = JSON.stringify({ ...emptyState(), schema: 6 });
+    const newer = JSON.stringify({ ...emptyState(), schema: 7 });
     const storage = memory(newer);
     expect(createStore(storage).get()).toMatchObject({ status: 'refused', newer: true });
     expect(storage.data.get(STORAGE_KEY)).toBe(newer);
+  });
+
+  it('refuses records written with a newer language as newer, and leaves them untouched', () => {
+    const s = played();
+    const newer = JSON.stringify({ ...s, plays: [{ ...s.plays[0], language: 2 }] });
+    const storage = memory(newer);
+    expect(createStore(storage).get()).toMatchObject({ status: 'refused', newer: true, reason: 'play 1 was written by a newer version of Tell (language 2)' });
+    expect(storage.data.get(STORAGE_KEY)).toBe(newer);
+    const c = kept();
+    expect(validateState(JSON.parse(JSON.stringify({ ...c, choices: [{ ...c.choices[0], language: 3 }] })), now)).toMatchObject({ ok: false, newer: true });
+  });
+
+  it('refuses a kept choice that doesn’t hold together, naming it', () => {
+    const c = kept();
+    const bad = (choice: object) => validateState(JSON.parse(JSON.stringify({ ...c, choices: [{ ...c.choices[0], ...choice }] })), now);
+    expect(bad({ trying: ['spare', 'spare'] })).toMatchObject({ ok: false, error: 'choice 1 marks a move it didn’t show' });
+    expect(bad({ shape: { ...HARD, wait: 'later' } })).toMatchObject({ ok: false, error: 'choice 1 doesn’t answer “If you wait, what happens?”' });
+    expect(bad({ shown: [] })).toMatchObject({ ok: false, error: 'choice 1 shows no moves' });
+    expect(bad({ note: 7 })).toMatchObject({ ok: false, error: 'choice 1 is not a kept choice' });
+    expect(validateState(JSON.parse(JSON.stringify({ ...c, choices: [c.choices[0], c.choices[0]] })), now)).toMatchObject({ ok: false, error: expect.stringMatching(/^choice 2 repeats/) });
+    expect(validateState({ ...c, choices: undefined }, now)).toMatchObject({ ok: false, error: 'choices is not a list' });
+  });
+
+  it('refuses a play whose story names a move the language doesn’t have', () => {
+    const s = played();
+    const shown = { ...s.plays[0].shown, steps: s.plays[0].shown.steps.map((st) => (st.kind === 'choose' ? { ...st, options: st.options.map((o) => ({ ...o, moves: ['teleport'] })) } : st)) };
+    expect(validateState(JSON.parse(JSON.stringify({ ...s, plays: [{ ...s.plays[0], shown }] })), now)).toMatchObject({ ok: false, error: expect.stringMatching(/^play 1 shows a story that step “act” needs two to four options/) });
   });
 
   it('refuses a malformed play, naming it, and changes nothing', () => {
@@ -89,10 +129,10 @@ describe('store', () => {
     const tampered = { ...s, plays: [{ ...s.plays[0], answers: { ...s.plays[0].answers, act: { kind: 'choose', pick: 'burn', asked: false } } }] };
     expect(validateState(JSON.parse(JSON.stringify(tampered)), now)).toMatchObject({ ok: false, error: 'play 1 picks something “act” didn’t offer' });
     const shown = { ...s, plays: [{ ...s.plays[0], situation: 'loaf' }] };
-    expect(validateState(JSON.parse(JSON.stringify(shown)), now)).toMatchObject({ ok: false, error: 'play 1 shows a different situation from the one it names' });
+    expect(validateState(JSON.parse(JSON.stringify(shown)), now)).toMatchObject({ ok: false, error: 'play 1 shows a different story from the one it names' });
   });
 
-  it.each([1, 2, 3, 4] as const)('keeps a schema-%i record whole in the archive of a fresh record', (schema) => {
+  it.each([1, 2, 3, 4, 5] as const)('keeps a schema-%i record whole in the archive of a fresh record', (schema) => {
     const doc = EARLIER[schema];
     const storage = memory(JSON.stringify(doc));
     const snap = createStore(storage).get();
@@ -107,7 +147,8 @@ describe('store', () => {
   });
 
   it('refuses a malformed record of what has been seen', () => {
-    expect(validateState({ ...emptyState(), seen: { a: 'yesterday' } }, now)).toMatchObject({ ok: false, error: 'what has been seen is malformed' });
+    expect(validateState({ ...emptyState(), seen: { look: 'yesterday' } }, now)).toMatchObject({ ok: false, error: 'what has been seen is malformed' });
+    expect(validateState({ ...emptyState(), seen: { teleport: now.toISOString() } }, now)).toMatchObject({ ok: false, error: 'what has been seen is malformed' });
     expect(validateState({ ...emptyState(), seen: undefined }, now)).toMatchObject({ ok: false });
   });
 
@@ -118,6 +159,7 @@ describe('store', () => {
     expect(store.importText('[]')).toMatchObject({ ok: false });
     expect(store.importText(JSON.stringify({ ...emptyState(), plays: [{ id: 1 }] }))).toMatchObject({ ok: false, error: expect.stringMatching(/play 1/) });
     expect(store.importText(JSON.stringify({ ...emptyState(), schema: 9 }))).toMatchObject({ ok: false, error: expect.stringMatching(/newer/) });
+    expect(store.importText(JSON.stringify({ ...emptyState(), choices: [{ id: 'c1' }] }))).toMatchObject({ ok: false, error: expect.stringMatching(/choice 1/) });
     expect(store.get()).toBe(before);
   });
 

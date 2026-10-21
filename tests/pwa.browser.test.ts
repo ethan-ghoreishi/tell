@@ -68,9 +68,21 @@ describe.each([
         await page.getByRole('heading', { name: 'What you did' }).waitFor();
         await page.getByRole('link', { name: 'Map', exact: true }).click();
         await page.getByRole('heading', { name: 'Your map' }).waitFor();
-        await page.getByText('Everything you’ve played (1)').waitFor();
-        await context.setOffline(false);
+        await page.getByText('Everything you’ve played').waitFor();
       }
+
+      // Bring a choice and keep it (offline, where the engine allows).
+      await page.getByRole('link', { name: 'Map', exact: true }).click();
+      await page.getByRole('link', { name: 'Bring a choice' }).click();
+      await page.getByRole('button', { name: 'Start' }).click();
+      await page.getByRole('button', { name: /^Yes, at a cost/ }).click();
+      await page.getByRole('button', { name: /^Only once it’s done/ }).click();
+      await page.getByRole('button', { name: 'Next' }).click();
+      await page.getByRole('button', { name: /^Not much/ }).click();
+      await page.getByRole('button', { name: /^Something to get over/ }).click();
+      await page.getByRole('button', { name: 'Keep this choice' }).click();
+      await page.getByText(/^Kept /).waitFor();
+      if (engine === 'chromium') await context.setOffline(false);
 
       // Export a backup, then restore it through the same validation door.
       await page.getByRole('link', { name: 'About', exact: true }).click();
@@ -79,11 +91,12 @@ describe.each([
       const file = (await download.path())!;
       const backup = JSON.parse(readFileSync(file, 'utf8'));
       expect(backup.plays).toHaveLength(1);
+      expect(backup.choices.map((c: { shape: unknown }) => c.shape)).toEqual([{ undo: 'cost', know: ['after'], wait: 'nothing', bad: 'over' }]);
 
       await page.evaluate(() => localStorage.clear());
       await page.reload();
       page.once('dialog', (d) => {
-        expect(d.message()).toBe('Restore this backup of 1 play?');
+        expect(d.message()).toBe('Restore this backup of 1 play and 1 kept choice?');
         void d.accept();
       });
       await page.getByLabel('Backup file').setInputFiles(file);

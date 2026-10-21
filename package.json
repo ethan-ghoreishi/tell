@@ -1,9 +1,9 @@
 {
   "name": "tell",
   "private": true,
-  "version": "3.1.0",
+  "version": "4.0.0",
   "type": "module",
-  "description": "A collection of small, playable situations, and the connections between the choices made in them. Local-first PWA: no accounts, no runtime AI, nothing leaves the device.",
+  "description": "Short stories to play, a small language for choices under uncertainty, and a way to bring a real choice. Local-first PWA: no accounts, no runtime AI, nothing leaves the device.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

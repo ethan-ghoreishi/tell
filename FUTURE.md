@@ -1,53 +1,61 @@
 # FUTURE.md — deliberately not built yet
 
 Each entry must pass the charter's feature test before it ships. None is a commitment. Delete an
-entry when it ships or is abandoned.
+entry when it ships or is abandoned. `PILOT.md` comes first: most of these wait on what it finds.
 
-## Bring a choice, drawing on play
+## Stories for what no story shows yet
 
-The mission's second half: preserve the useful connections so people can draw on them when
-facing real choices. 3.1 keeps what that needs; nothing reads it yet.
+Three moves have no story (make it undoable, ask for more time, set a tripwire), and they did
+much of the work in the reference choices; nor do the answers "at a cost" and "maybe never". In
+order of cost:
+- *Variants before worlds:* one changed fact of a story that already works. The boat with a
+  buyer who might wait a week (ask for more time); the harvest where, before Monday, the
+  player names the forecast at which they'll pick (set a tripwire); the harvest where the
+  forecast stops on Tuesday (maybe never).
+- *A new world only where a variant can't do it:* a shop lease with a break fee (at a cost; make
+  it undoable).
+Variants are also the only honest way to show a player how their move changed when the
+situation changed: one fact differs, and the two plays are listed side by side, never explained.
 
-**What play already leaves behind** (in each play's snapshot, and in the plain-text download):
-- what was unknown (`uncertain`);
-- what was possible: every option of every step, each a move in the model (action, uncertainty,
-  future options, what it costs, what it risks);
-- what the player chose (the answers, and the move behind each);
-- for each connection found: the distinction, the two choices behind it, where the comparison
-  breaks, and a question to carry.
+## Research files, by the player's choice
 
-**The intended bridge.** A future Bring a choice asks about a real choice in taps, never free
-text that Tell would have to interpret: can the main move be undone? Will the news that matters
-come before you must commit, after, or only by trying? Does waiting keep this open, or let it
-fade? The answers are the same model values the stories use. Tell then offers, by rule:
-- connections the player has found whose sides carry those values ("A way back that teaches":
-  the shelf, and the fence), with their questions;
-- the player's own plays whose chosen moves match, as examples ("At the oak, you fenced it off");
-- and each one's `breaks` line, so the analogy arrives with its limit.
+"Give this choice to research": a file the player previews, saves and sends themselves, holding
+the four answers, the moves shown and marked as tried, and any None of these; never the label,
+the note or anything from play unless they add it. Analysis offline by the owner. It feeds the
+language only through the growth rules below, and the product never shows counts, rankings or
+"people like you".
 
-Nothing is recommended, nothing is inferred about the person, and the player says whether an
-example applies. 2.0's flow (drafts, unresolved parts, voluntary follow-up) is in git history
-(`61ab864`) if parts of it are wanted; its matching on features the player marked is the closest
-prior art.
+## Growth rules for the language
 
-## More stories and connections
+A move becomes established at three independent known uses in real choices (different people
+and kinds of choice; only moves actually taken count); one with none after the pilot and one
+more round is retired. Add an answer when None of these clusters for one reason that would change
+the moves; merge answers that never change them or that coders can't tell apart. A budget (about
+five questions, eight strategies, four moves each) keeps it from becoming a taxonomy. Not built
+while every move is still a proposal and there is one version.
 
-Repair before expanding. Candidates the pilot may point to: a story where asking someone is the
-only way to find out; one where the way back is cheap but slow; a second field story with a real
-constraint (a surgeon's or a pilot's checklist, a sommelier's blind tasting) if the film one works.
-A connection across three stories only once two-story ones are shown to be remembered.
+## Smaller ideas from the proposal, waiting on the pilot
 
-## Pass the phone
-
-2.0 let a second person play the same story with nothing of theirs saved. Comparing two people on
-one story is a different hypothesis from comparing one person across two; it waits.
+- *Which story does this remind you of?* after Bring a choice, if pilots look for one.
+- *Your own moves:* a move the player names, matched only by the answers they tap, in its own
+  section. Only if pilots name moves the language lacks.
+- *The spread:* every way a story could have gone, so no outcome vindicates a move. Only if
+  endings are found to feel consequence-free.
+- *Plans:* chains of moves toward a goal the player picks ("know before I must decide").
 
 ## Runtime AI
 
-Not yet. If it comes, it must stay optional, never interpret answers into traits or
-recommendations, and never write connections. Until then, the plain-text download is the bridge.
+Not yet. If it comes, it must stay optional, run on the device, never interpret answers into
+traits or recommendations, and never choose moves. The first candidate is proposing the four
+answers from a sentence for the player to confirm, and only once its agreement with people
+matches people's agreement with each other. Until then, the plain-text download is the bridge.
 
 ## Sync between devices
 
 If wanted: whole snapshots to the owner's own repository, decided by content hash, reusing
 Practice Compass's model. Backup and restore stay the fallback.
+
+## Pass the phone
+
+2.0 let a second person play the same story with nothing of theirs saved. Comparing two people on
+one story is a different hypothesis from comparing one person across two; it waits.

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { earlierName } from './domain/types';
 import About, { RestoreButton } from './pages/About';
+import { BringPage, ChoicePage } from './pages/Bring';
 import Home from './pages/Home';
 import MapPage from './pages/MapPage';
 import { PlayPage, SituationPage } from './pages/Play';
@@ -40,7 +41,7 @@ export default function App() {
   const { state, saveError, archived } = snapshot;
   const [page, ...rest] = route.split('/');
   const arg = rest.join('/');
-  const tab = page === 'map' || page === 'about' ? page : 'home';
+  const tab = page === 'map' || page === 'bring' || page === 'choice' ? 'map' : page === 'about' ? 'about' : 'home';
 
   return (
     <div className="app">
@@ -74,6 +75,10 @@ export default function App() {
           <UpdateNotice />
           {page === 'map' ? (
             <MapPage state={state} />
+          ) : page === 'bring' ? (
+            <BringPage state={state} />
+          ) : page === 'choice' ? (
+            <ChoicePage key={arg} state={state} id={arg} />
           ) : page === 'about' ? (
             <About state={state} />
           ) : page === 'situation' ? (

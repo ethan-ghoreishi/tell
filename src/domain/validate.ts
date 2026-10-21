@@ -1,11 +1,13 @@
 import { answersProblem, emptyState, keysOf, most } from './engine';
-import { MOVES, SCHEMA, type Situation, type TellState } from './types';
+import { LANGUAGE, languageMove, shapeProblem } from './language';
+import { SCHEMA, type Situation, type TellState } from './types';
 
 // The one door every inbound document passes: what is stored on load and any
 // backup offered to Restore. A refusal names the problem and the caller
 // changes nothing. A wrong type is refused, never coerced. A document from an
 // earlier version of Tell is kept whole in the archive; this version asks
-// different questions, so nothing in it is reread.
+// different questions, so nothing in it is reread. Records written with a
+// newer language are refused as newer, like a newer schema.
 
 export type Validation = { ok: true; state: TellState; archived?: number } | { ok: false; error: string; newer?: boolean };
 
@@ -18,23 +20,22 @@ const isDay = (x: unknown) => isStr(x) && /^\d{4}-\d{2}-\d{2}$/.test(x) && !Numb
 const isTime = (x: unknown) => isStr(x) && !Number.isNaN(Date.parse(x));
 const listOf = (x: unknown, check: (v: unknown) => boolean) => Array.isArray(x) && x.every(check);
 const unique = (xs: string[]) => new Set(xs).size === xs.length;
-/** A move in the model: known values only, at least one part, and its consequences in words. */
-const isMove = (m: unknown) =>
-  isObj(m) &&
-  text(m.costs) &&
-  text(m.risks) &&
-  Object.keys(m).every((k) => k === 'costs' || k === 'risks' || (k in MOVES && Object.keys(MOVES[k as keyof typeof MOVES]).includes(m[k] as string))) &&
-  Object.keys(MOVES).some((k) => m[k] !== undefined);
+/** Moves of the language, each once. */
+const isMoves = (x: unknown) => listOf(x, (id) => isStr(id) && !!languageMove(id)) && unique(x as string[]) && (x as unknown[]).length <= 3;
+/** An answer described in the language: its moves, and what it costs and risks. */
+const isDescribed = (x: Obj) => isMoves(x.moves) && text(x.costs) && text(x.risks);
 const isItem = (x: unknown) => isObj(x) && text(x.id) && text(x.text) && (x.detail === undefined || text(x.detail));
-const isOption = (x: unknown) => isItem(x) && isMove((x as Obj).move);
-const isBands = (x: unknown) => listOf(x, (b) => isObj(b) && text(b.id) && isInt(b.upTo) && isMove(b.move)) && (x as unknown[]).length >= 1;
+const isOption = (x: unknown) => isItem(x) && isDescribed(x as Obj);
+const isBands = (x: unknown) => listOf(x, (b) => isObj(b) && text(b.id) && isInt(b.upTo) && isDescribed(b)) && (x as unknown[]).length >= 1;
 const isLink = (x: unknown) => isObj(x) && text(x.name) && isStr(x.url) && /^https:\/\//.test(x.url);
 
-/** A situation's shape, as written in content or as snapshotted in a play. Null when it's sound. */
+/** A story's shape, as written in content or as snapshotted in a play. Null when it's sound. */
 export function situationProblem(x: unknown): string | null {
-  if (!isObj(x)) return 'is not a situation';
-  for (const k of ['id', 'title', 'place', 'hook', 'setup', 'uncertain']) if (!text(x[k])) return `has no ${k}`;
+  if (!isObj(x)) return 'is not a story';
+  for (const k of ['id', 'title', 'place', 'hook', 'setup', 'uncertain', 'turnsOn']) if (!text(x[k])) return `has no ${k}`;
   if (!isInt(x.v) || x.v < 1) return 'has no version';
+  const shape = shapeProblem(x.shape, false);
+  if (shape) return `has a shape that ${shape}`;
   const real = x.real;
   if (real !== undefined && !(isObj(real) && text(real.invented) && listOf(real.facts, (f) => isObj(f) && text(f.fact) && listOf(f.sources, isLink) && (f.sources as unknown[]).length > 0))) {
     return 'has malformed sources';
@@ -58,7 +59,7 @@ export function situationProblem(x: unknown): string | null {
 
 function stepProblem(s: Obj): string | null {
   const numeric = () => {
-    if (!isBands(s.bands)) return 'has no bands';
+    if (!isBands(s.bands)) return 'has no bands, each described in the language';
     const bands = s.bands as { id: string; upTo: number }[];
     if (!unique(bands.map((b) => b.id)) || bands.some((b, i) => i > 0 && b.upTo <= bands[i - 1].upTo) || bands[0].upTo < 0) return 'has bands out of order';
     // Every number the step can produce falls in a band.
@@ -67,9 +68,9 @@ function stepProblem(s: Obj): string | null {
   };
   const unit = (u: unknown) => listOf(u, text) && (u as unknown[]).length === 2;
   if (s.kind === 'choose') {
-    if (!text(s.prompt) || !listOf(s.options, isOption) || (s.options as unknown[]).length < 2 || (s.options as unknown[]).length > 4) return 'needs two to four options, each a move';
+    if (!text(s.prompt) || !listOf(s.options, isOption) || (s.options as unknown[]).length < 2 || (s.options as unknown[]).length > 4) return 'needs two to four options, each described in the language';
     const ask = s.ask;
-    if (ask !== undefined && !(isObj(ask) && text(ask.label) && text(ask.did) && text(ask.answer) && (ask.adds === undefined || isOption(ask.adds)))) return 'has a malformed ask';
+    if (ask !== undefined && !(isObj(ask) && text(ask.label) && text(ask.did) && text(ask.answer) && isMoves(ask.moves) && (ask.adds === undefined || isOption(ask.adds)))) return 'has a malformed ask';
     const ids = [...(s.options as Obj[]), ...(isObj(ask) && ask.adds ? [ask.adds as Obj] : [])].map((o) => o.id as string);
     return unique(ids) ? null : 'repeats an option';
   }
@@ -107,17 +108,45 @@ function keyedProblem(k: unknown, earlier: Obj[]): string | null {
 }
 
 function playProblem(p: unknown): string | null {
-  if (!isObj(p) || !text(p.id) || !text(p.situation) || !isInt(p.v) || !isTime(p.at) || !isDay(p.day) || !isInt(p.replay) || p.replay < 0) return 'is not a play';
+  if (!isObj(p) || !text(p.id) || !text(p.situation) || !isInt(p.v) || !isInt(p.language) || p.language < 1 || !isTime(p.at) || !isDay(p.day) || !isInt(p.replay) || p.replay < 0) return 'is not a play';
   const shown = situationProblem(p.shown);
-  if (shown) return `shows a situation that ${shown}`;
+  if (shown) return `shows a story that ${shown}`;
   const s = p.shown as unknown as Situation;
-  if (s.id !== p.situation || s.v !== p.v) return 'shows a different situation from the one it names';
+  if (s.id !== p.situation || s.v !== p.v) return 'shows a different story from the one it names';
   return answersProblem(s, p.answers);
+}
+
+const isShownMove = (m: unknown) => isObj(m) && ['id', 'name', 'because', 'is', 'costs', 'breaks', 'like'].every((k) => text(m[k])) && (m.asks === undefined || text(m.asks));
+const isShownLine = (l: unknown) => isObj(l) && text(l.strategy) && text(l.name) && text(l.because) && listOf(l.moves, isShownMove) && (l.moves as unknown[]).length > 0;
+
+function choiceProblem(c: unknown): string | null {
+  if (!isObj(c) || !text(c.id) || !isTime(c.at) || !isDay(c.day) || !isInt(c.language) || c.language < 1 || !isStr(c.label) || !isStr(c.note)) return 'is not a kept choice';
+  const shape = shapeProblem(c.shape, true);
+  if (shape) return shape;
+  if (!listOf(c.shown, isShownLine) || !(c.shown as unknown[]).length) return 'shows no moves';
+  const ids = (c.shown as { moves: { id: string }[] }[]).flatMap((l) => l.moves.map((m) => m.id));
+  if (!listOf(c.trying, isStr) || !unique(c.trying as string[]) || !(c.trying as string[]).every((id) => ids.includes(id))) return 'marks a move it didn’t show';
+  return null;
 }
 
 /** A document from an earlier Tell: kept whole, untouched, in a fresh record. */
 export function archive(x: Obj, now: Date): TellState {
   return { ...emptyState(), archive: [{ schema: x.schema as number, at: now.toISOString(), doc: JSON.parse(JSON.stringify(x)) }] };
+}
+
+/** Records, each checked, ids unique; or why not. A record from a newer language is refused as newer. */
+function recordsProblem(xs: unknown, what: string, problem: (x: unknown) => string | null): Validation | null {
+  if (!Array.isArray(xs)) return { ok: false, error: `${what}s is not a list` };
+  const ids = new Set<string>();
+  for (const [i, x] of xs.entries()) {
+    if (isObj(x) && isInt(x.language) && x.language > LANGUAGE) return { ok: false, error: `${what} ${i + 1} was written by a newer version of Tell (language ${x.language})`, newer: true };
+    const p = problem(x);
+    if (p) return { ok: false, error: `${what} ${i + 1} ${p}` };
+    const id = (x as Obj).id as string;
+    if (ids.has(id)) return { ok: false, error: `${what} ${i + 1} repeats “${id}”` };
+    ids.add(id);
+  }
+  return null;
 }
 
 export function validateState(x: unknown, now: Date): Validation {
@@ -128,16 +157,9 @@ export function validateState(x: unknown, now: Date): Validation {
   if (isInt(x.schema) && x.schema >= 1 && x.schema < SCHEMA) return { ok: true, state: archive(x, now), archived: x.schema };
   if (x.schema !== SCHEMA) return fail(`schema ${String(x.schema)} is unknown`);
 
-  if (!Array.isArray(x.plays)) return fail('plays is not a list');
-  const seen = new Set<string>();
-  for (const [i, p] of x.plays.entries()) {
-    const problem = playProblem(p);
-    if (problem) return fail(`play ${i + 1} ${problem}`);
-    const id = (p as Obj).id as string;
-    if (seen.has(id)) return fail(`play ${i + 1} repeats “${id}”`);
-    seen.add(id);
-  }
-  if (!isObj(x.seen) || !Object.values(x.seen).every(isTime)) return fail('what has been seen is malformed');
+  const records = recordsProblem(x.plays, 'play', playProblem) ?? recordsProblem(x.choices, 'choice', choiceProblem);
+  if (records) return records;
+  if (!isObj(x.seen) || !Object.keys(x.seen).every((id) => !!languageMove(id)) || !Object.values(x.seen).every(isTime)) return fail('what has been seen is malformed');
   if (!listOf(x.archive, (a) => isObj(a) && isInt(a.schema) && isTime(a.at) && isObj(a.doc))) return fail('the archive is malformed');
   return { ok: true, state: x as unknown as TellState };
 }

@@ -51,7 +51,7 @@ const GRAPHIC = 3;
 
 const PAIRS: { fg: string; bg: string; over?: string; min: number; where: string }[] = [
   { fg: 'text', bg: 'bg', min: TEXT, where: 'body text on the page' },
-  { fg: 'text', bg: 'surface', min: TEXT, where: 'options, tiles and connections in a .card' },
+  { fg: 'text', bg: 'surface', min: TEXT, where: 'options, tiles and fields in a .card' },
   { fg: 'text', bg: 'surface-2', min: TEXT, where: '.card-quiet (Reread the story, archive)' },
   { fg: 'text-dim', bg: 'bg', min: TEXT, where: '.dim / .lede on the page' },
   { fg: 'text-dim', bg: 'surface', min: TEXT, where: '.dim in a .card' },
@@ -62,7 +62,7 @@ const PAIRS: { fg: string; bg: string; over?: string; min: number; where: string
   { fg: 'accent', bg: 'bg', min: TEXT, where: '.link / active tab / today’s day label' },
   { fg: 'accent', bg: 'surface', min: TEXT, where: '.link in a .card' },
   { fg: 'accent', bg: 'surface-2', min: TEXT, where: '.link in .card-quiet' },
-    { fg: 'text', bg: 'accent-soft', over: 'surface', min: TEXT, where: '.condition in a connection card' },
+  { fg: 'text', bg: 'accent-soft', over: 'surface', min: TEXT, where: '.condition, and a pressed option or button, on a surface' },
   { fg: 'text', bg: 'accent-soft', over: 'bg', min: TEXT, where: '.condition on the page (what was found, what asking said)' },
   { fg: 'accent-contrast', bg: 'accent', min: TEXT, where: '.btn-primary' },
   { fg: 'accent', bg: 'bar-track', min: GRAPHIC, where: 'the plot’s cells and the day marks' },

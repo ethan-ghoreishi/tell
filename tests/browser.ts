@@ -84,9 +84,12 @@ export async function openApp(
   };
 }
 
-/** Nothing on the page may scroll sideways on a phone. */
+/** Nothing on the page, or in <main>, may scroll sideways on a phone. */
 export const overflowsSideways = (page: Page) =>
-  page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  page.evaluate(() => {
+    const main = document.querySelector('main');
+    return document.documentElement.scrollWidth > window.innerWidth + 1 || (!!main && main.scrollWidth > main.clientWidth + 1);
+  });
 
 /** Only <main> scrolls: the page itself never does. */
 export const pageScrolls = (page: Page) =>

@@ -1,6 +1,8 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { localDay, recordText } from '../domain/engine';
-import { CONNECTIONS, SITUATIONS } from '../domain/situations';
+import { LANGUAGE_MOVES, SCOPE, STRATEGIES } from '../domain/language';
+import { SITUATIONS } from '../domain/situations';
+import { list } from '../domain/text';
 import { earlierName, type TellState } from '../domain/types';
 import { Section } from '../steps';
 import { store } from '../store/store';
@@ -15,8 +17,8 @@ export default function About({ state }: { state: TellState }) {
       <header className="stack">
         <h1 className="title">How Tell works</h1>
         <p className="lede">
-          Short stories to play, each a small choice somewhere unfamiliar. Now and then two of your choices, side by side, turn up a distinction worth keeping.
-          Those go on your map, to draw on when a real choice comes.
+          Short stories to play, each a small choice somewhere unfamiliar. Every answer in them is a move in a small language for choices under uncertainty. Your
+          map keeps the moves you make, and Bring a choice shows the moves that fit a real one.
         </p>
       </header>
 
@@ -26,7 +28,7 @@ export default function About({ state }: { state: TellState }) {
             The collection has {plural(SITUATIONS.length, 'invented story', 'invented stories')}, two or three minutes each. Each ends when its story does. Play them in any order, as often as you
             like; nothing unlocks, expires or arrives by itself.
           </li>
-          <li>There are no right answers and nothing is scored. Every ending shows other reasonable ways through.</li>
+          <li>There are no right answers and nothing is scored. Every ending shows other reasonable ways through, and names the moves.</li>
           <li>
             Some stories rest on real facts, like how film is developed or how long seed keeps. Each says what’s real, with sources, and what’s invented. A few
             taps don’t make anyone an expert.
@@ -34,54 +36,53 @@ export default function About({ state }: { state: TellState }) {
         </ul>
       </Section>
 
-      <Section title="Your map" id="map">
+      <Section title="The language" id="language">
+        <p className="small">
+          Four questions read the shape of a step: can it be undone, when will you know whether it was right, what waiting does, and how bad it could get. For
+          what makes it hard there are {LANGUAGE_MOVES.length} moves, grouped by the difficulty each meets: {list(STRATEGIES.map((s) => s.name.toLowerCase()))}.
+        </p>
+        <p className="small dim">
+          Finding out first is worth something only if it could change the step and arrives before it must be taken. A way back, or waiting, is worth its price
+          only when the step is hard to undo, or something useful arrives while you wait. These ideas come from decision analysis: the value of information
+          (Ronald Howard, 1966), the irreversibility effect (Kenneth Arrow and Anthony Fisher, 1974) and real options (Avinash Dixit and Robert Pindyck, 1994).
+          Tell uses them to write stories and match moves, never to measure anyone.
+        </p>
+        <p className="small dim">Every move is a starting proposal. Tell will call one established only once real choices show it in use.</p>
+      </Section>
+
+      <Section title="Bring a choice" id="bring">
         <ul className="rules">
-          <li>
-            A connection is written by hand for particular ways through two stories: felling the oak and fencing it off meet the bakery differently. Tell
-            never matches words.
-          </li>
-          <li>
-            It appears when your plays first fit it, and stays as it was found. A later play can fit it again, or turn up a new one, marked New until you’ve seen
-            it.
-          </li>
-          <li>
-            It describes the moves, not you. It shows what you chose, never why, and two stories always differ in more than one way. Tell never describes
-            you or treats an answer as a trait.
-          </li>
-          <li>Not every pair of choices has a connection. Where nothing true and useful can be said, nothing is.</li>
+          <li>Only your four answers decide which moves show. The same answers always show the same moves, whatever you’ve played.</li>
+          <li>Moves are never ranked or urged, and settling it is always there. Your plays only lend examples.</li>
+          <li>Tell never reads what you type, and keeps a choice only if you keep it.</li>
+          <li>{SCOPE}</li>
         </ul>
       </Section>
 
-      <Section title="Underneath" id="model">
-        <p className="small">
-          Every answer in every story is described as a move, in four parts: whether it can be taken back, what it does about what isn’t known, what it leaves
-          possible, and what it costs and risks.
-        </p>
-        <p className="small dim">
-          Finding out is worth something only if it could change what you do and arrives before the point of no return. Keeping options open is worth something
-          only if a move can be undone or put off. What’s at stake decides how much either matters. These ideas come from decision analysis: the value of
-          information (Ronald Howard, 1966), the irreversibility effect (Kenneth Arrow and Anthony Fisher, 1974) and real options (Avinash Dixit and Robert
-          Pindyck, 1994). Tell uses them to write stories, never to measure anyone.
-        </p>
+      <Section title="Your map" id="map">
+        <ul className="rules">
+          <li>It lists the moves you’ve made, and the shapes of the steps you made them in. A move is marked New the first time a story shows it to you.</li>
+          <li>It shows what you chose, never why. It never counts your moves, sums them up or says what they mean about you.</li>
+        </ul>
       </Section>
 
       <Section title="What Tell can’t show" id="limits">
         <ul className="rules">
-          <li>What you’d choose in an invented situation can differ from what you’d do for real.</li>
-          <li>Untested so far: whether the stories stay interesting, and whether the connections help with real choices.</li>
+          <li>What you’d choose in an invented story can differ from what you’d do for real.</li>
+          <li>Untested so far: whether the stories stay interesting, whether different people read the same choice the same way, and whether the moves help with real choices.</li>
         </ul>
       </Section>
 
       <Section title="Your data" id="data">
         <p className="small dim">
-          No accounts, no analytics and no AI, and the security policy blocks connections to anywhere else. What you play stays in this browser:{' '}
-          {plural(state.plays.length, 'play')}.
+          No accounts, no analytics and no AI, and the security policy blocks connections to anywhere else. Everything stays in this browser:{' '}
+          {plural(state.plays.length, 'play')} and {plural(state.choices.length, 'kept choice')}.
         </p>
         <button className="btn btn-block" onClick={() => download(`tell-backup-${localDay(new Date())}.json`, store.exportText())}>
           Export a backup
         </button>
-        <RestoreButton current={state.plays.length} />
-        <button className="btn btn-block" onClick={() => download(`tell-${localDay(new Date())}.txt`, recordText(state, CONNECTIONS), 'text/plain')}>
+        <RestoreButton current={state.plays.length + state.choices.length} />
+        <button className="btn btn-block" onClick={() => download(`tell-${localDay(new Date())}.txt`, recordText(state), 'text/plain')}>
           Download as plain text
         </button>
         {state.archive.map((a) => (
@@ -124,7 +125,12 @@ export function RestoreButton({ current }: { current?: number }) {
     if (!backup.ok) return setMessage(backup.error);
     const s = backup.state;
     const replacing = current ? ' This replaces what is on this device.' : '';
-    const what = s.archive.length && !s.plays.length ? `a record from ${earlierName(s.archive[0].schema)}, to be kept as it was` : plural(s.plays.length, 'play');
+    const what =
+      s.archive.length && !s.plays.length && !s.choices.length
+        ? `a record from ${earlierName(s.archive[0].schema)}, to be kept as it was`
+        : s.choices.length
+          ? `${plural(s.plays.length, 'play')} and ${plural(s.choices.length, 'kept choice')}`
+          : plural(s.plays.length, 'play');
     if (!window.confirm(`Restore this backup of ${what}?${replacing}`)) return;
     const result = store.importText(text);
     setMessage(result.ok ? 'Restored.' : result.error);

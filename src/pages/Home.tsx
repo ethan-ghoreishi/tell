@@ -12,7 +12,14 @@ export default function Home({ state }: { state: TellState }) {
     <div className="stack-xl">
       <header className="stack">
         <h1 className="title">Pick a story</h1>
-        <p className="lede">Each is a small choice somewhere unfamiliar, two or three minutes long. Some have more in common than they seem.</p>
+        <p className="lede">Each is a small choice somewhere unfamiliar, two or three minutes long. Your map keeps the moves you make.</p>
+        <p className="small dim">
+          Facing a real choice?{' '}
+          <a className="link" href="#/bring">
+            Bring a choice
+          </a>
+          , whether or not you’ve played.
+        </p>
       </header>
       <ul className="stack">
         {shelf.map(({ situation: s, plays }) => (
@@ -31,7 +38,7 @@ export default function Home({ state }: { state: TellState }) {
           </li>
         ))}
       </ul>
-      {shelf.every((x) => x.plays.length) && <p className="small dim">You’ve played them all. Any of them again, whenever you like; your map shows what connects them.</p>}
+      {shelf.every((x) => x.plays.length) && <p className="small dim">You’ve played them all. Any of them again, whenever you like.</p>}
     </div>
   );
 }

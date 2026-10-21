@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { discoveries, earlierPlays, fitsAgain, keyed, madeBy, markSeen, playView, recordPlay, type Discovery } from '../domain/engine';
-import { CONNECTIONS, SITUATIONS, situation as situationOf } from '../domain/situations';
-import type { Answers, Situation, StepAnswer, TellState } from '../domain/types';
+import { earlierPlays, fresh, keyed, markSeen, playView, recordPlay } from '../domain/engine';
+import { QUESTIONS, answersText, languageMove, type Shape } from '../domain/language';
+import { SITUATIONS, situation as situationOf } from '../domain/situations';
+import type { Answers, Play, Situation, StepAnswer, TellState } from '../domain/types';
 import { Section, StepPlay, useFocus } from '../steps';
 import { store } from '../store/store';
 import { shortDate } from '../ui';
 
-// A situation, played step by step, then its ending. Only a finished play is
-// recorded. An ending shows a connection only when this play found it; a
-// replay that fits one found earlier says so quietly, and never as new.
+// A story, played step by step, then its ending. Only a finished play is
+// recorded. The ending names the moves the play made, marking New the first
+// time the player is shown each, and the shape of the step the story turns on.
 
 export function SituationPage({ state, id }: { state: TellState; id: string }) {
   const s = situationOf(id);
@@ -46,7 +47,7 @@ export function SituationPage({ state, id }: { state: TellState; id: string }) {
         <>
           {before.length > 0 && (
             <p className="notice">
-              You played this on {shortDate(before[0].day)}. Playing again keeps both.
+              You played this on {shortDate(before[0].day)}. Playing again keeps every play.
             </p>
           )}
           <p className="scene">{s.setup}</p>
@@ -77,14 +78,11 @@ export function SituationPage({ state, id }: { state: TellState; id: string }) {
   );
 }
 
-/** The ending of a recorded play: how the story closes, what was done, and other ways through. */
+/** The ending of a recorded play: how the story closes, what was done and the moves it made, other ways through, and the shape of the step. */
 export function PlayPage({ state, id }: { state: TellState; id: string }) {
   const p = state.plays.find((x) => x.id === id);
   const ref = useFocus<HTMLHeadingElement>(id);
-  const found = discoveries(state, CONNECTIONS);
-  const made = p ? madeBy(found, p) : [];
-  const again = p ? fitsAgain(found, p) : [];
-  const fresh = useFresh(state, made);
+  const isNew = useFresh(state, p);
   if (!p) return <Missing what="That play" />;
   const v = playView(p);
   const earlier = earlierPlays(state, p);
@@ -103,30 +101,31 @@ export function PlayPage({ state, id }: { state: TellState; id: string }) {
       </header>
 
       <Section title="What you did" id="did">
+        <p className="small dim">Moves here are about {p.shown.turnsOn}.</p>
         <ul className="results">
-          {v.did.map((l) => (
-            <li key={l}>{l}</li>
+          {v.did.map((d) => (
+            <li key={d.line} className="stack-tight">
+              <span>{d.line}</span>
+              <MoveNames ids={d.moves} fresh={isNew} />
+            </li>
           ))}
         </ul>
         {earlier.length > 0 && (
           <p className="small dim">
-            Before: {earlier.map((x) => `${shortDate(x.day)}, ${playView(x).did.join(' ')}`).join(' ')}
+            Before: {earlier.map((x) => `${shortDate(x.day)}, ${playView(x).did.map((d) => d.line).join(' ')}`).join(' ')}
           </p>
         )}
       </Section>
 
       <Section title="Other ways through" id="others">
         <p>{v.others}</p>
+        {v.unmade.length > 0 && <p className="small dim">Other moves in this story: {v.unmade.map(moveName).join(' · ')}.</p>}
       </Section>
 
-      {made.map((d) => (
-        <DiscoveryCard key={d.connection.id} d={d} fresh={fresh.has(d.connection.id)} heading="h2" />
-      ))}
-      {again.map((d) => (
-        <p key={d.connection.id} className="small dim">
-          This play fits “{d.connection.title}” too, already on <a className="link" href="#/map">your map</a>.
-        </p>
-      ))}
+      <Section title="The shape of it" id="shape">
+        <p className="small dim">The four questions, about {p.shown.turnsOn}.</p>
+        <ShapeList shape={p.shown.shape} />
+      </Section>
 
       {p.shown.real && <Real s={p.shown} />}
 
@@ -143,60 +142,47 @@ export function PlayPage({ state, id }: { state: TellState; id: string }) {
 }
 
 /**
- * Which of these discoveries the player hadn't seen when this screen opened.
- * The answer is held for the life of the screen, so marking them seen doesn't
+ * The moves this play made that the player hadn't been shown as new when the
+ * screen opened. Held for the life of the screen, so marking them seen doesn't
  * take the label away while it's being read.
  */
-export function useFresh(state: TellState, shown: Discovery[]) {
-  const ids = shown.map((d) => d.connection.id);
-  const [fresh] = useState(() => new Set(ids.filter((id) => !state.seen[id])));
-  const key = ids.join();
+function useFresh(state: TellState, play: Play | undefined) {
+  const [shown] = useState(() => new Set(play ? fresh(state, play) : []));
+  const key = [...shown].join();
   useEffect(() => {
     if (key) store.update((s) => markSeen(s, key.split(','), new Date()));
   }, [key]);
-  return fresh;
+  return shown;
 }
 
-/** A distinction first, in a sentence or two; the choices behind it, and its limits, on request. */
-export function DiscoveryCard({ d, fresh, heading = 'h3' }: { d: Discovery; fresh: boolean; heading?: 'h2' | 'h3' }) {
-  const c = d.connection;
-  const H = heading;
+export const moveName = (id: string) => languageMove(id)?.name ?? id;
+
+/** A step's moves, named, each marked New the first time it's shown. */
+export function MoveNames({ ids, fresh }: { ids: string[]; fresh?: Set<string> }) {
+  if (!ids.length) return null;
   return (
-    <section className="card connection stack" aria-labelledby={`c-${c.id}`}>
-      {fresh && <p className="tag">New</p>}
-      <H className="section-title" id={`c-${c.id}`}>
-        {c.title}
-      </H>
-      <p>{c.says}</p>
-      <details className="more">
-        <summary className="link small">Your choices, and where it breaks</summary>
-        <dl className="facts small">
-          <dt>Your choices</dt>
-          <dd>
-            <ul className="stack-tight">
-              {d.plays.map((p) => (
-                <li key={p.id}>
-                  <a className="link" href={`#/play/${p.id}`}>
-                    {p.shown.title}
-                  </a>
-                  : {playView(p).did.join(' ')}
-                </li>
-              ))}
-            </ul>
-          </dd>
-          <dt>Where it breaks</dt>
-          <dd>{c.breaks}</dd>
-          <dt>To carry</dt>
-          <dd>{c.question}</dd>
-          {d.also.length > 0 && (
-            <>
-              <dt>Fits again</dt>
-              <dd>{d.also.map((p) => `${p.shown.title}${p.replay ? `, replay ${p.replay}` : ''} (${shortDate(p.day)})`).join('; ')}</dd>
-            </>
-          )}
-        </dl>
-      </details>
-    </section>
+    <span className="moves">
+      {ids.map((id) => (
+        <span key={id} className="move-name">
+          {moveName(id)}
+          {fresh?.has(id) && <span className="tag">New</span>}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** The four questions and these answers. */
+export function ShapeList({ shape }: { shape: Shape }) {
+  return (
+    <dl className="facts small">
+      {QUESTIONS.map((q) => (
+        <div key={q.id}>
+          <dt>{q.ask}</dt>
+          <dd>{answersText(shape, q.id)}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

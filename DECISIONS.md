@@ -2,7 +2,158 @@
 
 Durable record of non-obvious choices. Newest first.
 
-## Tell 3.1: connections that follow the path (2026-10-20)
+## Tell 4.0: a language of moves, and Bring a choice (2026-10-21)
+
+**What changed, and why.** The owner's brief (2026-10-21): take `PROPOSAL-4.0.md` (revision 3;
+kept in history at `902278b`, and removed from the tree with this release, as its header asks
+once decided) through validation into implementation if justified, as the leading design rather
+than a fixed specification; challenge the core model first; say what play is for; resolve the
+model's edge cases; prefer a smaller coherent system; current data need not be migrated. 3.1's
+connections described the past (a distinction between two stories, with writing that grew with
+the square of the stories) and gave the player nothing to use at the next choice. 4.0 replaces
+them with a small language: four questions that read the shape of a step, and fifteen named
+moves in six strategies. Play teaches it, the Map keeps the moves a player makes, and Bring a
+choice shows the moves that fit a real choice, by rule.
+
+**The mission.** The vision is unchanged. The mission's second half was "preserve the useful
+connections so people can draw on them when facing real choices"; it is now "keep the moves
+people make in them, and, when a real choice comes, show the moves that fit its shape". A draft
+said "lend those moves back", which was wrong: Bring a choice shows every move that fits, the same
+for everyone, and the player's own plays only lend examples. Settled in the acceptance review.
+
+**Checked before building (what can be done without participants).**
+1. *Reference choices.* 25 one-line choices, written and coded by the builder before any move
+   list or rule existed in code, with pass thresholds frozen first
+   (`tests/fixtures/reference-choices.json`, sha256 `ffe02589…`). Twenty in scope, of the kinds
+   Levitt's coin-toss study names (quitting a job, ending a relationship, moving, education,
+   marriage, minor ones like hair colour; *Review of Economic Studies* 88(1), 2021) and
+   independent-work ones; five expected to fit only partly (torn between two goods, a habit,
+   the other side's strategy, having a child, a duty).
+   - *Describable:* 20 of 20, but 17 carried an ambiguity flagged while coding. On "can it be
+     undone?" it was no against at a cost, which show the same moves. On waiting (not much
+     against the chance goes) and how bad, the ambiguity changes the moves: agreement there is
+     the first thing to test with people.
+   - *A concrete move beyond the options people name:* 20 of 20, each a move the rules showed
+     for that case, with an instance of at most 15 words (the builder's judgement):
+     quitting for a year out, try it small (a month's unpaid leave first); ending a
+     relationship, try it small (a month living apart first); moving for a partner, ask for more
+     time (the employer pushes the start date back); a master's, split it (part-time, keeping the
+     job); proposing, look first (talk about marriage together first); green hair, try it small
+     (a wash-out colour or one streak); selling the flat, make it undoable (let it for a year and
+     rent); asking for a raise, set a tripwire (no raise by June, start looking); offer A or wait
+     for B, ask for more time (a week more from A); retraining as a nurse, try it small (months as
+     a healthcare assistant); a dog, try it small (foster for a month); a mother moving in, guard
+     (agree now what happens if it doesn't work); open-sourcing, try it small (share privately
+     with five users); going full-time, split it (four days a week first); raising prices, try it
+     small (new customers only); launching, try it small (a small beta list); a studio lease, make
+     it undoable (a break clause at six months); an exclusive client, make it undoable (an exit
+     clause at three months); a rewrite, try it small (one module, the rest running); self-
+     publishing, try it small (a novella first).
+   - *Tone:* no string or reason that urges or describes the person (a regex and a read).
+   - *Filtering:* at least one strategy hidden in 17 of 20, but only the waiting and how-bad
+     questions filtered. Every in-scope choice was hard to undo and "check first; only once it's
+     done". So the value is the reframe and each move's question more than the selection, and
+     results lead with the questions moves put.
+   - *Partial cases:* results never reached the core difficulty, and two read badly ("hand it
+     over" for having a child). The scope is now said before the questions as well as after.
+   - *Limits:* one coder, invented choices, agreement unmeasured. Not evidence that the language
+     fits real choices; `PILOT.md` says what is.
+2. *Every set of answers* (2,040): settling it and another option always there, every move with
+   a derived reason, fixed order; between 3 and 15 moves show.
+3. *The stories, tagged:* six distinct shapes, every question answered two ways among them, 12 of
+   15 moves shown in play.
+
+**Where 4.0 departs from the proposal.**
+1. *"When will you know?" lost "by trying a small part".* That answer is a move (try it small)
+   leaking into the situation: the very fault (M1) the proposal set out to fix. Answers are now
+   timing only: before, by checking or asking; in time, by waiting; only once it's done; maybe
+   never.
+2. *No follow-ups.* Answered from inside the choice ("could part go first? no"), a follow-up
+   hides the move most worth seeing. A move whose condition the four questions can't read puts
+   it as a question instead: "Could part of it go first, and be stopped?"
+3. *"It" is the step.* Undo and how-bad belong to a step, not a situation. Every question is
+   about the step the person is unsure of (said once, before the questions); each story names
+   the step it turns on (`turnsOn`) and carries that step's shape; each answer names its moves.
+4. *Not sure and None of these differ:* could be (the move shows, with "If …") against doesn't
+   apply (it doesn't). No special rule for two Nones; when all four are None, Tell says the
+   questions don't describe the choice.
+5. *Settle it is commit, rule it out, set a tripwire.* "Let it go" read as giving up the thing,
+   which inverted at the boat, where keeping her whatever happens rules out the sale.
+6. *Principles are conditions on a move's worth* ("…only if…"). The proposal's "limiting it
+   comes first" was an instruction.
+7. *Not built:* proto and validated statuses (every move would be proto; About says so once),
+   language mapping tables (there is one version; records carry `language`), the closest-story
+   pointer, follow-ups, research files, the growth budget. Each is in `FUTURE.md` or `PILOT.md`.
+
+**What play is for (the owner's question).** Accepted in its preserving form: every play keeps
+the whole situation (its shape, every option and its moves, what was found out, what was
+chosen), so the record is contextual evidence of the player's moves in situations of known
+shape. The Map lists it two ways: each move with every play that made it, and, only where the
+played stories' shapes differ on a question, those stories side by side with their moves. Never
+counted, summarised or put into a sentence, and never used by Bring a choice except as examples.
+Rejected: presenting it as "how your move changed when the situation changed". Two stories
+differ in many ways at once, a single pair is noise, and any sentence joining them infers a
+cause; only minimal-pair variants could carry that, and even then as two listed plays. Play's
+other roles: worth playing by itself; felt meaning for each move; shapes to recognise, since
+every ending shows the shape of the step. Whether play makes real choices easier to read is a
+claim for the pilot.
+
+**Content.** All six stories bumped and tagged. The film's endings stop before the lab: both had
+revealed take four soft, which vindicated the second take in hindsight. The beans gain a band
+(all ten rows) so splitting the plot and giving it all to the beans are told apart. The loaf's
+second step names its moves. The boat's step only shows once it's done: asking at the club brings
+an option, not an answer about sailing. Three moves have no story yet (make it undoable, ask for
+more time, set a tripwire), and they did much of the work in the reference choices; nor do the
+answers "at a cost" and "maybe never". New content goes there first (`FUTURE.md`).
+
+**Fixed from the proposal's review.** D1: everything shown comes from snapshots, so a content
+edit can't rewrite what a play made (tested). D4: "keeps every play". D5: the storage note
+(about 800 plays). D6: an unchanged state isn't rewritten. C1 is moot without connections; the
+photograph's point now lives in look first's limit.
+
+**Data.** Schema 6: plays (with `language`), kept choices (the answers, the moves as shown with
+their reasons, prices and limits, what is being tried, a note; the example under each move is
+drawn from the record when the choice is opened, so it can become the player's own), `seen` by
+move, archive. Schemas 1–5 are archived whole; a real 3.1 document written by 3.1's engine joins
+the 2.0 and 3.0 fixtures. Records from a newer language are refused as newer. The owner's own 3.1 record in the browser pane (four plays) was
+archived on first load and checked byte-identical against a copy taken beforehand. From schema 6
+on, a newer schema migrates plays and kept choices rather than archiving them.
+
+**Acceptance review, before release.** The owner couldn't test by hand, so the builder exercised
+the production build in Chromium and WebKit at 390×844 and 375×667: every story down unusual
+paths (all the budget spent, waiting past Thursday, no rows, all ten rows), replays, six real
+choices in Bring a choice (unsure throughout, None of these throughout, partly described, changed
+answers, leaving without keeping, keeping, trying, notes, removing), reloads, a junk and a newer
+backup refused, Export → Restore (cancelled, then accepted, exact), migration from schemas 1, 3, 4
+and the owner's real 3.1 record (downloads back identical), and offline play and keeping in
+Chromium. Fixed from what that showed:
+- Endings say which step the moves are about ("Moves here are about selling the boat"): keeping
+  the boat whatever happens is tagged "rule it out", which read backwards without it.
+- When some answers are None of these, a notice before the moves says they cover only part of
+  the choice; before, that was said only at the bottom.
+- The Map folds each question of "the shapes you've played" into a row: after six stories it ran
+  to a screen of repeated lines. Its first line now says only what is there.
+- Home links to Bring a choice. Reached only through the Map, the pilot's "brings a choice back
+  unprompted" would have measured finding it, not wanting it.
+- "Make it undoable" asks about an easier way back, which reads right after "No" and after "Yes,
+  at a cost"; examples read "In your play of …"; About no longer says Bring a choice lends the
+  player's moves back.
+- A long word typed as a label ran off the screen inside `<main>`, which the journeys' sideways
+  check didn't look at. Labels wrap, and the check now covers `<main>`.
+- Leftovers of 3.1: the page description, and two contrast-test labels.
+Known and accepted: for choices outside the language's scope (a child, a duty), some moves still
+read oddly ("Hand it over" for a second child); they arrive as questions, under the notice, and
+the scope is said before the questions and after the moves.
+
+**What the unrun pilot leaves open.** Nobody but the builder has used 4.0. Untested: whether people
+read the same choice the same way (agreement, `PILOT.md` §0, comes first: waiting and how bad are
+where the builder's own coding wavered); whether the moves widen what people consider for real
+choices; whether play makes shapes easier to read than a plain list; whether people bring choices
+back unprompted. Until §0 reports, no move counts as established.
+
+---
+
+## Tell 3.1: connections that follow the path (2026-10-20; superseded by 4.0)
 
 **What changed, and why.** The owner's review of 3.0: Map too long and explanatory; some
 connections flattened materially different choices into one interpretation (selling and keeping
