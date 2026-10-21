@@ -300,6 +300,9 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       await close();
       await rows.filter({ hasText: 'Hold it open' }).click();
       expect(await card().textContent()).toContain('The old oak: Chose “Leave it, and fence off the path”.');
+      // Answers not yet kept live only on this screen, so the card names stories rather than leaving for them.
+      expect(await region(card(), 'Stories with it').textContent()).toBe('Stories with itThe old oakYour uncle’s boat');
+      expect(await card().getByRole('link').count()).toBe(0);
       await close();
 
       // Kept only when the player keeps it; then a move can be marked from its card, and a note added.
@@ -307,6 +310,7 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       await button(page, 'Keep this choice').click();
       await page.getByText(/^Kept 1 Oct/).waitFor();
       await rows.filter({ hasText: 'Try it small' }).click();
+      expect(await region(card(), 'Stories with it').getByRole('link').allTextContents()).toEqual(['The new loaf', 'The last packet', 'Your uncle’s boat, with no deadline']);
       await button(page, 'I’m trying this').click();
       await button(page, 'Trying this').waitFor();
       await close();

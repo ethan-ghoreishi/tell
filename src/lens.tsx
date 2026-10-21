@@ -10,7 +10,9 @@ import { store } from './store/store';
 // a story, at its ending, on the map and for a real choice: a move as a named
 // pill, a step's shape as four cells, and one card for each, opened over
 // whatever screen it was tapped on. A card is an overlay, never a page: a
-// story in progress keeps its answers in the page, and leaving would lose them.
+// story in progress, and a choice not yet kept, hold their answers in the
+// page, and leaving would lose them, so there a card names what it would
+// otherwise link to.
 
 export type Card =
   /** `shown` is the move as a result or kept choice showed it; `choice`, the kept choice it was opened from. */
@@ -91,8 +93,8 @@ export function ShapeCells({ shape, label, was, current, onCell }: { shape: Part
   );
 }
 
-/** Hosts the one card that can be open. Following a link from it closes it; inside a story, it offers none. */
-export function CardHost({ state, inStory, children }: { state: TellState; inStory: boolean; children: ReactNode }) {
+/** Hosts the one card that can be open. Following a link from it closes it; with `links` off, it names instead of linking. */
+export function CardHost({ state, links, children }: { state: TellState; links: boolean; children: ReactNode }) {
   const [card, setCard] = useState<Card | null>(null);
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -122,7 +124,7 @@ export function CardHost({ state, inStory, children }: { state: TellState; inSto
       >
         {card && (
           <div className="sheet-inner stack-lg">
-            {card.kind === 'move' ? <MoveCard state={state} card={card} links={!inStory} /> : <QuestionCard state={state} card={card} />}
+            {card.kind === 'move' ? <MoveCard state={state} card={card} links={links} /> : <QuestionCard state={state} card={card} />}
             <button className="btn btn-block" onClick={() => setCard(null)}>
               Close
             </button>
@@ -244,18 +246,24 @@ function MoveCard({ state, card, links }: { state: TellState; card: Extract<Card
           </ul>
         </section>
       )}
-      {links && stories.length > 0 && (
+      {stories.length > 0 && (
         <section className="stack-tight small" aria-labelledby="card-stories">
           <h3 className="eyebrow" id="card-stories">
             Stories with it
           </h3>
-          <p className="replays">
+          <ul className="replays">
             {stories.map((s) => (
-              <a key={s.id} className="link" href={`#/situation/${s.id}`}>
-                {s.title}
-              </a>
+              <li key={s.id}>
+                {links ? (
+                  <a className="link" href={`#/situation/${s.id}`}>
+                    {s.title}
+                  </a>
+                ) : (
+                  <strong>{s.title}</strong>
+                )}
+              </li>
             ))}
-          </p>
+          </ul>
         </section>
       )}
     </>

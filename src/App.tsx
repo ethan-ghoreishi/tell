@@ -46,7 +46,7 @@ export default function App() {
   const tab = page === 'bring' || page === 'choice' ? 'bring' : page === 'map' ? 'map' : page === 'about' ? 'about' : 'home';
 
   return (
-    <CardHost state={state} inStory={page === 'situation'}>
+    <CardHost state={state} links={page !== 'situation' && page !== 'bring'}>
       <div className="app">
         {/* The nav comes first for assistive tech; CSS places it at the bottom. */}
         <nav className="tabbar" aria-label="Primary">

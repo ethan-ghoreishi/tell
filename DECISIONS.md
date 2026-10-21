@@ -25,7 +25,8 @@ recover), opened six drawers on 14 of 15 moves, six lines each.
 **What changed.**
 1. *One visual unit for each idea, everywhere.* A move is a named pill; a step's shape is four
    cells (Undo, Know when, If you wait, If it goes badly), with short answers. Each opens one card,
-   as an overlay, never a page: a story in progress keeps its answers in the page. The move card
+   as an overlay, never a page: a story in progress, and a choice not yet kept, hold their answers
+   in the page, so there the card names stories instead of linking away from them. The move card
    gives what the move is, the answers it fits (the rule, as cells), when that is worth something
    (the question's principle), its price, its limit, an everyday instance, where the player made
    it, the kept choices that showed it, and the stories that offer it. The question card gives the
@@ -88,8 +89,10 @@ earlier 4.0 build reads a 4.1 record (the new fields are ignored there).
 more than one question. Base stories keep the old rules. No answer's anchor names a story. The
 journeys play the new flow in both engines at both sizes, open cards (checked for wording, overflow
 and 44px targets like every screen), play the harvest both ways, change an answer from its cell,
-and mark a move as tried from its card. The review file prints each variant beside its story; every
-path was read.
+and mark a move as tried from its card. A card on unkept results names its stories without links;
+on a kept choice it links. Contrast covers the tinted cells: a changed cell's label uses the dim
+colour, as the faint one fell to 4.1:1 on the tint. The review file prints each variant beside its
+story; every path was read.
 
 **Untested, for the pilot.** Whether moves shown on options make play feel like a test, or lead
 players to pick by move name rather than by the story; whether variants give the intended "aha" or

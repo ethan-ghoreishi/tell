@@ -86,9 +86,9 @@ why goes in a dated `DECISIONS.md` entry; deferred ideas go in `FUTURE.md`.
 ## One unit everywhere (`src/lens.tsx`; journeys)
 
 - A move always shows as its named pill, and a step's shape as four cells. A pill or a cell opens
-  one card, as an overlay, never a page: a story in progress holds its answers in the page. Inside
-  a story a card offers no links. The same card opens from a story, an ending, the Map and Bring a
-  choice.
+  one card, as an overlay, never a page: a story in progress, and a choice not yet kept, hold their
+  answers in the page, so there a card names stories and plays instead of linking to them. The same
+  card opens from a story, an ending, the Map and Bring a choice.
 - In a story, the shape of the step it turns on is shown with the setup; every option and ask shows
   its moves before it's chosen; a number's moves show as it changes. An ending shows each step's
   moves with what it cost and risked in the story's terms.

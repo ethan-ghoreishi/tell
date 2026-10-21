@@ -64,6 +64,10 @@ const PAIRS: { fg: string; bg: string; over?: string; min: number; where: string
   { fg: 'accent', bg: 'surface-2', min: TEXT, where: '.link in .card-quiet' },
   { fg: 'text', bg: 'accent-soft', over: 'surface', min: TEXT, where: '.condition, and a pressed option or button, on a surface' },
   { fg: 'text', bg: 'accent-soft', over: 'bg', min: TEXT, where: '.condition on the page (what was found, what asking said)' },
+  { fg: 'text', bg: 'accent-soft', over: 'surface-2', min: TEXT, where: 'a changed cell inside “Reread the story”' },
+  { fg: 'text-dim', bg: 'accent-soft', over: 'bg', min: TEXT, where: 'a changed cell’s label and “Was:”, and a pressed answer’s line, on the page' },
+  { fg: 'text-dim', bg: 'accent-soft', over: 'surface', min: TEXT, where: 'the same in the What-if .card or the card sheet' },
+  { fg: 'text-dim', bg: 'accent-soft', over: 'surface-2', min: TEXT, where: 'a changed cell’s label and “Was:” inside “Reread the story”' },
   { fg: 'accent-contrast', bg: 'accent', min: TEXT, where: '.btn-primary' },
   { fg: 'accent', bg: 'bar-track', min: GRAPHIC, where: 'the plot’s cells and the day marks' },
 ];

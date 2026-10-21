@@ -651,7 +651,8 @@ details[open] > summary.strategy::after {
   gap: 0 16px;
 }
 
-.replays a {
+.replays a,
+.replays strong {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
@@ -835,6 +836,11 @@ details > summary.stack-tight {
 .cell-q.changed {
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+/* The faint label wouldn't hold its contrast on the tint. */
+.cell-q.changed .cell-label {
+  color: var(--text-dim);
 }
 
 .cell-q.current {
