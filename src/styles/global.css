@@ -683,12 +683,13 @@ button.cell-q:active {
   gap: 0 6px;
 }
 
-/* The whole 44px is the target; the pill is what shows. */
+/* The target is 44px; 2px of headroom keeps sub-pixel text metrics (they
+   differ by OS/font) from rounding it under on some engines. */
 .move-btn {
   display: inline-flex;
   align-items: center;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 46px;
+  min-height: 46px;
   padding: 0;
   border: 0;
   background: none;
