@@ -2,16 +2,18 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import { examples, playedWith, setTrying, storyMoves } from './domain/engine';
 import { QUESTIONS, STRATEGIES, answersTo, languageMove, question, shortText, type LanguageMove, type QuestionId, type Shape } from './domain/language';
 import { SITUATIONS } from './domain/situations';
-import { list } from './domain/text';
+import { capital, list } from './domain/text';
 import type { ShownMove, TellState } from './domain/types';
 import { store } from './store/store';
+import { CheckIcon, CloseIcon } from './ui';
 
 // What every screen shares, so a move and a shape look and behave the same in
 // a story, at its ending, on the map and for a real choice: a move as a named
-// pill, a step's shape as four cells, and one card for each, opened over
-// whatever screen it was tapped on. A card is an overlay, never a page: a
-// story in progress, and a choice not yet kept, hold their answers in the
-// page, and leaving would lose them, so there a card names what it would
+// pill, a step's shape as four cells in one tile, and one card for each,
+// opened over whatever screen it was tapped on. Every pill and every cell
+// opens its card, an option's pills included. A card is an overlay, never a
+// page: a story in progress, and a choice not yet kept, hold their answers in
+// the page, and leaving would lose them, so there a card names what it would
 // otherwise link to.
 
 export type Card =
@@ -24,25 +26,6 @@ export const useCard = () => useContext(Open);
 
 export const moveName = (id: string) => languageMove(id)?.name ?? id;
 
-const Pill = ({ id, fresh }: { id: string; fresh?: Set<string> }) => (
-  <span className="move-name">
-    {moveName(id)}
-    {fresh?.has(id) && <span className="tag">New</span>}
-  </span>
-);
-
-/** Moves, named. Not a control, so it can sit inside an option. */
-export function Moves({ ids }: { ids: string[] }) {
-  if (!ids.length) return null;
-  return (
-    <span className="moves">
-      {ids.map((id) => (
-        <Pill key={id} id={id} />
-      ))}
-    </span>
-  );
-}
-
 /** Moves, named, each opening its card; New the first time an ending shows one. */
 export function MoveButtons({ ids, fresh }: { ids: string[]; fresh?: Set<string> }) {
   const open = useCard();
@@ -51,7 +34,10 @@ export function MoveButtons({ ids, fresh }: { ids: string[]; fresh?: Set<string>
     <span className="moves">
       {ids.map((id) => (
         <button key={id} className="move-btn" onClick={() => open({ kind: 'move', id })}>
-          <Pill id={id} fresh={fresh} />
+          <span className="move-name">
+            {moveName(id)}
+            {fresh?.has(id) && <span className="tag">New</span>}
+          </span>
         </button>
       ))}
     </span>
@@ -60,17 +46,24 @@ export function MoveButtons({ ids, fresh }: { ids: string[]; fresh?: Set<string>
 
 const given = (shape: Partial<Shape>, q: QuestionId) => (q === 'know' ? (shape.know ?? []) : shape[q] ? [shape[q] as string] : []);
 
+/** "Can it be undone? No", "If you wait: Risk grows". */
+const read = (label: string, value: string) => `${label}${label.endsWith('?') ? '' : ':'} ${value}`;
+
 /**
- * A step's shape: the four questions as cells, each opening its card (or
- * `onCell`). A cell that differs from `was`, the story this one varies, says
- * what it was. Unanswered cells show a dash.
+ * A step's shape: the four questions as the cells of one tile, each opening
+ * its card (or `onCell`). A cell that differs from `was`, the story this one
+ * varies, says what it was. Unanswered cells show a dash.
  */
 export function ShapeCells({ shape, label, was, current, onCell }: { shape: Partial<Shape>; label?: string; was?: Shape; current?: QuestionId; onCell?: (q: QuestionId) => void }) {
   const open = useCard();
   return (
-    <div className="shape stack-tight">
-      {label && <p className="small dim">{label}</p>}
-      <div className="cells-q" role="group" aria-label={label ?? 'The shape of the step'}>
+    <div className="shape" role="group" aria-label={label ?? 'The shape of the step'}>
+      {label && (
+        <p className="shape-head" aria-hidden="true">
+          {label}
+        </p>
+      )}
+      <div className="shape-grid">
         {QUESTIONS.map((q) => {
           const has = given(shape, q.id).length > 0;
           const value = has ? shortText(shape as Shape, q.id) : '—';
@@ -79,7 +72,7 @@ export function ShapeCells({ shape, label, was, current, onCell }: { shape: Part
             <button
               key={q.id}
               className={`cell-q${before ? ' changed' : ''}${current === q.id ? ' current' : ''}`}
-              aria-label={`${q.short}: ${value}${before ? `, was ${before}` : ''}`}
+              aria-label={`${read(q.short, value)}${before ? `, was ${before}` : ''}`}
               onClick={() => (onCell ? onCell(q.id) : open({ kind: 'question', id: q.id, shape }))}
             >
               <span className="cell-label">{q.short}</span>
@@ -102,7 +95,10 @@ export function CardHost({ state, links, children }: { state: TellState; links: 
     if (!d) return;
     if (card && !d.open) d.showModal();
     if (!card && d.open) d.close();
-    if (card) d.querySelector<HTMLElement>('#card-title')?.focus();
+    if (card) {
+      d.scrollTo(0, 0);
+      d.querySelector<HTMLElement>('#card-title')?.focus();
+    }
   }, [card]);
   useEffect(() => {
     const close = () => setCard(null);
@@ -123,11 +119,13 @@ export function CardHost({ state, links, children }: { state: TellState; links: 
         }}
       >
         {card && (
-          <div className="sheet-inner stack-lg">
-            {card.kind === 'move' ? <MoveCard state={state} card={card} links={links} /> : <QuestionCard state={state} card={card} />}
-            <button className="btn btn-block" onClick={() => setCard(null)}>
-              Close
+          <div className="sheet-inner">
+            <button className="sheet-close" aria-label="Close" onClick={() => setCard(null)}>
+              <CloseIcon />
             </button>
+            <div className="stack-lg">
+              {card.kind === 'move' ? <MoveCard state={state} card={card} links={links} /> : <QuestionCard state={state} card={card} />}
+            </div>
           </div>
         )}
       </dialog>
@@ -140,9 +138,9 @@ function Fits({ m }: { m: LanguageMove }) {
   const needs = Object.entries(m.fits) as [QuestionId, string[]][];
   if (!needs.length) return <p className="small dim">Fits any step: always possible.</p>;
   return (
-    <div className="stack-tight">
-      <p className="small dim">Fits a step with</p>
-      <div className="cells-q">
+    <div className="shape">
+      <p className="shape-head">Fits a step with</p>
+      <div className={`shape-grid${needs.length === 1 ? ' one' : ''}`}>
         {needs.map(([q, as]) => (
           <span key={q} className="cell-q">
             <span className="cell-label">{question(q).short}</span>
@@ -173,7 +171,7 @@ function MoveCard({ state, card, links }: { state: TellState; card: Extract<Card
   const trying = !!choice?.trying.includes(card.id);
   return (
     <>
-      <header className="stack-tight">
+      <header className="stack-tight card-head">
         {strategy && <p className="eyebrow">{strategy.name}</p>}
         <h2 className="title" id="card-title" tabIndex={-1}>
           {w.name}
@@ -182,27 +180,32 @@ function MoveCard({ state, card, links }: { state: TellState; card: Extract<Card
       <div className="stack">
         {w.asks && <p className="question">{w.asks}</p>}
         <p>{w.is}</p>
-        {m && <Fits m={m} />}
-        {principle && <p className="small dim">{principle}</p>}
-        <dl className="facts small">
-          <div>
-            <dt>Costs</dt>
-            <dd>{w.costs}</dd>
-          </div>
-          <div>
-            <dt>Breaks</dt>
-            <dd>{w.breaks}</dd>
-          </div>
-          <div>
-            <dt>For instance</dt>
-            <dd>{w.like.replace(/^./, (c) => c.toUpperCase())}.</dd>
-          </div>
-        </dl>
       </div>
+      <dl className="facts">
+        <div>
+          <dt>Costs</dt>
+          <dd>{w.costs}</dd>
+        </div>
+        <div>
+          <dt>Breaks</dt>
+          <dd>{w.breaks}</dd>
+        </div>
+        <div>
+          <dt>For instance</dt>
+          <dd>{capital(w.like)}.</dd>
+        </div>
+      </dl>
       {choice && (
         <button className={`btn btn-block${trying ? ' on' : ''}`} aria-pressed={trying} onClick={() => store.update((s) => setTrying(s, choice.id, card.id, !trying))}>
+          {trying && <CheckIcon className="btn-icon" />}
           {trying ? 'Trying this' : 'I’m trying this'}
         </button>
+      )}
+      {m && (
+        <div className="stack">
+          <Fits m={m} />
+          {principle && <p className="small dim">{principle}</p>}
+        </div>
       )}
       {mine.length > 0 && (
         <section className="stack-tight small" aria-labelledby="card-mine">
@@ -276,19 +279,22 @@ function QuestionCard({ state, card }: { state: TellState; card: Extract<Card, {
   const on = card.shape ? given(card.shape, q.id) : [];
   return (
     <>
-      <header className="stack-tight">
-        <p className="eyebrow">{q.short}</p>
+      <header className="card-head">
         <h2 className="title" id="card-title" tabIndex={-1}>
           {q.ask}
         </h2>
       </header>
-      <ul className="options">
+      <ul className="answers">
         {q.answers.map((a) => {
           const stories = playedWith(state, q.id, a.id);
+          const here = on.includes(a.id);
           return (
-            <li key={a.id} className={`option${on.includes(a.id) ? ' on' : ''}`}>
-              <span className="option-title">{a.text}</span>
-              <span className="option-line small dim">
+            <li key={a.id} className={here ? 'on' : undefined} aria-current={here || undefined}>
+              <span className="answer-text">
+                {a.text}
+                {here && <CheckIcon className="answer-check" />}
+              </span>
+              <span className="small dim">
                 Like {a.like}
                 {stories.length ? `; as in ${list(stories)}` : ''}.
               </span>

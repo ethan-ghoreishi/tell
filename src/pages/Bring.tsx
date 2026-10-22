@@ -54,23 +54,23 @@ export function BringPage({ state }: { state: TellState }) {
               It stays on this device. Tell never reads it.
             </span>
           </div>
-          <p className="small dim">{SCOPE}</p>
           <button className="btn btn-primary btn-block" onClick={() => setAt(0)}>
             Start
           </button>
+          <p className="small dim">{SCOPE}</p>
         </div>
         {state.choices.length > 0 && (
           <Section title="Your choices" id="choices">
-            <ul className="results">
+            <ul className="group">
               {[...state.choices].reverse().map((c) => (
-                <li key={c.id} className="stack-tight">
-                  <a className="link" href={`#/choice/${c.id}`}>
-                    {c.label || 'A choice'}
+                <li key={c.id}>
+                  <a className="row" href={`#/choice/${c.id}`}>
+                    <span className="row-title">{c.label || 'A choice'}</span>
+                    <span className="small dim">
+                      Kept {shortDate(c.day)}
+                      {c.trying.length > 0 && `. Trying: ${c.trying.map((id) => c.shown.flatMap((l) => l.moves).find((m) => m.id === id)?.name ?? id).join(', ')}`}
+                    </span>
                   </a>
-                  <span className="small dim">
-                    Kept {shortDate(c.day)}
-                    {c.trying.length > 0 && `. Trying: ${c.trying.map((id) => c.shown.flatMap((l) => l.moves).find((m) => m.id === id)?.name ?? id).join(', ')}`}
-                  </span>
                 </li>
               ))}
             </ul>
@@ -105,7 +105,8 @@ export function BringPage({ state }: { state: TellState }) {
         </header>
         <div className="options" role="group" aria-label={q.ask}>
           {q.answers.map((a) => {
-            const stories = playedWith(state, q.id, a.id);
+            // Two played steps at most: an anchor, not a list of everything played.
+            const stories = playedWith(state, q.id, a.id).slice(0, 2);
             return (
               <button key={a.id} className={`option${now.includes(a.id) ? ' on' : ''}`} aria-pressed={now.includes(a.id)} onClick={() => pick(a.id)}>
                 <span className="option-title">{a.text}</span>
@@ -116,11 +117,13 @@ export function BringPage({ state }: { state: TellState }) {
               </button>
             );
           })}
-          {ESCAPES.map((a) => (
-            <button key={a.id} className={`option${now.includes(a.id) ? ' on' : ''}${a.id === NOT_SURE ? ' escape' : ''}`} aria-pressed={now.includes(a.id)} onClick={() => pick(a.id)}>
-              <span className="option-title">{a.text}</span>
-            </button>
-          ))}
+          <div className="escapes">
+            {ESCAPES.map((a) => (
+              <button key={a.id} className={`option escape${now.includes(a.id) ? ' on' : ''}`} aria-pressed={now.includes(a.id)} onClick={() => pick(a.id)}>
+                {a.text}
+              </button>
+            ))}
+          </div>
         </div>
         {q.multi && (
           <button className="btn btn-primary btn-block" disabled={!now.length} onClick={onward}>
@@ -250,13 +253,13 @@ function Results({ lines, shape, trying, choice }: { lines: ShownLine[]; shape: 
       </div>
       {lines.map((l) => (
         <div key={l.strategy} className="stack-tight">
-          <h3 className="eyebrow">{l.name}</h3>
-          <ul className="cells">
+          <h3 className="eyebrow group-head">{l.name}</h3>
+          <ul className="group">
             {l.moves.map((m) => (
-              <li key={m.id} className="cell">
+              <li key={m.id}>
                 <button className="row" onClick={() => open({ kind: 'move', id: m.id, shown: m, choice })}>
                   <span className="row-head">
-                    <span className="option-title">{m.name}</span>
+                    <span className="row-title">{m.name}</span>
                     {trying?.includes(m.id) && <span className="tag">Trying</span>}
                   </span>
                   <span>{m.asks ?? m.is}</span>

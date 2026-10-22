@@ -8,14 +8,17 @@ import MapPage from './pages/MapPage';
 import { PlayPage, SituationPage } from './pages/Play';
 import { CardHost } from './lens';
 import { store, useTell, type Snapshot } from './store/store';
-import { BringIcon, InfoIcon, MapIcon, MarkIcon, PlayIcon, download } from './ui';
+import { BackIcon, BringIcon, MapIcon, PlayIcon, download } from './ui';
 
 const TABS = [
   { route: 'home', href: '#/', label: 'Play', Icon: PlayIcon },
   { route: 'bring', href: '#/bring', label: 'Bring a choice', Icon: BringIcon },
   { route: 'map', href: '#/map', label: 'Map', Icon: MapIcon },
-  { route: 'about', href: '#/about', label: 'About', Icon: InfoIcon },
 ] as const;
+
+/** A story, its ending and About take the whole screen, with a way back to the tab they were opened from instead of the tabs. */
+const FOCUSED = ['situation', 'play', 'about'];
+const BACK: Record<string, string> = { bring: 'Bring a choice', choice: 'Bring a choice', map: 'Map' };
 
 /** Hash routing: no server rewrites, works offline from any path. */
 function useRoute() {
@@ -33,36 +36,43 @@ export default function App() {
   const snapshot = useTell();
   const route = useRoute();
   const main = useRef<HTMLElement>(null);
+  const [page, ...rest] = route.split('/');
+  const arg = rest.join('/');
+  const focused = FOCUSED.includes(page);
+  // The tab page a focused screen was opened from, for its way back.
+  const from = useRef('#/');
   // Only <main> scrolls; every page opens at the top.
   // Braces matter: Chromium's scrollTo now returns a Promise, which React would take for a cleanup.
   useEffect(() => {
     main.current?.scrollTo(0, 0);
-  }, [route]);
+    if (!focused) from.current = `#/${route === 'home' ? '' : route}`;
+  }, [route, focused]);
 
   if (snapshot.status === 'refused') return <Recovery snapshot={snapshot} />;
   const { state, saveError, archived } = snapshot;
-  const [page, ...rest] = route.split('/');
-  const arg = rest.join('/');
-  const tab = page === 'bring' || page === 'choice' ? 'bring' : page === 'map' ? 'map' : page === 'about' ? 'about' : 'home';
+  const tab = page === 'bring' || page === 'choice' ? 'bring' : page === 'map' ? 'map' : 'home';
 
   return (
     <CardHost state={state} links={page !== 'situation' && page !== 'bring'}>
-      <div className="app">
-        {/* The nav comes first for assistive tech; CSS places it at the bottom. */}
-        <nav className="tabbar" aria-label="Primary">
-          {TABS.map(({ route: r, href, label, Icon }) => (
-            <a key={r} className="tab" href={href} aria-current={tab === r ? 'page' : undefined}>
-              <Icon />
-              <span>{label}</span>
+      <div className={`app${focused ? ' focused' : ''}`}>
+        {focused ? (
+          <header className="topbar">
+            <a className="back" href={from.current}>
+              <BackIcon />
+              {BACK[from.current.slice(2).split('/')[0]] ?? 'Stories'}
             </a>
-          ))}
-        </nav>
-        <header className="app-header">
-          <a className="wordmark" href="#/">
-            <MarkIcon className="mark" />
-            Tell
-          </a>
-        </header>
+          </header>
+        ) : (
+          // The nav comes first for assistive tech; CSS places it at the bottom.
+          <nav className="tabbar" aria-label="Primary">
+            {TABS.map(({ route: r, href, label, Icon }) => (
+              <a key={r} className="tab" href={href} aria-current={tab === r ? 'page' : undefined}>
+                <Icon />
+                <span>{label}</span>
+              </a>
+            ))}
+          </nav>
+        )}
         <main className="main" ref={main}>
           <div className="main-inner stack-lg">
             {saveError && (
@@ -72,7 +82,11 @@ export default function App() {
             )}
             {archived && (
               <p className="notice" role="status">
-                Tell has changed. Your record from {earlierName(archived)} is kept exactly as it was, and you can download it from About.
+                Tell has changed. Your record from {earlierName(archived)} is kept exactly as it was, and you can download it from{' '}
+                <a className="link" href="#/about">
+                  About
+                </a>
+                .
               </p>
             )}
             <UpdateNotice />

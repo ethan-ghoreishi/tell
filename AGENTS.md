@@ -44,9 +44,11 @@ why goes in a dated `DECISIONS.md` entry; deferred ideas go in `FUTURE.md`.
   `PILOT.md` says how one becomes established.
 - Bump `LANGUAGE` when a meaning changes. Never reuse or remove a move or answer id without a
   mapping for the records that name it: plays and kept choices record the version they used.
-- Every answer has a few-word form for the shape's cells (`short`) and an everyday moment
-  (`like`) that names no story. The steps of stories the player has played follow it as anchors
-  (`playedWith`, from the plays' snapshots), never before they're played.
+- Every question has a few-word form for its cell's label, itself a question where it reads as one
+  ("Can it be undone?"); every answer has one for the cell's value (both `short`) and an everyday
+  moment (`like`) that names no story. The steps of stories the player has played follow it as
+  anchors (`playedWith`, from the plays' snapshots: two at most on an answer in Bring a choice,
+  all of them in the question's card), never before they're played.
 - Wording rules (`tests/wording.ts`) cover every string: no psychology vocabulary, nothing about
   the player, no verdicts, no advice words, no currency symbols. The journeys apply them to every
   screen as shown, and to every open card.
@@ -85,10 +87,12 @@ why goes in a dated `DECISIONS.md` entry; deferred ideas go in `FUTURE.md`.
 
 ## One unit everywhere (`src/lens.tsx`; journeys)
 
-- A move always shows as its named pill, and a step's shape as four cells. A pill or a cell opens
-  one card, as an overlay, never a page: a story in progress, and a choice not yet kept, hold their
-  answers in the page, so there a card names stories and plays instead of linking to them. The same
-  card opens from a story, an ending, the Map and Bring a choice.
+- A move always shows as its named pill, and a step's shape as four cells in one tile. Every pill
+  and every cell opens one card, as an overlay, never a page; a pill on an option opens its card
+  without choosing the option, which a tap anywhere else on it chooses. A story in progress, and a
+  choice not yet kept, hold their answers in the page, so there a card names stories and plays
+  instead of linking to them. The same card opens from a story, an ending, the Map and Bring a
+  choice, with its way to close at the top.
 - In a story, the shape of the step it turns on is shown with the setup; every option and ask shows
   its moves before it's chosen; a number's moves show as it changes. An ending shows each step's
   moves with what it cost and risked in the story's terms.
@@ -143,5 +147,7 @@ why goes in a dated `DECISIONS.md` entry; deferred ideas go in `FUTURE.md`.
   phone sizes, and the production build under its CSP, offline (Chromium) and through Export →
   Restore (both engines). A missing browser fails, never skips.
 - Every journey screen is checked for sideways overflow (the page and `<main>`), page scrolling
-  (only `<main>` scrolls), controls under 44px and the wording rules. The tab bar sits at the
-  bottom.
+  (only `<main>` scrolls), controls under 44px and the wording rules. Three tabs sit at the bottom:
+  Play, Bring a choice and the Map; About opens from Play. A story, its ending and About take the
+  whole screen: no tabs, and one way back at the top, to the tab they were opened from. Leaving a
+  story part-way asks nothing.

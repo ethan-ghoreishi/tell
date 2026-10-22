@@ -23,7 +23,19 @@ const button = (page: Page, name: string | RegExp) => page.getByRole('button', {
 const heading = (page: Page, name: string) => page.getByRole('heading', { name, exact: true });
 const region = (page: Page | Locator, name: string) => page.getByRole('region', { name, exact: true });
 const ending = (page: Page) => heading(page, 'What you did');
-const tab = (page: Page, name: 'Play' | 'Bring a choice' | 'Map' | 'About') => page.getByRole('link', { name, exact: true });
+const tab = (page: Page, name: 'Play' | 'Bring a choice' | 'Map') => page.getByRole('navigation').getByRole('link', { name, exact: true });
+/** A story, its ending and About have no tabs: their one way back is in the bar at the top. */
+const back = (page: Page) => page.getByRole('banner').getByRole('link');
+/** To a tab, leaving a story, an ending or About first. */
+async function go(page: Page, name: 'Play' | 'Bring a choice' | 'Map') {
+  if (await back(page).count()) await back(page).click();
+  await tab(page, name).click();
+}
+async function about(page: Page) {
+  await go(page, 'Play');
+  await page.getByRole('link', { name: 'About', exact: true }).click();
+  await heading(page, 'How Tell works').waitFor();
+}
 const FIXTURE = readFileSync(new URL('./fixtures/tell-2.0.json', import.meta.url), 'utf8');
 const FIXTURE_3 = readFileSync(new URL('./fixtures/tell-3.0.json', import.meta.url), 'utf8');
 const FIXTURE_31 = readFileSync(new URL('./fixtures/tell-3.1.json', import.meta.url), 'utf8');
@@ -49,7 +61,7 @@ const CONFIGS: [Engine, 'light' | 'dark', typeof PHONE][] = [
 const tag = (v: typeof PHONE) => (v === SMALL_PHONE ? '-small' : '');
 
 async function open(page: Page, title: string) {
-  await tab(page, 'Play').click();
+  await go(page, 'Play');
   await page.getByRole('link', { name: new RegExp(title) }).click();
   await heading(page, title).waitFor();
 }
@@ -59,7 +71,7 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
     const s = await openApp(engine, app.url, { time: day(1), colorScheme: scheme, viewport });
     const t = tag(viewport);
     const { page } = s;
-    const did = () => region(page, 'What you did').locator('ul.results');
+    const did = () => region(page, 'What you did').locator('ul.did');
     const pills = (where = did()) => where.locator('.move-name').allTextContents();
     const card = () => page.getByRole('dialog');
     const close = async () => {
@@ -68,13 +80,16 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
     };
     try {
       await heading(page, 'Pick a story').waitFor();
-      for (const name of ['Play', 'Bring a choice', 'Map', 'About'] as const) expect(await tab(page, name).isVisible()).toBe(true);
+      for (const name of ['Play', 'Bring a choice', 'Map'] as const) expect(await tab(page, name).isVisible()).toBe(true);
+      expect(await page.getByRole('link', { name: 'About', exact: true }).isVisible()).toBe(true);
       await sound(s, `1-home${t}`);
 
-      // The shape of the step is there from the start; each question opens its card.
+      // A story takes the whole screen: no tabs, one way back. The shape of the step is there from the start; each question opens its card.
       await open(page, 'The old oak');
+      expect(await page.getByRole('navigation').count()).toBe(0);
+      expect(await back(page).textContent()).toBe('Stories');
       const shape = page.getByRole('group', { name: 'The step: felling the oak' });
-      expect(await shape.getByRole('button').allTextContents()).toEqual(['UndoNo', 'Know whenCheck first, once done', 'If you waitRisk grows', 'If it goes badlyHard to recover']);
+      expect(await shape.getByRole('button').allTextContents()).toEqual(['Can it be undone?No', 'When will you know?Check first, once done', 'If you waitRisk grows', 'If it goes badlyHard to recover']);
       await sound(s, `2-start${t}`);
       await button(page, 'If you wait: Risk grows').click();
       await heading(page, 'If you wait, what happens?').waitFor();
@@ -87,20 +102,29 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       await button(page, /^Have the trunk scanned/).click();
       await page.getByText('About a third of the trunk is hollow.', { exact: false }).waitFor();
       expect(await page.getByText('1 week left to find things out.').isVisible()).toBe(true);
-      expect(await button(page, /^Decide/).textContent()).toBe('DecideLook first');
+      expect(await page.locator('.decide .moves').textContent()).toBe('Look first');
       await sound(s, `3-uncover${t}`);
-      await button(page, /^Decide/).click();
+      await button(page, 'Decide').click();
       await page.getByText('What happens to the oak?').waitFor();
       expect(await page.locator('.condition').textContent()).toContain('About a third of the trunk is hollow.');
       // Every option shows the moves it makes before it's chosen.
-      expect(await page.locator('button.option .moves').allTextContents()).toEqual(['Commit', 'Guard', 'Hold it openGuard']);
+      const fence = page.locator('.option').filter({ hasText: 'Leave it, and fence off the path' });
+      expect(await page.locator('.option .moves').allTextContents()).toEqual(['Commit', 'Guard', 'Hold it openGuard']);
+      // A move on an option opens its card without choosing the option: mid-story, the card names stories rather than leaving for them.
+      await fence.getByRole('button', { name: 'Hold it open' }).click();
+      await heading(page, 'Hold it open').waitFor();
+      expect(await card().getByRole('link').count()).toBe(0);
+      await sound(s, `3-option-card${t}`);
+      await close();
+      expect(await page.getByText('What happens to the oak?').isVisible()).toBe(true);
+      expect((await stored(page))?.plays ?? []).toEqual([]);
       await button(page, /^Leave it, and fence off the path/).click();
       await ending(page).waitFor();
       expect(await page.evaluate(() => document.activeElement?.textContent)).toBe('The old oak');
       // Each step names its moves, New the first time, with what it cost and risked here.
       expect(await did().textContent()).toBe(
-        'Spent 3 of 4 weeks finding out: “Have the trunk scanned”.Look firstNewCost: weeks closer to the storms. Risk: facts that still don’t settle it.' +
-          'Chose “Leave it, and fence off the path”.Hold it openNewGuardNewCost: a longer walk to school while it stands. Risk: the oak coming down inside the fence.',
+        'Spent 3 of 4 weeks finding out: “Have the trunk scanned”.Look firstNewCostWeeks closer to the stormsRiskFacts that still don’t settle it' +
+          'Chose “Leave it, and fence off the path”.Hold it openNewGuardNewCostA longer walk to school while it standsRiskThe oak coming down inside the fence',
       );
       expect(await region(page, 'Other ways through').textContent()).toContain('Other moves in this story:Commit');
       await sound(s, `4-ending${t}`);
@@ -135,15 +159,15 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       await sound(s, `6-days${t}`);
       await button(page, 'Pick today').click();
       await ending(page).waitFor();
-      expect(await did().textContent()).toBe('“Pick today” on Wednesday.Wait for itNewCost: Thursday’s extra sweetness. Risk: a storm two days early.');
+      expect(await did().textContent()).toBe('“Pick today” on Wednesday.Wait for itNewCostThursday’s extra sweetnessRiskA storm two days early');
 
       // One fact changed: the variant, offered at the ending with the answer it changes, then both plays side by side.
       const whatIf = region(page, 'What if the forecasts stopped after Monday?');
-      expect(await whatIf.getByRole('button', { name: 'Know when: Once done, was News comes' }).count()).toBe(1);
+      expect(await whatIf.getByRole('button', { name: 'When will you know? Once done, was News comes' }).count()).toBe(1);
       await whatIf.getByRole('link', { name: 'Play it that way' }).click();
       await heading(page, 'The harvest, without forecasts').waitFor();
-      expect(await button(page, 'Know when: Once done, was News comes').count()).toBe(1);
-      expect(await page.locator('button.option .moves').allTextContents()).toEqual(['Commit', 'Split it', 'Set a tripwire']);
+      expect(await button(page, 'When will you know? Once done, was News comes').count()).toBe(1);
+      expect(await page.locator('.option .moves').allTextContents()).toEqual(['Commit', 'Split it', 'Set a tripwire']);
       await sound(s, `7-variant${t}`);
       await button(page, /^Pick half today, the rest on Thursday/).click();
       await ending(page).waitFor();
@@ -157,10 +181,10 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
 
       // Asking brings only an answer here, and is a move of its own; moves already shown aren't New again.
       await open(page, 'The last of the light');
-      expect(await button(page, /^Ask the camera operator/).textContent()).toBe('Ask the camera operator about take fourLook first');
-      await button(page, /^Ask the camera operator/).click();
+      expect(await page.locator('.option.ask').textContent()).toBe('Ask the camera operator about take fourLook first');
+      await button(page, 'Ask the camera operator about take four').click();
       await page.getByText('On film, you only know on Thursday.', { exact: false }).waitFor();
-      expect(await page.locator('button.option').count()).toBe(2);
+      expect(await page.locator('.option .pick').count()).toBe(2);
       await sound(s, `8-ask${t}`);
       await button(page, /^The wide shot of the lighthouse/).click();
       await ending(page).waitFor();
@@ -197,7 +221,7 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
 
       // The map, after a reload: every move, by what it deals with, the same for everyone; under each, where the player made it.
       await page.reload();
-      await tab(page, 'Map').click();
+      await go(page, 'Map');
       await heading(page, 'Your map').waitFor();
       const moves = region(page, 'Moves');
       expect(await moves.getByRole('button').allTextContents()).toEqual([
@@ -227,6 +251,8 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       // A replay down another path keeps every play, and what was made before stays.
       await page.getByText('Everything you’ve played').click();
       await page.getByRole('link', { name: 'The old oak' }).last().click();
+      // An ending opened from the map leads back to it.
+      expect(await back(page).textContent()).toBe('Map');
       await page.getByRole('link', { name: 'Play it again' }).click();
       await page.getByText('You played this on 1 Oct. Playing again keeps every play.').waitFor();
       await button(page, 'Decide without finding out').click();
@@ -234,9 +260,9 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       await ending(page).waitFor();
       expect(await page.locator('article .eyebrow').first().textContent()).toBe('A village green · replay 1');
       expect(await did().textContent()).toBe(
-        'Decided without spending time finding out.Cost: no time at all. Risk: acting on a lean and some fungus alone.Chose “Fell it”.CommitCost: a two-hundred-year-old tree. Risk: felling a tree that would have stood for decades.',
+        'Decided without spending time finding out.CostNo time at allRiskActing on a lean and some fungus aloneChose “Fell it”.CommitCostA two-hundred-year-old treeRiskFelling a tree that would have stood for decades',
       );
-      await tab(page, 'Map').click();
+      await back(page).click();
       await heading(page, 'Your map').waitFor();
       expect(await region(page, 'Moves').getByRole('button').allTextContents()).toContain('CommitIn The new loaf, The last of the light, The old oak');
 
@@ -266,8 +292,8 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       await button(page, /^Before, by checking or asking/).click();
       await button(page, /^Only once it’s done/).click();
       expect(await page.locator('button[aria-pressed="true"]').count()).toBe(2);
-      expect(await button(page, 'Undo: No').count()).toBe(1);
-      expect(await button(page, 'Know when: Check first, once done').count()).toBe(1);
+      expect(await button(page, 'Can it be undone? No').count()).toBe(1);
+      expect(await button(page, 'When will you know? Check first, once done').count()).toBe(1);
       await sound(s, `12-question${t}`);
       await next.click();
       await button(page, /^The chance goes/).click();
@@ -333,8 +359,7 @@ describe.each(CONFIGS)('play in %s (%s, %o)', (engine, scheme, viewport) => {
       await button(page, 'Leave without keeping').click();
       await heading(page, 'Bring a choice').waitFor();
       expect((await stored(page)).choices).toHaveLength(1);
-      await tab(page, 'About').click();
-      await heading(page, 'How Tell works').waitFor();
+      await about(page);
       expect(await page.getByText('Everything stays in this browser: 8 plays and 1 kept choice.').count()).toBe(1);
       await sound(s, `16-about${t}`);
 
@@ -402,7 +427,7 @@ describe.each<[Engine]>([['chromium'], ['webkit']])('data that can’t be used, 
       await button(page, /^Another take of the scene/).click();
       await ending(page).waitFor();
       const before = await page.evaluate(() => localStorage.getItem('tell'));
-      await tab(page, 'About').click();
+      await about(page);
       const file = new URL('./fixtures/tell-2.0.json', import.meta.url).pathname;
       const message = 'Restore this backup of a record from Tell 2.0 (the choice workshop), to be kept as it was? This replaces what is on this device.';
       // Cancelled: nothing changes.
@@ -478,7 +503,9 @@ describe.each<[Engine]>([['chromium'], ['webkit']])('data that can’t be used, 
       await page.getByText('Tell has changed. Your record from Tell 2.0 (the choice workshop) is kept exactly as it was, and you can download it from About.').waitFor();
       await sound(s, 'archived-small');
       expect((await stored(page)).archive[0].doc).toEqual(JSON.parse(FIXTURE));
-      await tab(page, 'About').click();
+      // The notice's About is a link there.
+      await page.getByRole('status').getByRole('link', { name: 'About' }).click();
+      await heading(page, 'How Tell works').waitFor();
       const [file] = await Promise.all([page.waitForEvent('download'), button(page, 'Download it').click()]);
       expect(JSON.parse(readFileSync((await file.path())!, 'utf8'))).toEqual(JSON.parse(FIXTURE));
       // The notice was about this load; the next one opens quietly.

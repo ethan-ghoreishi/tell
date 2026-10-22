@@ -98,7 +98,7 @@ export const pageScrolls = (page: Page) =>
 /** Controls smaller than 44px in either direction (inline text links excepted). */
 export const smallTargets = (page: Page) =>
   page.evaluate(() =>
-    [...document.querySelectorAll<HTMLElement>('button, input, textarea, select, summary, a.btn, a.tab, a.cell-head, a.card')]
+    [...document.querySelectorAll<HTMLElement>('button, input, textarea, select, summary, a.btn, a.tab, a.back, a.icon-btn, a.tile, a.variant, a.row')]
       .filter((el) => {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0 && (r.height < 44 || r.width < 44);

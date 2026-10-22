@@ -58,7 +58,7 @@ describe.each([
 
       // Play a situation to its end.
       await page.getByRole('link', { name: /The last of the light/ }).click();
-      await page.locator('button.option').first().click();
+      await page.locator('.option .pick').first().click();
       await page.getByRole('heading', { name: 'What you did' }).waitFor();
 
       if (engine === 'chromium') {
@@ -66,12 +66,14 @@ describe.each([
         await context.setOffline(true);
         await page.reload();
         await page.getByRole('heading', { name: 'What you did' }).waitFor();
+        await page.getByRole('link', { name: 'Stories', exact: true }).click();
         await page.getByRole('link', { name: 'Map', exact: true }).click();
         await page.getByRole('heading', { name: 'Your map' }).waitFor();
         await page.getByText('Everything you’ve played').waitFor();
       }
 
       // Bring a choice and keep it (offline, where the engine allows).
+      if (engine !== 'chromium') await page.getByRole('link', { name: 'Stories', exact: true }).click();
       await page.getByRole('link', { name: 'Bring a choice', exact: true }).click();
       await page.getByRole('button', { name: 'Start' }).click();
       await page.getByRole('button', { name: /^Yes, at a cost/ }).click();
@@ -84,6 +86,7 @@ describe.each([
       if (engine === 'chromium') await context.setOffline(false);
 
       // Export a backup, then restore it through the same validation door.
+      await page.getByRole('link', { name: 'Play', exact: true }).click();
       await page.getByRole('link', { name: 'About', exact: true }).click();
       const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export a backup' }).click()]);
       expect(download.suggestedFilename()).toMatch(/^tell-backup-\d{4}-\d{2}-\d{2}\.json$/);

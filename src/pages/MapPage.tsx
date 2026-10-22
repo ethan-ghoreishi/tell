@@ -22,7 +22,7 @@ export default function MapPage({ state }: { state: TellState }) {
     <div className="stack-xl">
       <header className="stack">
         <h1 className="title">Your map</h1>
-        <p className="lede">Every move, by what it deals with, and where you’ve made each. Tap one to open it.</p>
+        <p className="lede">Every move, and where you’ve made it. Tap one to open it.</p>
       </header>
 
       {both.length > 0 && (
@@ -36,12 +36,12 @@ export default function MapPage({ state }: { state: TellState }) {
       <Section title="Moves" id="moves">
         {STRATEGIES.map((s) => (
           <div key={s.id} className="stack-tight">
-            <h3 className="eyebrow">{s.name}</h3>
-            <ul className="cells">
+            <h3 className="eyebrow group-head">{s.name}</h3>
+            <ul className="group">
               {LANGUAGE_MOVES.filter((m) => m.strategy === s.id).map((m) => (
-                <li key={m.id} className="cell">
+                <li key={m.id}>
                   <button className="row" onClick={() => open({ kind: 'move', id: m.id })}>
-                    <span className="option-title">{m.name}</span>
+                    <span className="row-title">{m.name}</span>
                     <span className="small dim">{made.has(m.id) ? `In ${made.get(m.id)!.join(', ')}` : `Like ${m.like}`}</span>
                   </button>
                 </li>
@@ -52,8 +52,8 @@ export default function MapPage({ state }: { state: TellState }) {
       </Section>
 
       {plays.length > 0 && (
-        <details className="card-quiet">
-          <summary className="link small">Everything you’ve played</summary>
+        <details className="disclosure">
+          <summary>Everything you’ve played</summary>
           <ul className="results small">
             {plays.map((p) => (
               <li key={p.id}>

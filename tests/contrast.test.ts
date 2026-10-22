@@ -68,7 +68,8 @@ const PAIRS: { fg: string; bg: string; over?: string; min: number; where: string
   { fg: 'text-dim', bg: 'accent-soft', over: 'bg', min: TEXT, where: 'a changed cell’s label and “Was:”, and a pressed answer’s line, on the page' },
   { fg: 'text-dim', bg: 'accent-soft', over: 'surface', min: TEXT, where: 'the same in the What-if .card or the card sheet' },
   { fg: 'text-dim', bg: 'accent-soft', over: 'surface-2', min: TEXT, where: 'a changed cell’s label and “Was:” inside “Reread the story”' },
-  { fg: 'accent-contrast', bg: 'accent', min: TEXT, where: '.btn-primary' },
+  { fg: 'accent', bg: 'accent-soft', over: 'surface', min: TEXT, where: 'a variant’s link while pressed, the tick on a question card’s answer and on “Trying this”' },
+  { fg: 'accent-contrast', bg: 'accent', min: TEXT, where: '.btn-primary, and the New and Trying badges' },
   { fg: 'accent', bg: 'bar-track', min: GRAPHIC, where: 'the plot’s cells and the day marks' },
 ];
 

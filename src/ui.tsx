@@ -37,6 +37,21 @@ export const InfoIcon = (p: IconProps) => (
     <path d="M12 11v5M12 8h.01" {...stroke} strokeWidth={2.2} />
   </svg>
 );
+export const BackIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" {...p}>
+    <path d="M14.5 5.5L8 12l6.5 6.5" {...stroke} strokeWidth={2.2} />
+  </svg>
+);
+export const CloseIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" {...p}>
+    <path d="M7 7l10 10M17 7L7 17" {...stroke} strokeWidth={2.2} />
+  </svg>
+);
+export const CheckIcon = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" {...p}>
+    <path d="M5.5 12.5l4 4l9-9" {...stroke} strokeWidth={2.4} />
+  </svg>
+);
 export { plural, shortDate } from './domain/text';
 
 export function download(filename: string, text: string, type = 'application/json') {

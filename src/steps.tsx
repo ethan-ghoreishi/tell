@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { bandOf, offered, spent } from './domain/engine';
 import { plural } from './domain/text';
 import type { Band, Step, StepAnswer, Unit } from './domain/types';
-import { Moves } from './lens';
+import { MoveButtons } from './lens';
 
 // The controls a situation is played with: pick one, find things out from a
 // budget, share something scarce, act or wait day by day. Each reports its
@@ -34,6 +34,23 @@ const amount = (n: number, unit: Unit) => plural(n, unit[0], unit[1]);
 /** The moves a number makes. */
 const movesAt = (bands: Band[], n: number) => bandOf(bands, n).moves;
 
+/**
+ * An option: the whole card picks it. Its moves sit on it as pills, each
+ * opening its card without picking: the pick is one button stretched over
+ * the card, and the pills are buttons laid above it.
+ */
+function Pick({ title, line, moves = [], onPick, kind, disabled }: { title: string; line?: string; moves?: string[]; onPick: () => void; kind?: string; disabled?: boolean }) {
+  return (
+    <div className={`option${kind ? ` ${kind}` : ''}${disabled ? ' off' : ''}`}>
+      <button className="pick" disabled={disabled} onClick={onPick}>
+        <span className="option-title">{title}</span>
+        {line && <span className="option-line small dim">{line}</span>}
+      </button>
+      <MoveButtons ids={moves} />
+    </div>
+  );
+}
+
 /** `onMove` says a step has moved on inside itself (the next day), so the story can fold away. */
 export function StepPlay({ step, before, onAnswer, onMove }: { step: Step; before?: string; onAnswer: (a: StepAnswer) => void; onMove: () => void }) {
   if (step.kind === 'choose') return <Choose step={step} before={before} onAnswer={onAnswer} />;
@@ -46,7 +63,7 @@ function Choose({ step, before, onAnswer }: { step: Extract<Step, { kind: 'choos
   const [asked, setAsked] = useState(false);
   const ref = useFocus<HTMLParagraphElement>(before ?? step.id);
   const told = useRef<HTMLParagraphElement>(null);
-  // The answer to asking is read next, where it appears.
+  // The answer to asking is read next, where it appears: before the options it may have added to.
   useEffect(() => {
     if (asked) told.current?.focus();
   }, [asked]);
@@ -58,29 +75,20 @@ function Choose({ step, before, onAnswer }: { step: Extract<Step, { kind: 'choos
         </p>
       )}
       <div className="stack">
+        {asked && (
+          <p className="condition reveal" ref={told} tabIndex={-1}>
+            {step.ask!.answer}
+          </p>
+        )}
         <p className="question" ref={before ? undefined : ref} tabIndex={-1}>
           {step.prompt}
         </p>
         <div className="options">
           {offered(step, asked).map((o) => (
-            <button key={o.id} className={`option${o.id === step.ask?.adds?.id ? ' new' : ''}`} onClick={() => onAnswer({ kind: 'choose', pick: o.id, asked })}>
-              <span className="option-title">{o.text}</span>
-              {o.detail && <span className="option-line small dim">{o.detail}</span>}
-              <Moves ids={o.moves} />
-            </button>
+            <Pick key={o.id} title={o.text} line={o.detail} moves={o.moves} kind={o.id === step.ask?.adds?.id ? 'new' : undefined} onPick={() => onAnswer({ kind: 'choose', pick: o.id, asked })} />
           ))}
+          {step.ask && !asked && <Pick title={step.ask.label} moves={step.ask.moves} kind="ask" onPick={() => setAsked(true)} />}
         </div>
-        {step.ask &&
-          (asked ? (
-            <p className="condition reveal" ref={told} tabIndex={-1}>
-              {step.ask.answer}
-            </p>
-          ) : (
-            <button className="option ask" onClick={() => setAsked(true)}>
-              <span className="option-title">{step.ask.label}</span>
-              <Moves ids={step.ask.moves} />
-            </button>
-          ))}
       </div>
     </div>
   );
@@ -101,22 +109,24 @@ function Uncover({ step, onAnswer }: { step: Extract<Step, { kind: 'uncover' }>;
       <div className="options">
         {step.facts.map((f) =>
           opened.includes(f.id) ? (
-            <div key={f.id} className="option fact open reveal">
-              <span className="option-title small dim">{f.label}</span>
-              <span className="option-line">{f.text}</span>
+            <div key={f.id} className="found reveal">
+              <span className="found-label small dim">{f.label}</span>
+              <span>{f.text}</span>
             </div>
           ) : (
-            <button key={f.id} className="option fact" disabled={f.cost > left} onClick={() => setOpened([...opened, f.id])}>
-              <span className="option-title">{f.label}</span>
-              <span className="option-line small dim num">{f.cost > left ? `Takes ${amount(f.cost, step.unit)}: not enough left` : `Takes ${amount(f.cost, step.unit)}`}</span>
-            </button>
+            <Pick
+              key={f.id}
+              title={f.label}
+              line={f.cost > left ? `Takes ${amount(f.cost, step.unit)}: not enough left` : `Takes ${amount(f.cost, step.unit)}`}
+              disabled={f.cost > left}
+              onPick={() => setOpened([...opened, f.id])}
+            />
           ),
         )}
       </div>
-      <button className="option" onClick={() => onAnswer({ kind: 'uncover', opened })}>
-        <span className="option-title">{opened.length ? 'Decide' : 'Decide without finding out'}</span>
-        <Moves ids={movesAt(step.bands, spent(step, opened))} />
-      </button>
+      <div className="options decide">
+        <Pick title={opened.length ? 'Decide' : 'Decide without finding out'} moves={movesAt(step.bands, spent(step, opened))} onPick={() => onAnswer({ kind: 'uncover', opened })} />
+      </div>
     </div>
   );
 }
@@ -128,6 +138,7 @@ function Allocate({ step, onAnswer }: { step: Extract<Step, { kind: 'allocate' }
   const change = (id: string, by: number) => setAmounts((a) => (a[rest.id] - by < 0 || a[id] + by < 0 ? a : { ...a, [id]: a[id] + by, [rest.id]: a[rest.id] - by }));
   // The plot, drawn: each unit coloured by the item it went to.
   const cells = step.items.flatMap((i, k) => Array.from({ length: amounts[i.id] }, () => k));
+  const moves = movesAt(step.bands, amounts[step.measure]);
   return (
     <div className="stack">
       <p className="question" ref={ref} tabIndex={-1}>
@@ -139,7 +150,7 @@ function Allocate({ step, onAnswer }: { step: Extract<Step, { kind: 'allocate' }
         ))}
       </div>
       <p className="live small dim" aria-live="polite">
-        {movesAt(step.bands, amounts[step.measure]).length ? <Moves ids={movesAt(step.bands, amounts[step.measure])} /> : 'No move: holding off.'}
+        {moves.length ? <MoveButtons ids={moves} /> : 'No move: holding off.'}
       </p>
       <div className="options">
         {step.items.map((i) => (
@@ -177,6 +188,7 @@ function Days({ step, onAnswer, onMove }: { step: Extract<Step, { kind: 'days' }
   const [day, setDay] = useState(0);
   const ref = useFocus<HTMLParagraphElement>(day);
   const last = day === step.days.length - 1;
+  const today = movesAt(step.bands, day);
   return (
     <div className="stack-lg">
       <ol className="days" aria-label="Days">
@@ -194,23 +206,19 @@ function Days({ step, onAnswer, onMove }: { step: Extract<Step, { kind: 'days' }
       </div>
       {/* Acting today completes a move made over the days: said as a consequence, not a label on the button. */}
       <p className="live small dim" aria-live="polite">
-        If you {step.act.toLowerCase()}:&nbsp;{movesAt(step.bands, day).length ? <Moves ids={movesAt(step.bands, day)} /> : 'no move.'}
+        If you {step.act.toLowerCase()}:&nbsp;{today.length ? <MoveButtons ids={today} /> : 'no move.'}
       </p>
       <div className="options">
-        <button className="option" onClick={() => onAnswer({ kind: 'days', day })}>
-          <span className="option-title">{step.act}</span>
-        </button>
-        <button
-          className="option"
-          onClick={() => {
+        <Pick title={step.act} onPick={() => onAnswer({ kind: 'days', day })} />
+        <Pick
+          title={last ? step.last : step.wait}
+          moves={last ? movesAt(step.bands, step.days.length) : []}
+          onPick={() => {
             if (last) return onAnswer({ kind: 'days', day: step.days.length });
             setDay(day + 1);
             onMove();
           }}
-        >
-          <span className="option-title">{last ? step.last : step.wait}</span>
-          {last && <Moves ids={movesAt(step.bands, step.days.length)} />}
-        </button>
+        />
       </div>
     </div>
   );

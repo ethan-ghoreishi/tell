@@ -2,6 +2,73 @@
 
 Durable record of non-obvious choices. Newest first.
 
+## A calmer interface, read as a first use (2026-10-22)
+
+**The brief.** The owner asked for a fresh review of Tell as a first-time player who doesn't know
+its theory, and a redesign that makes it clearer, simpler and more polished without leaning on
+explanation or adding words: obvious next actions, calm screens, little to hold in mind, one feel
+across Play, Bring a choice, the Map and the cards. Principles stay unless there's a strong reason;
+information architecture, navigation, layout, interaction, terminology and hierarchy were open to
+challenge, and what already works was to stay.
+
+**What a first use showed.** Every screen was walked at 390×844 before anything changed.
+1. *The shape read as a spec sheet.* Four narrow boxes with capitalised labels ("UNDO", "KNOW
+   WHEN") stood between a story and its first choice; "Check first, once done" wrapped to four
+   lines; nothing hinted they could be tapped. A harvest ending showed it twice more.
+2. *A pill on an option was a trap.* It looked like a chip, but a tap on it chose the option, and
+   in a one-step story ended it; everywhere else a pill opened its card.
+3. *Chrome on every screen.* The wordmark took a row on every page and repeated the Play tab; four
+   tabs, About among them, crowded a small phone (an open question in 4.1); a stray tap on a tab
+   lost a story in progress.
+4. *Endings read as a log.* The shape again as four boxes, record sentences, an outlined New inside
+   an outlined pill, and "Cost: …. Risk: …." run together in grey.
+5. *Look-alikes.* A question card's answers looked like buttons and weren't; Close sat at the
+   bottom of a long card; asking's answer appeared after the option it added; a variant's link
+   floated between two stories on Home; dashed borders read as unfinished.
+6. *Words before play.* Home's lede explained moves before any had been met; Bring a choice put the
+   scope between the label and Start; after a few plays one answer named six story steps.
+
+**What changed.**
+1. *One tile for a shape.* The four cells sit in one tile, two by two, under the step's name, each
+   labelled with its question in a few words: "Can it be undone?", "When will you know?", "If you
+   wait", "If it goes badly". Only the questions' `short` changed, no meaning, so LANGUAGE stays 1.
+   The question being answered in Bring a choice, and the fact a variant changes, are tinted.
+2. *Every pill opens its card, an option's too.* An option is one button stretched over the card,
+   its pills laid above it; a tap anywhere else chooses it. Mid-story the card names stories, as
+   before. Pills are filled rather than outlined, and New is a small filled badge.
+3. *Three tabs, and stories that take the screen.* Play, Bring a choice and the Map. About opens
+   from an ⓘ on Play, and from the notice about an earlier record. A story, its ending and About
+   take the whole screen: no tabs, one way back at the top to the tab they were opened from
+   ("‹ Stories", "‹ Map"), and leaving part-way asks nothing, since a confirmation would be a
+   loss-framed nudge. The wordmark appears once, on Play.
+4. *An ending as one group.* Each step's line, its moves, and Cost and Risk as two short labelled
+   lines sit in one rounded group under the shape. One primary action: Play it that way where a
+   variant is offered, otherwise Back to the stories.
+5. *Cards.* Close is at the top and stays there as a card scrolls. A question's answers are a list,
+   the step's own ticked. A move's price, limit and instance are one group, the rule it fits after
+   them.
+6. *Smaller things.* Home's lede is one line, and a variant sits inside its story's tile. Asking's
+   answer comes before the options it may add to. Not sure and None of these are a quieter pair.
+   The scope follows Start, still before the questions. An answer names two played steps at most;
+   its card names all. The Map, Bring's results and kept choices are grouped lists with chevrons.
+   No dashed borders.
+
+**Kept.** The language, the stories, schema 6 and every rule about what shows and why; "Decide
+without finding out", "Done" and "Keep this choice" stay neutral; 44px targets; the phone sizes;
+nothing counted, ranked or urged.
+
+**Tests.** The journeys follow the new structure in both engines at both sizes, and now also check
+that a story has no tabs and one way back (to the Map when its ending was opened from there), and
+that a pill on an option opens its card without choosing or recording anything. The tap-target
+check covers the new links (the way back, About, tiles, variants, rows). Contrast adds accent on
+the tint, for a pressed variant link and the ticks.
+
+**Untested, for the pilot.** Whether pills that open cards mid-story make players study moves
+before choosing (PILOT §1 watches picking by move name); whether a whole-screen story feels
+focused or closed in; whether About is found from Play.
+
+---
+
 ## Tell 4.1: the moves in view, one fact at a time (2026-10-21)
 
 **The brief.** The owner's review of 4.0: it took time and reflection to understand; it is wordy;

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { earlierPlays, fresh, keyed, markSeen, playView, recordPlay, type Pair } from '../domain/engine';
 import { differs, question, shortText } from '../domain/language';
 import { SITUATIONS, situation as situationOf, variantOf } from '../domain/situations';
+import { capital } from '../domain/text';
 import type { Answers, Play, Situation, StepAnswer, TellState } from '../domain/types';
 import { MoveButtons, ShapeCells } from '../lens';
 import { Section, StepPlay, useFocus } from '../steps';
@@ -62,8 +63,8 @@ export function SituationPage({ state, id }: { state: TellState; id: string }) {
         </>
       ) : (
         <>
-          <details className="card-quiet">
-            <summary className="link small">Reread the story</summary>
+          <details className="disclosure">
+            <summary>Reread the story</summary>
             <div className="stack">
               <p>{s.setup}</p>
               {shape}
@@ -119,14 +120,21 @@ export function PlayPage({ state, id }: { state: TellState; id: string }) {
 
       <Section title="What you did" id="did">
         <ShapeCells shape={p.shown.shape} label={`The step: ${p.shown.turnsOn}`} />
-        <ul className="results">
+        <ul className="group did">
           {v.did.map((d) => (
             <li key={d.line} className="stack-tight">
               <span>{d.line}</span>
               <MoveButtons ids={d.moves} fresh={isNew} />
-              <span className="small dim">
-                Cost: {d.costs}. Risk: {d.risks}.
-              </span>
+              <dl className="cost-risk small">
+                <div>
+                  <dt>Cost</dt>
+                  <dd>{capital(d.costs)}</dd>
+                </div>
+                <div>
+                  <dt>Risk</dt>
+                  <dd>{capital(d.risks)}</dd>
+                </div>
+              </dl>
             </li>
           ))}
         </ul>
@@ -194,9 +202,9 @@ export function PairView({ pair }: { pair: Pair }) {
           {question(q).ask}
         </p>
       ))}
-      <ul className="stack">
+      <ul className="group">
         {[pair.base, pair.variant].map((p) => (
-          <li key={p.id} className="card-quiet pair stack-tight">
+          <li key={p.id} className="pair stack-tight">
             <span className="pair-head">
               <a className="link" href={`#/play/${p.id}`}>
                 {p.shown.title}
@@ -238,8 +246,8 @@ function useFresh(state: TellState, play: Play | undefined) {
 /** What a story takes from the real world, with sources, and what it invents. */
 function Real({ s }: { s: Situation }) {
   return (
-    <details className="card-quiet">
-      <summary className="link small">What’s real in this story</summary>
+    <details className="disclosure">
+      <summary>What’s real in this story</summary>
       <div className="stack small">
         {s.real!.facts.map((f) => (
           <p key={f.fact}>

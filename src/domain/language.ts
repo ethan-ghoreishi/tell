@@ -35,7 +35,7 @@ export interface Answer {
 export interface Question {
   id: QuestionId;
   ask: string;
-  /** The question as a cell's label in the shape: "If you wait". */
+  /** The question as a cell's label in the shape, at most four words: "Can it be undone?", "If you wait". */
   short: string;
   /** Tap all that fit. */
   multi?: boolean;
@@ -58,7 +58,7 @@ export const QUESTIONS: Question[] = [
   {
     id: 'undo',
     ask: 'If you take it, can it be undone?',
-    short: 'Undo',
+    short: 'Can it be undone?',
     principle: 'A way back is worth something only when the step would be hard to undo.',
     answers: [
       { id: 'easily', text: 'Easily', short: 'Easily', like: 'moving a meeting', said: 'it’s easily undone' },
@@ -69,7 +69,7 @@ export const QUESTIONS: Question[] = [
   {
     id: 'know',
     ask: 'When will you know whether it was right?',
-    short: 'Know when',
+    short: 'When will you know?',
     multi: true,
     principle: 'Finding out first is worth something only if it could change the step, and comes before the step must be taken.',
     answers: [

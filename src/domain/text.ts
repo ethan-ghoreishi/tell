@@ -3,6 +3,9 @@
 /** "a", "a and b", "a, b and c" (or "a, b or c"). */
 export const list = (xs: string[], word = 'and') => (xs.length < 2 ? (xs[0] ?? '') : `${xs.slice(0, -1).join(', ')} ${word} ${xs.at(-1)}`);
 
+/** "Weeks closer to the storms": a phrase written to follow a label, shown on its own. */
+export const capital = (s: string) => s.replace(/^./, (c) => c.toUpperCase());
+
 /** "1 play", "3 plays". */
 export const plural = (n: number, word: string, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
 
