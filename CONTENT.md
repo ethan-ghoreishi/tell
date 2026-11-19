@@ -65,9 +65,9 @@ A draft is not done until someone other than its writer has checked it against s
    > suggested fix with its URL, and anything you could not verify.
 
 3. Apply every correction, or record why not in the round's `note`. Re-check the changed lines
-   and any new source URLs. Pack 1's checkers caught, among others, a phrase dated a century too
-   late, a rebuilding tradition with a hundred-year gap, and a puzzle answer that history
-   doesn't quite support: this step is not optional.
+   and any new source URLs. Pack 1's checkers caught wrong dates, unsupported attributions, a statistic
+   stretched past what it measured and a puzzle answer the evidence didn't quite support: this
+   step is not optional.
 
 ## 4. Fit it in
 

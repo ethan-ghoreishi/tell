@@ -6,11 +6,9 @@ entry when it ships or is abandoned.
 ## More packs
 
 The main way Tell grows. `CONTENT.md` describes the process. Candidates noted while preparing
-pack 1, each needing its own research: Newcomb's problem (philosophers genuinely split), Simpson's
-paradox (kidney-stone treatments), Benford's law (first digits, and Simon Newcomb's worn log
-tables), the coastline paradox, Semmelweis and the first clinic, John Snow's Broad Street map and
-its exceptions, Abraham Wald's bomber data (and what the famous diagram adds to it), the QWERTY
-story and path dependence. A pack should keep the balance of topics and forms, and link into
+pack 1, each needing its own research: Newcomb's problem, Simpson's paradox, Benford's law, the
+coastline paradox, Semmelweis, John Snow's Broad Street map, Abraham Wald's bomber data, and the
+QWERTY keyboard. A pack should keep the balance of topics and forms, and link into
 the rounds already there.
 
 ## Connections that surface earlier

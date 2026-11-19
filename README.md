@@ -3,7 +3,7 @@
 **A game of ideas that stay with you.**
 
 Short rounds, a few minutes each: why the night sky is dark, a ship rebuilt plank by plank, a rat
-bounty in 1902 Hanoi, a piece of music with no notes, a pasture shared for five centuries, a word
+bounty in 1902 Hanoi, a piece of music with no notes, a mountain pasture everyone can use, a word
 Captain Cook's crew wrote down. Each round asks something (pick an answer, make a guess, put
 things in order, make quick calls) and then shows what happened, what is true, or how people
 have argued about it. Some questions have right answers; some don't.

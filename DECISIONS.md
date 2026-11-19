@@ -15,9 +15,8 @@ store and its refusal rules, archive-never-lose for earlier records, backup/rest
 the PWA that asks before updating, the CSP that blocks any network, hash routing, the phone-first
 shell (only `<main>` scrolls, 44px targets, one way back at the top of whole-screen views), the
 test harness driving real Chromium and WebKit, contrast checked against the shipped CSS, and the
-calm paper-and-ink design. Also one idea from 4.x, now as content rather than framework: whether
-to look first or act depends on whether a step can be undone and whether waiting will tell you
-anything (the "Look before you leap?" round).
+calm paper-and-ink design. One insight from 4.x also survives, as the subject of a single round
+rather than a framework.
 
 **What was retired.** The four questions, six strategies and fifteen moves, stories and
 variants, the Map, Bring a choice and kept choices, the move cards, `PILOT.md` (deleted by the
@@ -60,9 +59,7 @@ protects the player: `DESCRIBES_YOU` (never describe or diagnose the player) and
 **Content.** Sixteen rounds across science, reasoning, philosophy, art, history, culture,
 language, economics and wisdom; every round connected. Facts were researched against accessible
 sources, then two independent checkers read every statement against sources; their corrections
-were all applied (among them a phrase's first print date, a century-long break in a rebuilding
-tradition, a demonstration that didn't by itself prove a forgery, and a threshold in an
-experiment's statistics). The process is in `CONTENT.md`.
+were all applied (dates, attributions, a statistic and a puzzle answer among them). The process is in `CONTENT.md`.
 
 **Open.** Whether sixteen rounds feel like enough to come back to before a second pack; whether
 the end-of-round connections are noticed; whether "Skip" is needed often. Nothing is measured:
