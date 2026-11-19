@@ -1,105 +1,81 @@
-import { useRef, useState, type ChangeEvent } from 'react';
-import { localDay, recordText } from '../domain/engine';
-import { LANGUAGE_MOVES, SCOPE, STRATEGIES } from '../domain/language';
-import { SITUATIONS, STORIES } from '../domain/situations';
-import { list } from '../domain/text';
-import { earlierName, type TellState } from '../domain/types';
-import { Section } from '../steps';
+import { useRef, useState, type ChangeEvent, type ReactNode } from 'react';
+import { ROUNDS } from '../content';
+import { archiveText, hasText } from '../domain/archive';
+import { STATUSES, earlierName, type TellState } from '../domain/types';
 import { store } from '../store/store';
-import { download, plural, shortDate } from '../ui';
+import { download, localDay } from '../ui';
 
-// How Tell works, stated as the rules the code follows, what it can't show,
-// and the player's control over their data.
+// What Tell is, how its rounds are checked, and the player's control over
+// their data: backup, restore, the Book as text, earlier records, erasure.
+
+const Section = ({ title, id, children }: { title: string; id: string; children: ReactNode }) => (
+  <section className="stack" aria-labelledby={id}>
+    <h2 className="section-title" id={id}>
+      {title}
+    </h2>
+    {children}
+  </section>
+);
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const shortDate = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 export default function About({ state }: { state: TellState }) {
   return (
     <div className="stack-xl">
       <header className="stack">
-        <h1 className="title">How Tell works</h1>
-        <p className="lede">
-          Short stories to play, each a small choice somewhere unfamiliar. Every option in them is a move in a small language for choices under uncertainty, and the
-          same moves come back when you bring a real choice.
-        </p>
+        <h1 className="title" tabIndex={-1}>
+          About Tell
+        </h1>
+        <p className="lede">A game of ideas that stay with you. Short rounds of puzzles, true stories and thought experiments; the ideas worth keeping go into your Book, where they start to connect.</p>
       </header>
 
-      <Section title="Play" id="play">
+      <Section title="How it works" id="how">
+        <ul className="rules">
+          <li>Each round takes a few minutes: a question, a guess or a choice, then what actually happened or what people have argued.</li>
+          <li>Some questions have right answers. Others have several good ones, and the round shows how people have answered them.</li>
+          <li>At the end there’s an idea to keep, in its words or yours. Rounds that bear on each other say how: one idea supports, challenges, qualifies or reinterprets another.</li>
+          <li>There are no scores, streaks or reminders, and Tell never draws conclusions about you from your answers.</li>
+        </ul>
+      </Section>
+
+      <Section title="How the rounds are checked" id="checked">
         <ul className="rules">
           <li>
-            The collection has {plural(STORIES.length, 'invented story', 'invented stories')}, two or three minutes each, and {plural(SITUATIONS.length - STORIES.length, 'variant')}: a story
-            with one fact changed, played from its ending. Play them in any order, as often as you like; nothing unlocks, expires or arrives by itself.
+            The collection has {plural(ROUNDS.length, 'round')}. Every fact in them was checked against the sources each round lists, and every claim says how sure it is: {Object.values(STATUSES).join(', ').toLowerCase()}.
           </li>
-          <li>There are no right answers and nothing is scored. Every option shows the moves it makes, and every ending shows other reasonable ways through.</li>
-          <li>
-            Some stories rest on real facts, like how film is developed or how long seed keeps. Each says what’s real, with sources, and what’s invented. A few
-            taps don’t make anyone an expert.
-          </li>
-        </ul>
-      </Section>
-
-      <Section title="The language" id="language">
-        <p className="small">
-          Four questions read the shape of a step: can it be undone, when will you know whether it was right, what waiting does, and how bad it could get. Each
-          story shows the shape of the step it turns on. For what makes a step hard there are {LANGUAGE_MOVES.length} moves, grouped by the difficulty each meets:{' '}
-          {list(STRATEGIES.map((s) => s.name.toLowerCase()))}. Which of them fit depends on the shape.
-        </p>
-        <p className="small dim">
-          Finding out first is worth something only if it could change the step and arrives before it must be taken. A way back, or waiting, is worth its price
-          only when the step is hard to undo, or something useful arrives while you wait. These ideas come from decision analysis: the value of information
-          (Ronald Howard, 1966), the irreversibility effect (Kenneth Arrow and Anthony Fisher, 1974) and real options (Avinash Dixit and Robert Pindyck, 1994).
-          Tell uses them to write stories and match moves, never to measure anyone.
-        </p>
-        <p className="small dim">Every move is a starting proposal. Tell will call one established only once real choices show it in use.</p>
-      </Section>
-
-      <Section title="Bring a choice" id="bring">
-        <ul className="rules">
-          <li>Only your four answers decide which moves show. The same answers always show the same moves, whatever you’ve played.</li>
-          <li>Moves are never ranked or urged, and settling it is always there. Your plays only lend examples.</li>
-          <li>Tell never reads what you type, and keeps a choice only if you keep it.</li>
-          <li>{SCOPE}</li>
-        </ul>
-      </Section>
-
-      <Section title="Your map" id="map">
-        <ul className="rules">
-          <li>It shows every move, the same for everyone, and under each the stories where you made it. Where you’ve played a story both ways, the two plays sit side by side.</li>
-          <li>It shows what you chose, never why. It never counts your moves, sums them up or says what they mean about you.</li>
-        </ul>
-      </Section>
-
-      <Section title="What Tell can’t show" id="limits">
-        <ul className="rules">
-          <li>What you’d choose in an invented story can differ from what you’d do for real.</li>
-          <li>Untested so far: whether the stories stay interesting, whether different people read the same choice the same way, and whether the moves help with real choices.</li>
+          <li>Rounds are written and checked when Tell is made, never generated while you play. New rounds come with updates.</li>
         </ul>
       </Section>
 
       <Section title="Your data" id="data">
         <p className="small dim">
-          No accounts, no analytics and no AI, and the security policy blocks connections to anywhere else. Everything stays in this browser:{' '}
-          {plural(state.plays.length, 'play')} and {plural(state.choices.length, 'kept choice')}.
+          No accounts, no analytics and no AI, and the security policy blocks connections to anywhere else. Everything stays in this browser: {plural(state.plays.length, 'round played', 'rounds played')} and{' '}
+          {plural(state.book.length, 'idea')} in your Book.
         </p>
         <button className="btn btn-block" onClick={() => download(`tell-backup-${localDay(new Date())}.json`, store.exportText())}>
           Export a backup
         </button>
-        <RestoreButton current={state.plays.length + state.choices.length} />
-        <button className="btn btn-block" onClick={() => download(`tell-${localDay(new Date())}.txt`, recordText(state), 'text/plain')}>
-          Download as plain text
-        </button>
+        <RestoreButton current={state.plays.length + state.book.length} />
         {state.archive.map((a) => (
           <div key={`${a.schema}-${a.at}`} className="card-quiet stack">
             <p className="small">
-              Your record from {earlierName(a.schema)}, kept exactly as it was on {shortDate(a.at)}. This version asks different questions, so it doesn’t read it.
+              Your record from {earlierName(a.schema)}, kept exactly as it was on {shortDate.format(new Date(a.at))}. This version of Tell is a different game, so it doesn’t use it.
             </p>
             <button className="btn btn-block" onClick={() => download(`tell-schema-${a.schema}-record.json`, JSON.stringify(a.doc, null, 2))}>
               Download it
             </button>
+            {hasText(a) && (
+              <button className="btn btn-ghost btn-block" onClick={() => download(`tell-schema-${a.schema}-record.txt`, archiveText(a), 'text/plain')}>
+                Download it as plain text
+              </button>
+            )}
           </div>
         ))}
         <button
           className="btn btn-ghost btn-block"
           onClick={() => {
-            if (window.confirm('Delete everything Tell has kept on this device? This can’t be undone. Export a backup first if you might want it back.')) {
+            if (window.confirm('Delete everything Tell has kept on this device, earlier records included? This can’t be undone. Export a backup first if you might want it back.')) {
               store.erase();
             }
           }}
@@ -127,11 +103,9 @@ export function RestoreButton({ current }: { current?: number }) {
     const s = backup.state;
     const replacing = current ? ' This replaces what is on this device.' : '';
     const what =
-      s.archive.length && !s.plays.length && !s.choices.length
-        ? `a record from ${earlierName(s.archive[0].schema)}, to be kept as it was`
-        : s.choices.length
-          ? `${plural(s.plays.length, 'play')} and ${plural(s.choices.length, 'kept choice')}`
-          : plural(s.plays.length, 'play');
+      s.archive.length && !s.plays.length && !s.book.length
+        ? `a record from ${earlierName(s.archive.at(-1)!.schema)}, to be kept as it was`
+        : `${plural(s.plays.length, 'round played', 'rounds played')} and ${plural(s.book.length, 'idea')}`;
     if (!window.confirm(`Restore this backup of ${what}?${replacing}`)) return;
     const result = store.importText(text);
     setMessage(result.ok ? 'Restored.' : result.error);

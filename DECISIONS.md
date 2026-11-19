@@ -2,6 +2,72 @@
 
 Durable record of non-obvious choices. Newest first.
 
+## Tell 5: a game of ideas that stay with you (2026-11-19)
+
+**The brief.** The owner pivoted Tell completely: from a language of moves for choices under
+uncertainty to "a game of ideas that stay with you": short, varied, enjoyable rounds (real
+events, puzzles, thought experiments, cultures, art, science) whose best ideas accumulate in a
+personal commonplace book and gain meaning through connections. Play → Discover → Connect →
+Keep. Two primary areas, Play and My Book. Previous versions were context, not specification.
+
+**What was kept.** The infrastructure that had earned its place: the validated single-document
+store and its refusal rules, archive-never-lose for earlier records, backup/restore/plain text,
+the PWA that asks before updating, the CSP that blocks any network, hash routing, the phone-first
+shell (only `<main>` scrolls, 44px targets, one way back at the top of whole-screen views), the
+test harness driving real Chromium and WebKit, contrast checked against the shipped CSS, and the
+calm paper-and-ink design. Also one idea from 4.x, now as content rather than framework: whether
+to look first or act depends on whether a step can be undone and whether waiting will tell you
+anything (the "Look before you leap?" round).
+
+**What was retired.** The four questions, six strategies and fifteen moves, stories and
+variants, the Map, Bring a choice and kept choices, the move cards, `PILOT.md` (deleted by the
+owner), the reference choices and the review walk of story paths. They answered a different
+question; carrying them over would have bent every round into one formula.
+
+**Product decisions.**
+1. *Play opens into a round, not a menu.* The next round in a curated order is playable where it
+   stands; a one-line intro shows only until the first round is done. "All rounds" and the Book
+   are one tap away. Curated order rather than any recommender: it guarantees variety and that a
+   first run meets a connection by round three, with no profile of the player.
+2. *Four step kinds, chosen by what pack 1 needed:* choose (with or without a right answer),
+   estimate (a slider that starts unset, so it hints nothing), order (tap to place, fixed
+   scramble), quickfire (a run of quick calls). Reveals can carry views, for questions where
+   serious people disagree. Puzzles may have right answers now: shown per question, never
+   tallied.
+3. *One idea per round, one tap to keep.* Edit before or after; the round's wording is kept and
+   restorable; nothing asks for writing.
+4. *Connections are written by hand,* with a relation and a sentence, on one end of each pair.
+   At a round's end Tell shows how its idea relates to rounds already played (in full) and to
+   rounds not yet played (named, never described, so nothing is spoilt). A round whose idea links
+   to the Book says so quietly as it starts. No graph engine.
+5. *Every claim says how sure it is* (established, disputed, interpretation, tradition or legend,
+   hypothetical), with sources a reader can open. Sayings carry real attributions only.
+6. *Exhausted library:* Play says so plainly, offers a random replay and the Book. No counts.
+
+**Data.** Schema 7 stores plays, the Book, skipped rounds and the archive; content is never
+stored, and a kept idea copies its own words, title and the round's original wording so it keeps
+its meaning if content changes. A schema-6 (Tell 4) document is archived whole, not migrated:
+this breaks the 4.x rule that schema 6 onward migrates, deliberately, because nothing in 4.x maps
+onto rounds or ideas. An archived document's own archive is lifted beside it so each earlier
+record stays downloadable on its own; Tell 4's kept choices, with the owner's labels and notes,
+also download as plain text. From schema 7 on, newer schemas migrate.
+
+**Wording rules.** `VERDICT`, `ADVICE`, `PSYCHOLOGY` and `CURRENCY` are retired: puzzles have
+right answers, takeaways are ways to think, rounds discuss bias and money. What stays is what
+protects the player: `DESCRIBES_YOU` (never describe or diagnose the player) and a narrowed
+`PRESSURE` (no streaks, tallies, scores or cheerleading), on every screen and all content.
+
+**Content.** Sixteen rounds across science, reasoning, philosophy, art, history, culture,
+language, economics and wisdom; every round connected. Facts were researched against accessible
+sources, then two independent checkers read every statement against sources; their corrections
+were all applied (among them a phrase's first print date, a century-long break in a rebuilding
+tradition, a demonstration that didn't by itself prove a forgery, and a threshold in an
+experiment's statistics). The process is in `CONTENT.md`.
+
+**Open.** Whether sixteen rounds feel like enough to come back to before a second pack; whether
+the end-of-round connections are noticed; whether "Skip" is needed often. Nothing is measured:
+the owner's own use is the evidence.
+
 ## A calmer interface, read as a first use (2026-10-22)
 
 **The brief.** The owner asked for a fresh review of Tell as a first-time player who doesn't know

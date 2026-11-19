@@ -1,225 +1,225 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { bandOf, offered, spent } from './domain/engine';
-import { plural } from './domain/text';
-import type { Band, Step, StepAnswer, Unit } from './domain/types';
-import { MoveButtons } from './lens';
+import { useState } from 'react';
+import { amount, scrambled } from './domain/engine';
+import type { Answer, Step } from './domain/types';
+import { CheckIcon, CrossIcon, Inline, plain } from './ui';
 
-// The controls a situation is played with: pick one, find things out from a
-// budget, share something scarce, act or wait day by day. Each reports its
-// answer; the engine checks and records the play. Every option shows the
-// moves it makes before it's chosen, and a number's moves change as it does.
+// The four ways a step is played: pick one, set a number, put things in
+// order, make a quick series of calls. Each shows the control until it's
+// answered, then the answer as given beside the right one, where there is one.
 
-/** When a new screen appears inside a page: back to the top, and focus its heading or question. */
-export function useFocus<T extends HTMLElement>(dep: unknown) {
-  const ref = useRef<T>(null);
-  useEffect(() => {
-    // Braces matter: Chromium's scrollTo returns a Promise, which React would take for a cleanup.
-    ref.current?.closest('main')?.scrollTo(0, 0);
-    ref.current?.focus({ preventScroll: true });
-  }, [dep]);
-  return ref;
+type Props<K extends Step['kind']> = { step: Extract<Step, { kind: K }>; answer?: Answer; onAnswer: (a: Answer) => void };
+
+export function StepControl({ step, answer, onAnswer }: { step: Step; answer?: Answer; onAnswer: (a: Answer) => void }) {
+  if (step.kind === 'choose') return <Choose step={step} answer={answer} onAnswer={onAnswer} />;
+  if (step.kind === 'estimate') return <Estimate step={step} answer={answer} onAnswer={onAnswer} />;
+  if (step.kind === 'order') return <Order step={step} answer={answer} onAnswer={onAnswer} />;
+  return <Quickfire step={step} answer={answer} onAnswer={onAnswer} />;
 }
 
-export const Section = ({ title, children, id }: { title: string; children: ReactNode; id: string }) => (
-  <section className="stack" aria-labelledby={id}>
-    <h2 className="section-title" id={id}>
-      {title}
-    </h2>
-    {children}
-  </section>
-);
+/** ✓ or ✗ with words for assistive tech; nothing when a question has no right answer. */
+const Mark = ({ right }: { right: boolean }) =>
+  right ? <CheckIcon className="mark mark-right" role="img" aria-hidden={false} aria-label="Right" /> : <CrossIcon className="mark mark-wrong" role="img" aria-hidden={false} aria-label="Not this one" />;
 
-const amount = (n: number, unit: Unit) => plural(n, unit[0], unit[1]);
-
-/** The moves a number makes. */
-const movesAt = (bands: Band[], n: number) => bandOf(bands, n).moves;
-
-/**
- * An option: the whole card picks it. Its moves sit on it as pills, each
- * opening its card without picking: the pick is one button stretched over
- * the card, and the pills are buttons laid above it.
- */
-function Pick({ title, line, moves = [], onPick, kind, disabled }: { title: string; line?: string; moves?: string[]; onPick: () => void; kind?: string; disabled?: boolean }) {
+function Choose({ step, answer, onAnswer }: Props<'choose'>) {
+  const done = answer !== undefined;
   return (
-    <div className={`option${kind ? ` ${kind}` : ''}${disabled ? ' off' : ''}`}>
-      <button className="pick" disabled={disabled} onClick={onPick}>
-        <span className="option-title">{title}</span>
-        {line && <span className="option-line small dim">{line}</span>}
-      </button>
-      <MoveButtons ids={moves} />
-    </div>
-  );
-}
-
-/** `onMove` says a step has moved on inside itself (the next day), so the story can fold away. */
-export function StepPlay({ step, before, onAnswer, onMove }: { step: Step; before?: string; onAnswer: (a: StepAnswer) => void; onMove: () => void }) {
-  if (step.kind === 'choose') return <Choose step={step} before={before} onAnswer={onAnswer} />;
-  if (step.kind === 'uncover') return <Uncover step={step} onAnswer={onAnswer} />;
-  if (step.kind === 'allocate') return <Allocate step={step} onAnswer={onAnswer} />;
-  return <Days step={step} onAnswer={onAnswer} onMove={onMove} />;
-}
-
-function Choose({ step, before, onAnswer }: { step: Extract<Step, { kind: 'choose' }>; before?: string; onAnswer: (a: StepAnswer) => void }) {
-  const [asked, setAsked] = useState(false);
-  const ref = useFocus<HTMLParagraphElement>(before ?? step.id);
-  const told = useRef<HTMLParagraphElement>(null);
-  // The answer to asking is read next, where it appears: before the options it may have added to.
-  useEffect(() => {
-    if (asked) told.current?.focus();
-  }, [asked]);
-  return (
-    <div className="stack-lg">
-      {before && (
-        <p className="scene" ref={ref} tabIndex={-1}>
-          {before}
-        </p>
-      )}
-      <div className="stack">
-        {asked && (
-          <p className="condition reveal" ref={told} tabIndex={-1}>
-            {step.ask!.answer}
-          </p>
-        )}
-        <p className="question" ref={before ? undefined : ref} tabIndex={-1}>
-          {step.prompt}
-        </p>
-        <div className="options">
-          {offered(step, asked).map((o) => (
-            <Pick key={o.id} title={o.text} line={o.detail} moves={o.moves} kind={o.id === step.ask?.adds?.id ? 'new' : undefined} onPick={() => onAnswer({ kind: 'choose', pick: o.id, asked })} />
-          ))}
-          {step.ask && !asked && <Pick title={step.ask.label} moves={step.ask.moves} kind="ask" onPick={() => setAsked(true)} />}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Uncover({ step, onAnswer }: { step: Extract<Step, { kind: 'uncover' }>; onAnswer: (a: StepAnswer) => void }) {
-  const [opened, setOpened] = useState<string[]>([]);
-  const ref = useFocus<HTMLParagraphElement>(step.id);
-  const left = step.budget - spent(step, opened);
-  return (
-    <div className="stack">
-      <p className="question" ref={ref} tabIndex={-1}>
-        {step.prompt}
-      </p>
-      <p className="small dim num" aria-live="polite">
-        {left ? `${amount(left, step.unit)} left to find things out.` : 'That’s all the time there is.'}
-      </p>
-      <div className="options">
-        {step.facts.map((f) =>
-          opened.includes(f.id) ? (
-            <div key={f.id} className="found reveal">
-              <span className="found-label small dim">{f.label}</span>
-              <span>{f.text}</span>
-            </div>
-          ) : (
-            <Pick
-              key={f.id}
-              title={f.label}
-              line={f.cost > left ? `Takes ${amount(f.cost, step.unit)}: not enough left` : `Takes ${amount(f.cost, step.unit)}`}
-              disabled={f.cost > left}
-              onPick={() => setOpened([...opened, f.id])}
-            />
-          ),
-        )}
-      </div>
-      <div className="options decide">
-        <Pick title={opened.length ? 'Decide' : 'Decide without finding out'} moves={movesAt(step.bands, spent(step, opened))} onPick={() => onAnswer({ kind: 'uncover', opened })} />
-      </div>
-    </div>
-  );
-}
-
-function Allocate({ step, onAnswer }: { step: Extract<Step, { kind: 'allocate' }>; onAnswer: (a: StepAnswer) => void }) {
-  const rest = step.items.at(-1)!;
-  const [amounts, setAmounts] = useState<Record<string, number>>(() => Object.fromEntries(step.items.map((i) => [i.id, i === rest ? step.total : 0])));
-  const ref = useFocus<HTMLParagraphElement>(step.id);
-  const change = (id: string, by: number) => setAmounts((a) => (a[rest.id] - by < 0 || a[id] + by < 0 ? a : { ...a, [id]: a[id] + by, [rest.id]: a[rest.id] - by }));
-  // The plot, drawn: each unit coloured by the item it went to.
-  const cells = step.items.flatMap((i, k) => Array.from({ length: amounts[i.id] }, () => k));
-  const moves = movesAt(step.bands, amounts[step.measure]);
-  return (
-    <div className="stack">
-      <p className="question" ref={ref} tabIndex={-1}>
-        {step.prompt}
-      </p>
-      <div className="plot" aria-hidden="true">
-        {cells.map((k, n) => (
-          <span key={n} className={`plot-cell${k === 0 ? ' first' : ''}`} />
-        ))}
-      </div>
-      <p className="live small dim" aria-live="polite">
-        {moves.length ? <MoveButtons ids={moves} /> : 'No move: holding off.'}
-      </p>
-      <div className="options">
-        {step.items.map((i) => (
-          <div key={i.id} className="option alloc">
-            <span>
-              <span className="option-title">{i.text}</span>
-              {i.detail && <span className="option-line small dim">{i.detail}</span>}
+    <div className="options" role="group" aria-label={plain(step.prompt)}>
+      {step.options.map((o) => {
+        const picked = answer === o.id;
+        const right = !!step.answer && o.id === step.answer;
+        const cls = ['option', picked && 'picked', done && right && 'right', done && picked && step.answer && !right && 'wrong'].filter(Boolean).join(' ');
+        return (
+          <button key={o.id} className={cls} disabled={done} aria-pressed={done ? picked : undefined} onClick={() => onAnswer(o.id)}>
+            <span className="option-text">
+              <Inline text={o.text} />
             </span>
-            {i === rest ? (
-              <span className="alloc-n num">{amounts[i.id]}</span>
-            ) : (
-              <span className="stepper" role="group" aria-label={i.text}>
-                <button className="step-btn" aria-label={`One ${step.unit[0]} fewer`} disabled={amounts[i.id] === 0} onClick={() => change(i.id, -1)}>
-                  −
-                </button>
-                <span className="alloc-n num" aria-live="polite">
-                  {amounts[i.id]}
-                </span>
-                <button className="step-btn" aria-label={`One ${step.unit[0]} more`} disabled={amounts[rest.id] === 0} onClick={() => change(i.id, 1)}>
-                  +
-                </button>
-              </span>
-            )}
+            {done && step.answer && (picked || right) && <Mark right={right} />}
+            {done && picked && !step.answer && <span className="option-tag">Your answer</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function Estimate({ step, answer, onAnswer }: Props<'estimate'>) {
+  // No value until the player moves the slider: a starting value would be a hint.
+  const [value, setValue] = useState<number | null>(null);
+  const fmt = (n: number) => amount(n, step.unit);
+  if (typeof answer === 'number') {
+    const at = (n: number) => `${((n - step.min) / (step.max - step.min)) * 100}%`;
+    return (
+      <div className="estimate done">
+        <div className="scale" aria-hidden="true">
+          <span className="scale-mark guess" style={{ left: at(answer) }} />
+          <span className="scale-mark truth" style={{ left: at(step.answer) }} />
+        </div>
+        <dl className="estimate-result">
+          <div>
+            <dt>Your guess</dt>
+            <dd className="num">{fmt(answer)}</dd>
           </div>
-        ))}
+          <div>
+            <dt>The answer</dt>
+            <dd className="num">{fmt(step.answer)}</dd>
+          </div>
+        </dl>
       </div>
-      <button className="btn btn-block" onClick={() => onAnswer({ kind: 'allocate', amounts })}>
-        Done
+    );
+  }
+  const v = value ?? step.min;
+  const nudge = (d: number) => setValue(Math.min(step.max, Math.max(step.min, v + d)));
+  return (
+    <div className="estimate">
+      <output className={`readout num${value === null ? ' unset' : ''}`} htmlFor={`${step.id}-range`} aria-live="polite">
+        {value === null ? 'Slide to guess' : fmt(value)}
+      </output>
+      <div className="estimate-row">
+        <button className="btn btn-icon" aria-label="Less" onClick={() => nudge(-step.step)} disabled={value === null || v <= step.min}>
+          −
+        </button>
+        <input
+          id={`${step.id}-range`}
+          className="range"
+          type="range"
+          min={step.min}
+          max={step.max}
+          step={step.step}
+          value={v}
+          aria-label={plain(step.prompt)}
+          aria-valuetext={value === null ? 'No guess yet' : fmt(v)}
+          onChange={(e) => setValue(Number(e.target.value))}
+        />
+        <button className="btn btn-icon" aria-label="More" onClick={() => nudge(step.step)} disabled={v >= step.max}>
+          +
+        </button>
+      </div>
+      <button className="btn btn-primary btn-block" disabled={value === null} onClick={() => value !== null && onAnswer(value)}>
+        {value === null ? 'Lock in' : `Lock in ${fmt(value)}`}
       </button>
     </div>
   );
 }
 
-function Days({ step, onAnswer, onMove }: { step: Extract<Step, { kind: 'days' }>; onAnswer: (a: StepAnswer) => void; onMove: () => void }) {
-  const [day, setDay] = useState(0);
-  const ref = useFocus<HTMLParagraphElement>(day);
-  const last = day === step.days.length - 1;
-  const today = movesAt(step.bands, day);
-  return (
-    <div className="stack-lg">
-      <ol className="days" aria-label="Days">
-        {step.days.map((d, i) => (
-          <li key={d.label} className={i < day ? 'past' : i === day ? 'now' : undefined} aria-current={i === day ? 'step' : undefined}>
-            {d.label.slice(0, 3)}
-          </li>
-        ))}
+function Order({ step, answer, onAnswer }: Props<'order'>) {
+  const [placed, setPlaced] = useState<string[]>([]);
+  const byId = (id: string) => step.items.find((i) => i.id === id)!;
+  if (Array.isArray(answer)) {
+    const mine = answer as string[];
+    return (
+      <ol className="order-result">
+        {step.items.map((item, i) => {
+          const right = mine[i] === item.id;
+          return (
+            <li key={item.id} className={right ? 'right' : undefined}>
+              <span className="order-n num">{i + 1}</span>
+              <span className="order-body">
+                <span className="order-text">
+                  <Inline text={item.text} />
+                </span>
+                <span className="order-detail">
+                  <Inline text={item.detail} />
+                  {!right && <> · you put it {ordinal(mine.indexOf(item.id) + 1)}</>}
+                </span>
+              </span>
+              <Mark right={right} />
+            </li>
+          );
+        })}
       </ol>
-      <div className="card stack-tight reveal" key={day}>
-        <p className="eyebrow" ref={ref} tabIndex={-1}>
-          {step.days[day].label}
-        </p>
-        <p>{step.days[day].text}</p>
-      </div>
-      {/* Acting today completes a move made over the days: said as a consequence, not a label on the button. */}
-      <p className="live small dim" aria-live="polite">
-        If you {step.act.toLowerCase()}:&nbsp;{today.length ? <MoveButtons ids={today} /> : 'no move.'}
-      </p>
-      <div className="options">
-        <Pick title={step.act} onPick={() => onAnswer({ kind: 'days', day })} />
-        <Pick
-          title={last ? step.last : step.wait}
-          moves={last ? movesAt(step.bands, step.days.length) : []}
-          onPick={() => {
-            if (last) return onAnswer({ kind: 'days', day: step.days.length });
-            setDay(day + 1);
-            onMove();
-          }}
-        />
-      </div>
+    );
+  }
+  const pool = scrambled(step.items).filter((i) => !placed.includes(i.id));
+  return (
+    <div className="order">
+      <ol className="slots" aria-label={`Your order, ${step.first.toLowerCase()} first`}>
+        {step.items.map((_, i) => {
+          const id = placed[i];
+          return (
+            <li key={i} className={id ? 'slot filled' : 'slot'}>
+              <span className="order-n num">{i + 1}</span>
+              {id ? (
+                <button className="slot-item" aria-label={`${plain(byId(id).text)}, placed ${i + 1}. Tap to take it out.`} onClick={() => setPlaced((p) => p.filter((x) => x !== id))}>
+                  <Inline text={byId(id).text} />
+                </button>
+              ) : (
+                <span className="slot-empty">{i === placed.length ? 'Tap an item below' : ''}</span>
+              )}
+              {!id && (i === 0 || i === step.items.length - 1) && <span className="slot-end">{i === 0 ? step.first : step.last}</span>}
+            </li>
+          );
+        })}
+      </ol>
+      {pool.length > 0 ? (
+        <div className="pool" role="group" aria-label="Items to place">
+          {pool.map((i) => (
+            <button key={i.id} className="option" onClick={() => setPlaced((p) => [...p, i.id])}>
+              <span className="option-text">
+                <Inline text={i.text} />
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <button className="btn btn-primary btn-block" onClick={() => onAnswer(placed)}>
+          Check the order
+        </button>
+      )}
     </div>
+  );
+}
+
+const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'}`;
+
+function Quickfire({ step, answer, onAnswer }: Props<'quickfire'>) {
+  const [calls, setCalls] = useState<number[]>([]);
+  const given = Array.isArray(answer) ? (answer as number[]) : calls;
+  const call = (n: number) => {
+    const next = [...calls, n];
+    setCalls(next);
+    if (next.length === step.items.length) onAnswer(next);
+  };
+  return (
+    <ol className="calls">
+      {step.items.slice(0, given.length + 1).map((item, i) => {
+        const mine = given[i];
+        return (
+          <li key={item.id} className="call rise">
+            <p className="call-text">
+              <Inline text={item.text} />
+            </p>
+            {mine === undefined ? (
+              <div className="call-buttons" role="group" aria-label={plain(item.text)}>
+                {step.labels.map((label, n) => (
+                  <button key={label} className="btn" onClick={() => call(n)}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <>
+                <p className="call-verdict">
+                  {item.answer === undefined ? (
+                    <>Your call: {step.labels[mine]}</>
+                  ) : mine === item.answer ? (
+                    <>
+                      <Mark right /> {step.labels[mine]}
+                    </>
+                  ) : (
+                    <>
+                      <Mark right={false} /> {step.labels[item.answer]}
+                      <span className="call-answer">(your call: {step.labels[mine]})</span>
+                    </>
+                  )}
+                </p>
+                <p className="call-note small">
+                  <Inline text={item.note} />
+                </p>
+              </>
+            )}
+          </li>
+        );
+      })}
+    </ol>
   );
 }

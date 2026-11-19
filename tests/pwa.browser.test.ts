@@ -46,7 +46,7 @@ describe.each([
       });
 
       await page.goto(url);
-      await page.getByRole('heading', { name: 'Pick a story' }).waitFor();
+      await page.getByRole('heading', { name: 'Why is the night dark?' }).waitFor();
       expect(await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content')).toContain("connect-src 'self'");
 
       if (engine === 'chromium') {
@@ -56,49 +56,39 @@ describe.each([
         expect(await page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
       }
 
-      // Play a situation to its end.
-      await page.getByRole('link', { name: /The last of the light/ }).click();
-      await page.locator('.option .pick').first().click();
-      await page.getByRole('heading', { name: 'What you did' }).waitFor();
+      // Play the first round and keep its idea.
+      const button = (name: string) => page.getByRole('button', { name, exact: true });
+      await button('The universe hasn’t existed for ever').click();
+      await button('Continue').click();
+      await button('Edgar Allan Poe, the writer of macabre tales').click();
+      await button('Finish').click();
+      await button('Keep in my Book').click();
+      await page.getByText('In your Book').waitFor();
 
       if (engine === 'chromium') {
-        // Offline, the app and the play are still there.
+        // Offline, the app, the next round and the Book are all still there.
         await context.setOffline(true);
         await page.reload();
-        await page.getByRole('heading', { name: 'What you did' }).waitFor();
-        await page.getByRole('link', { name: 'Stories', exact: true }).click();
-        await page.getByRole('link', { name: 'Map', exact: true }).click();
-        await page.getByRole('heading', { name: 'Your map' }).waitFor();
-        await page.getByText('Everything you’ve played').waitFor();
+        await page.getByRole('heading', { name: 'The bricked-up windows' }).waitFor();
+        await page.getByRole('link', { name: 'My Book', exact: true }).click();
+        await page.getByText('If my picture were right, what would I see?', { exact: false }).waitFor();
+        await page.getByRole('link', { name: 'Play', exact: true }).click();
+        await context.setOffline(false);
       }
 
-      // Bring a choice and keep it (offline, where the engine allows).
-      if (engine !== 'chromium') await page.getByRole('link', { name: 'Stories', exact: true }).click();
-      await page.getByRole('link', { name: 'Bring a choice', exact: true }).click();
-      await page.getByRole('button', { name: 'Start' }).click();
-      await page.getByRole('button', { name: /^Yes, at a cost/ }).click();
-      await page.getByRole('button', { name: /^Only once it’s done/ }).click();
-      await page.getByRole('button', { name: 'Next', exact: true }).click();
-      await page.getByRole('button', { name: /^Not much/ }).click();
-      await page.getByRole('button', { name: /^Something to get over/ }).click();
-      await page.getByRole('button', { name: 'Keep this choice' }).click();
-      await page.getByText(/^Kept /).waitFor();
-      if (engine === 'chromium') await context.setOffline(false);
-
       // Export a backup, then restore it through the same validation door.
-      await page.getByRole('link', { name: 'Play', exact: true }).click();
       await page.getByRole('link', { name: 'About', exact: true }).click();
       const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export a backup' }).click()]);
       expect(download.suggestedFilename()).toMatch(/^tell-backup-\d{4}-\d{2}-\d{2}\.json$/);
       const file = (await download.path())!;
       const backup = JSON.parse(readFileSync(file, 'utf8'));
-      expect(backup.plays).toHaveLength(1);
-      expect(backup.choices.map((c: { shape: unknown }) => c.shape)).toEqual([{ undo: 'cost', know: ['after'], wait: 'nothing', bad: 'over' }]);
+      expect(backup.plays.map((p: { round: string }) => p.round)).toEqual(['night-sky']);
+      expect(backup.book.map((i: { round: string }) => i.round)).toEqual(['night-sky']);
 
       await page.evaluate(() => localStorage.clear());
       await page.reload();
       page.once('dialog', (d) => {
-        expect(d.message()).toBe('Restore this backup of 1 play and 1 kept choice?');
+        expect(d.message()).toBe('Restore this backup of 1 round played and 1 idea?');
         void d.accept();
       });
       await page.getByLabel('Backup file').setInputFiles(file);

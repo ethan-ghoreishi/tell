@@ -1,8 +1,8 @@
 /* ==========================================================================
    Tell — design system
-   Calm and curious: paper and ink, one warm accent, serif for scenes.
-   A phone app: one column, only <main> scrolls, large tap targets.
-   Colour pairs are checked by contrast.test.ts; change a token in BOTH
+   Paper and ink, one warm accent, serif for what's read, sans for what's
+   tapped. A phone app: one column, only <main> scrolls, large tap targets.
+   Colour pairs are checked by tests/contrast.test.ts; change a token in BOTH
    palettes and keep it passing.
    ========================================================================== */
 
@@ -10,11 +10,11 @@
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
 
-  --radius: 16px;
+  --radius: 18px;
   --radius-sm: 14px;
   --pill: 999px;
   --tap: 48px;
-  --column: 520px;
+  --column: 560px;
   --gutter: 20px;
 
   color-scheme: light dark;
@@ -31,7 +31,10 @@
   --accent: #9a4523;
   --accent-contrast: #fffdf8;
   --accent-soft: rgba(154, 69, 35, 0.09);
-  --bar-track: #e4ddd0;
+  --good: #2f6a3b;
+  --good-soft: rgba(47, 106, 59, 0.1);
+  --bad: #9b3423;
+  --track: #ddd5c6;
   --shadow: 0 1px 2px rgba(40, 33, 24, 0.06), 0 4px 16px rgba(40, 33, 24, 0.05);
 }
 
@@ -48,11 +51,13 @@
     --accent: #e3a079;
     --accent-contrast: #1b120d;
     --accent-soft: rgba(227, 160, 121, 0.12);
-    --bar-track: #2e2c33;
+    --good: #8fcf9c;
+    --good-soft: rgba(143, 207, 156, 0.12);
+    --bad: #f0a291;
+    --track: #3a3740;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 }
-
 
 * {
   box-sizing: border-box;
@@ -104,9 +109,18 @@ button {
   outline-offset: 2px;
 }
 
-/* Headings take focus so a new screen or card is announced; they aren't controls, so no ring. */
+/* Headings take focus so a new screen or step is announced; they aren't controls, so no ring. */
 [tabindex='-1']:focus {
   outline: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -115,12 +129,13 @@ button {
   *::after {
     animation: none !important;
     transition: none !important;
+    scroll-behavior: auto !important;
   }
 }
 
 /* ---- Shell ----------------------------------------------------------------
-   Tab pages: <main> and the tabs at the bottom. A story, its ending and About
-   take the whole screen: a bar with the way back, and no tabs. */
+   Tabs: <main> and the tab bar at the bottom. Other screens take the whole
+   screen: a bar with the way back, and no tabs. */
 
 .app {
   display: flex;
@@ -143,18 +158,18 @@ button {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  scroll-padding-top: 12px;
 }
 
 .main-inner {
-  padding: calc(env(safe-area-inset-top) + 20px) var(--gutter) 40px;
+  padding: calc(env(safe-area-inset-top) + 12px) var(--gutter) 48px;
   /* A long word the player typed wraps rather than running off the screen. */
   overflow-wrap: break-word;
 }
 
-/* No tab bar below to hold the home indicator's space. */
 .focused .main-inner {
   padding-top: 4px;
-  padding-bottom: calc(env(safe-area-inset-bottom) + 40px);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 48px);
 }
 
 .topbar {
@@ -168,6 +183,7 @@ button {
 .back {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   min-height: 44px;
   padding: 0 14px 0 4px;
   color: var(--accent);
@@ -176,9 +192,16 @@ button {
 }
 
 .back svg {
+  flex: none;
   width: 24px;
   height: 24px;
   margin-right: 2px;
+}
+
+.back-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* The nav comes first in the DOM (reached first by assistive tech); it sits at the bottom. */
@@ -186,7 +209,7 @@ button {
   order: 3;
   flex: none;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   border-top: 1px solid var(--border);
   background: var(--bg);
   padding-bottom: env(safe-area-inset-bottom);
@@ -218,22 +241,33 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: -8px -10px 0 0;
+  margin: 0 -10px 0 0;
 }
 
 .wordmark {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font: 600 1.1rem/1 var(--font-serif);
+  font: 600 1.15rem/1 var(--font-serif);
   letter-spacing: 0.01em;
-  color: var(--text);
 }
 
-.mark {
-  width: 22px;
-  height: 22px;
+.masthead-actions {
+  display: flex;
+  align-items: center;
+}
+
+.masthead-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 10px;
   color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.intro {
+  color: var(--text-dim);
+  font-size: 0.95rem;
 }
 
 .icon-btn {
@@ -255,28 +289,24 @@ button {
 
 .eyebrow {
   color: var(--text-faint);
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
 .title {
-  font: 600 1.75rem/1.2 var(--font-serif);
-  letter-spacing: -0.005em;
+  font: 600 1.85rem/1.18 var(--font-serif);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 .section-title {
-  font: 600 1.2rem/1.3 var(--font-serif);
+  font: 600 1.15rem/1.3 var(--font-serif);
 }
 
-.scene {
-  font: 1.22rem/1.5 var(--font-serif);
-  color: var(--text);
-}
-
-.question {
-  font-weight: 600;
+.page-title {
+  padding-top: 16px;
 }
 
 .lede,
@@ -305,99 +335,34 @@ button {
 }
 
 .stack-tight > * + * {
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .stack-lg > * + * {
-  margin-top: 24px;
+  margin-top: 28px;
 }
 
 .stack-xl > * + * {
-  margin-top: 36px;
+  margin-top: 40px;
 }
 
-.reveal {
-  animation: rise 0.28s ease-out both;
+.rise {
+  animation: rise 0.3s ease-out both;
 }
 
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
 }
 
-/* ---- Surfaces: a card, a grouped list, a notice -------------------------- */
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 18px;
-}
+/* ---- Surfaces ------------------------------------------------------------ */
 
 .card-quiet {
   background: var(--surface-2);
   border-radius: var(--radius);
   padding: 16px;
-}
-
-/* Rows that belong together, in one rounded group with hairlines between. */
-.group {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-.group > li + li {
-  border-top: 1px solid var(--border);
-}
-
-.group-head {
-  padding-left: 16px;
-}
-
-/* A row that opens something: a move, a kept choice. */
-.row {
-  position: relative;
-  display: grid;
-  gap: 2px;
-  width: 100%;
-  min-height: 52px;
-  padding: 12px 40px 12px 16px;
-  border: 0;
-  background: none;
-  color: var(--text);
-  text-align: left;
-  text-decoration: none;
-}
-
-.row::after {
-  content: '';
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  width: 8px;
-  height: 8px;
-  border-top: 2px solid var(--text-faint);
-  border-right: 2px solid var(--text-faint);
-  transform: translateY(-50%) rotate(45deg);
-}
-
-.row:active {
-  background: var(--surface-2);
-}
-
-.row-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.row-title {
-  font-weight: 600;
 }
 
 .notice {
@@ -408,37 +373,24 @@ button {
   font-size: 0.9rem;
 }
 
-.round-head {
+.notice-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 4px 12px;
 }
 
-/* What was found out, and what asking said. */
-.condition,
-.found {
-  padding: 12px 14px;
-  border-radius: var(--radius-sm);
-  background: var(--accent-soft);
-  color: var(--text);
-  font-size: 0.95rem;
+.notice-actions {
+  display: flex;
+  gap: 4px;
 }
 
-.found {
-  display: grid;
-  gap: 2px;
+.notice-actions .link {
+  min-height: 44px;
+  padding: 0 8px;
 }
 
-.results li {
-  padding: 8px 0;
-}
-
-.results li + li {
-  border-top: 1px solid var(--border);
-}
-
-/* A fold: the story so far, what's real, everything played. */
 details.disclosure > summary {
   display: flex;
   align-items: center;
@@ -489,6 +441,7 @@ details.disclosure > summary + * {
   background: var(--surface);
   color: var(--text);
   font-weight: 600;
+  text-align: center;
   text-decoration: none;
   transition: transform 0.08s ease;
 }
@@ -515,18 +468,16 @@ details.disclosure > summary + * {
 }
 
 .btn:disabled {
-  opacity: 0.5;
-}
-
-.btn.on {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  opacity: 0.45;
+  cursor: default;
 }
 
 .btn-icon {
-  width: 18px;
-  height: 18px;
-  color: var(--accent);
+  flex: none;
+  width: var(--tap);
+  padding: 0;
+  font-size: 1.4rem;
+  line-height: 1;
 }
 
 .link {
@@ -538,471 +489,466 @@ details.disclosure > summary + * {
   text-decoration: none;
 }
 
-/* ---- The collection ------------------------------------------------------ */
+/* ---- A round ------------------------------------------------------------- */
 
-.story {
-  padding: 0;
-  overflow: hidden;
-}
-
-.tile {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 16px 18px 18px;
-  color: var(--text);
-  text-decoration: none;
-}
-
-.tile:active {
-  background: var(--surface-2);
-}
-
-.tile-title {
-  font: 600 1.3rem/1.25 var(--font-serif);
-}
-
-/* A story's variant, under the story it varies. */
-.variant {
+.round-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 48px;
-  padding: 12px 18px;
-  border-top: 1px solid var(--border);
-  color: var(--accent);
-  font-size: 0.9rem;
-  font-weight: 600;
-  line-height: 1.35;
-  text-decoration: none;
-}
-
-.variant::after {
-  content: '';
-  flex: none;
-  width: 7px;
-  height: 7px;
-  margin-right: 4px;
-  border-top: 2px solid currentColor;
-  border-right: 2px solid currentColor;
-  transform: rotate(45deg);
-}
-
-.variant:active {
-  background: var(--accent-soft);
-}
-
-/* ---- A step's shape: four cells in one tile ------------------------------ */
-
-.shape {
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  overflow: hidden;
-}
-
-.shape-head {
-  padding: 9px 14px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-dim);
-  font-size: 0.85rem;
-}
-
-.shape-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-
-.shape-grid.one {
-  grid-template-columns: 1fr;
-}
-
-.cell-q {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
   min-height: 44px;
-  padding: 10px 14px 12px;
-  border: 0;
-  background: none;
-  color: var(--text);
-  text-align: left;
+  margin-bottom: -6px;
 }
 
-.shape-grid > .cell-q:nth-child(even) {
-  border-left: 1px solid var(--border);
-}
-
-.shape-grid > .cell-q:nth-child(n + 3) {
-  border-top: 1px solid var(--border);
-}
-
-button.cell-q:active {
-  background: var(--surface-2);
-}
-
-.cell-label {
-  color: var(--text-dim);
-  font-size: 0.78rem;
-  line-height: 1.25;
-}
-
-.cell-value {
-  font-size: 0.95rem;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.cell-was {
-  color: var(--text-dim);
-  font-size: 0.75rem;
-  line-height: 1.25;
-}
-
-/* The one fact a variant changed. */
-.cell-q.changed {
-  background: var(--accent-soft);
-}
-
-/* The question being answered. */
-.cell-q.current {
-  background: var(--accent-soft);
-}
-
-.cell-q.current .cell-label {
-  color: var(--text);
-}
-
-/* ---- Moves: named pills, each opening its card ---------------------------- */
-
-.moves {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 6px;
-}
-
-/* The target is 44px; 2px of headroom keeps sub-pixel text metrics (they
-   differ by OS/font) from rounding it under on some engines. */
-.move-btn {
+.hint {
   display: inline-flex;
   align-items: center;
-  min-width: 46px;
-  min-height: 46px;
-  padding: 0;
-  border: 0;
-  background: none;
-}
-
-.move-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 26px;
-  padding: 2px 10px;
-  border-radius: var(--pill);
-  background: var(--surface-2);
-  box-shadow: inset 0 0 0 1px var(--border);
+  gap: 8px;
   color: var(--text-dim);
-  font-size: 0.85rem;
-  font-weight: 600;
-  line-height: 1.2;
 }
 
-.move-btn:active .move-name {
-  box-shadow: inset 0 0 0 1px var(--text-faint);
-}
-
-/* The ring goes round the pill, not its larger target. */
-.move-btn:focus-visible {
-  outline: none;
-}
-
-.move-btn:focus-visible .move-name {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* "New", or "Trying": a word, not just a colour. */
-.tag {
-  display: inline-block;
-  padding: 1px 7px;
-  border-radius: var(--pill);
+.hint-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   background: var(--accent);
-  color: var(--accent-contrast);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: 1.5;
-  text-transform: uppercase;
 }
 
-/* A number's moves, as it changes. */
-.live {
-  display: flex;
+.skip {
+  display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
   min-height: 44px;
+  min-width: 44px;
+  justify-content: flex-end;
+  font-size: 0.9rem;
 }
 
-/* ---- Options ---------------------------------------------------------------
-   A button.option is one tap target. A story's option is a card whose pick is
-   stretched over it, with its move pills laid above, so a pill opens its card
-   without picking. */
+.step {
+  scroll-margin-top: 8px;
+}
 
-.options {
+.step + .step,
+.round > div + div {
+  padding-top: 4px;
+}
+
+.setup p {
+  font: 1.14rem/1.55 var(--font-serif);
+}
+
+.prompt {
+  font-size: 1.06rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.options,
+.pool {
   display: grid;
   gap: 10px;
 }
 
 .option {
-  position: relative;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
   min-height: 56px;
-  padding: 14px 16px;
+  padding: 12px 16px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
   text-align: left;
-  font-size: 1rem;
-  line-height: 1.4;
+  box-shadow: var(--shadow);
   transition:
     transform 0.08s ease,
     background 0.15s ease;
 }
 
-button.option:active {
-  transform: scale(0.99);
-  background: var(--surface-2);
+.option:not(:disabled):active {
+  transform: scale(0.985);
+  background: var(--accent-soft);
 }
 
-div.option {
-  padding: 0;
-}
-
-.option:has(> .pick:active) {
-  transform: scale(0.99);
-  background: var(--surface-2);
-}
-
-.pick {
-  display: block;
-  width: 100%;
-  min-height: 56px;
-  padding: 14px 16px;
-  border: 0;
-  border-radius: inherit;
-  background: none;
-  text-align: left;
-  line-height: inherit;
-}
-
-.pick::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-}
-
-.pick:focus-visible {
-  outline: none;
-}
-
-.pick:focus-visible::after {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.pick:disabled {
+.option:disabled {
   cursor: default;
+  box-shadow: none;
 }
 
-.option > .moves {
-  position: relative;
-  margin-top: -6px;
-  padding: 0 16px 14px;
-  pointer-events: none;
+.option-text {
+  flex: 1;
 }
 
-.option > .moves .move-btn {
-  margin: -9px 0;
-  pointer-events: auto;
-}
-
-.option-title,
-.option-line {
-  display: block;
-}
-
-/* Asking is a choice too, and a move of its own. */
-.option.ask {
-  background: transparent;
-}
-
-.option.new {
-  border-color: var(--accent);
-}
-
-.option.off {
-  opacity: 0.6;
-}
-
-.option.on {
+.option.picked {
   border-color: var(--accent);
   background: var(--accent-soft);
 }
 
-.options.decide {
-  margin-top: 20px;
+.option.right {
+  border-color: var(--good);
+  background: var(--good-soft);
 }
 
-/* Not sure, None of these: answers too, a step quieter. */
-.escapes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 6px;
+.option:disabled:not(.picked):not(.right) {
+  color: var(--text-dim);
+  border-color: var(--border);
 }
 
-.option.escape {
-  min-height: 48px;
-  padding: 10px 12px;
-  background: transparent;
-  font-size: 0.95rem;
-  text-align: center;
-}
-
-.option.escape.on {
-  background: var(--accent-soft);
-}
-
-/* Share something scarce: a stepper per item, and the plot drawn above. */
-.option.alloc {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-}
-
-.stepper {
+.option-tag {
   flex: none;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.step-btn {
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--border-strong);
-  border-radius: 50%;
-  background: var(--surface);
-  font-size: 1.3rem;
-  line-height: 1;
-}
-
-.step-btn:disabled {
-  opacity: 0.4;
-}
-
-.alloc-n {
-  flex: none;
-  min-width: 2ch;
-  text-align: center;
-  font-size: 1.15rem;
+  color: var(--accent);
+  font-size: 0.78rem;
   font-weight: 600;
 }
 
-.plot {
+.mark {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
+.mark-right {
+  color: var(--good);
+}
+
+.mark-wrong {
+  color: var(--bad);
+}
+
+.reveal {
+  padding: 18px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.reveal p {
+  font: 1.05rem/1.55 var(--font-serif);
+}
+
+.reveal .reply {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.reveal .btn {
+  margin-top: 18px;
+}
+
+.views {
   display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 4px;
+  gap: 10px;
 }
 
-.plot-cell {
+.view {
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--accent-soft);
+}
+
+.reveal .view-who {
+  font: 600 0.8rem/1.4 var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.reveal .view-text {
+  font-size: 1rem;
+}
+
+/* An estimate: a big number, a slider with steppers, then the guess against the answer. */
+.estimate {
+  display: grid;
+  gap: 14px;
+}
+
+.readout {
+  display: block;
+  text-align: center;
+  font: 600 2.4rem/1.1 var(--font-serif);
+}
+
+.readout.unset {
+  color: var(--text-faint);
+  font-size: 1.5rem;
+  line-height: 1.6;
+}
+
+.estimate-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.range {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.scale {
+  position: relative;
+  height: 32px;
+  margin: 4px 11px 0;
+  border-bottom: 4px solid var(--track);
+}
+
+.scale-mark {
+  position: absolute;
+  bottom: -11px;
+  width: 18px;
   height: 18px;
-  border-radius: 4px;
-  background: var(--bar-track);
+  margin-left: -9px;
+  border-radius: 50%;
+  border: 3px solid var(--surface);
 }
 
-.plot-cell.first {
+.scale-mark.guess {
   background: var(--accent);
 }
 
-/* Day by day: where the story is in its week. */
-.days {
-  display: flex;
-  gap: 6px;
+.scale-mark.truth {
+  background: var(--good);
 }
 
-.days li {
-  flex: 1;
-  padding: 4px 0;
-  border-bottom: 3px solid var(--bar-track);
-  color: var(--text-faint);
+.estimate-result {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.estimate-result > div {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.estimate-result > div:first-child {
+  border-left: 4px solid var(--accent);
+}
+
+.estimate-result > div:last-child {
+  border-left: 4px solid var(--good);
+}
+
+.estimate-result dt {
+  color: var(--text-dim);
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+.estimate-result dd {
+  font: 600 1.15rem/1.3 var(--font-serif);
+}
+
+/* Order: numbered slots filled by tapping, then the true order with dates. */
+.order {
+  display: grid;
+  gap: 10px;
+}
+
+.slot-end {
+  margin-left: auto;
+  padding-right: 14px;
+  color: var(--text-faint);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pool {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.slots,
+.order-result {
+  display: grid;
+  gap: 8px;
+}
+
+.slot,
+.order-result li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 0 0 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.slot.filled,
+.order-result li {
+  border-style: solid;
+  background: var(--surface);
+}
+
+.order-n {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 24px;
   text-align: center;
 }
 
-.days li.past {
-  border-color: var(--accent);
+.slot-item {
+  flex: 1;
+  align-self: stretch;
+  min-height: 50px;
+  padding: 8px 14px 8px 0;
+  border: 0;
+  background: none;
+  text-align: left;
 }
 
-.days li.now {
-  border-color: var(--accent);
-  color: var(--accent);
+.slot-empty {
+  color: var(--text-faint);
+  font-size: 0.875rem;
 }
 
-/* ---- An ending ------------------------------------------------------------- */
-
-.did > li {
-  padding: 14px 16px;
+.order-result li {
+  padding: 10px 14px 10px 12px;
 }
 
-.cost-risk {
+.order-result li.right {
+  border-color: var(--good);
+}
+
+.order-body {
+  flex: 1;
   display: grid;
   gap: 2px;
 }
 
-.cost-risk > div {
-  display: grid;
-  grid-template-columns: 2.6rem 1fr;
-  gap: 10px;
-}
-
-.cost-risk dt {
+.order-detail {
   color: var(--text-dim);
-  font-weight: 600;
+  font-size: 0.875rem;
 }
 
-/* A story and its variant, side by side. */
-.pair {
-  padding: 14px 16px;
-}
-
-.pair-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+/* Quickfire: one call at a time, each with its note once made. */
+.calls {
+  display: grid;
   gap: 12px;
 }
 
-.pair-head .cell-value {
-  flex: none;
-  text-align: right;
+.call {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
 }
 
-/* ---- Bring a choice and About --------------------------------------------- */
+.call-text {
+  font: 1.05rem/1.45 var(--font-serif);
+}
 
-/* A field's label, the field, and a note under it. */
-.field-group {
+.call-buttons {
   display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.call-buttons .btn {
+  padding: 0 10px;
+}
+
+.call-verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-weight: 600;
+}
+
+.call-verdict .mark {
+  width: 20px;
+  height: 20px;
+}
+
+.call-answer {
+  color: var(--text-dim);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.in-book {
+  display: inline-block;
+  white-space: nowrap;
+  margin-left: 6px;
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.call-note {
+  color: var(--text-dim);
+}
+
+/* ---- The ending: the idea, its connections, its sources ------------------- */
+
+.takeaway {
+  padding: 22px 20px 18px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+}
+
+.takeaway.kept {
+  border-color: var(--accent);
+}
+
+.idea-text p {
+  font: 1.3rem/1.42 var(--font-serif);
+  text-wrap: pretty;
+}
+
+.idea-by {
+  margin-top: 8px;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+}
+
+.idea-by::before {
+  content: '— ';
+}
+
+.takeaway-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.kept-note {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
+  min-height: var(--tap);
+  padding-right: 8px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.kept-note svg {
+  width: 20px;
+  height: 20px;
 }
 
 .field {
@@ -1010,7 +956,7 @@ div.option {
   min-height: var(--tap);
   padding: 12px 14px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
   font: inherit;
@@ -1020,19 +966,179 @@ div.option {
   color: var(--text-faint);
 }
 
-textarea.field {
+.idea-field {
+  font: 1.15rem/1.45 var(--font-serif);
   resize: vertical;
 }
 
+.conns {
+  display: grid;
+  gap: 10px;
+}
+
+.conn {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.conn.unplayed {
+  background: transparent;
+  border-style: dashed;
+}
+
+.conn-head {
+  font-weight: 600;
+}
+
+.rel {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 8px;
+  border-radius: var(--pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.conn-idea {
+  font: 1.02rem/1.45 var(--font-serif);
+  padding-left: 12px;
+  border-left: 3px solid var(--border-strong);
+}
+
+.conn-note {
+  color: var(--text-dim);
+}
+
+.conn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 20px;
+}
+
+.conn-actions .link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.conn.unplayed .link {
+  display: inline;
+}
+
+.claims {
+  display: grid;
+  gap: 14px;
+}
+
+.status {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--pill);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.status-established {
+  background: var(--good-soft);
+  color: var(--good);
+}
+
+.source-links {
+  display: grid;
+}
+
+.source-links .link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  font-weight: 500;
+}
+
+/* ---- Lists of rounds and ideas ------------------------------------------- */
+
+.rounds,
+.ideas {
+  display: grid;
+  gap: 10px;
+}
+
+.round-row,
+.idea-row {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.round-row:active,
+.idea-row:active {
+  background: var(--surface-2);
+}
+
+.row-title {
+  font: 600 1.1rem/1.3 var(--font-serif);
+}
+
+.idea-row-text {
+  font: 1.12rem/1.42 var(--font-serif);
+}
+
+.tags,
+.links-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.tag {
+  padding: 1px 8px;
+  border-radius: var(--pill);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.link-chip {
+  color: var(--text-dim);
+}
+
+.from {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.empty {
+  padding: 4px 0;
+}
+
+/* ---- About --------------------------------------------------------------- */
+
 .rules li {
-  padding-left: 16px;
   position: relative;
+  padding-left: 18px;
 }
 
 .rules li::before {
   content: '';
   position: absolute;
-  left: 0;
+  left: 2px;
   top: 0.65em;
   width: 6px;
   height: 6px;
@@ -1042,134 +1148,4 @@ textarea.field {
 
 .rules li + li {
   margin-top: 10px;
-}
-
-/* ---- The card: a sheet from the bottom, over whatever was tapped ----------- */
-
-.sheet {
-  width: 100%;
-  max-width: var(--column);
-  max-height: 88dvh;
-  margin: auto auto 0;
-  padding: 0;
-  border: 0;
-  border-radius: 20px 20px 0 0;
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.sheet::backdrop {
-  background: rgba(20, 16, 12, 0.45);
-}
-
-.sheet-inner {
-  display: flex;
-  flex-direction: column;
-  padding: 12px var(--gutter) calc(env(safe-area-inset-bottom) + 28px);
-  overflow-wrap: break-word;
-}
-
-/* Close stays in reach however far the card scrolls. */
-.sheet-close {
-  position: sticky;
-  top: 10px;
-  z-index: 2;
-  align-self: flex-end;
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin: 0 -8px -44px 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--surface-2);
-  color: var(--text-dim);
-}
-
-.sheet-close svg {
-  width: 20px;
-  height: 20px;
-}
-
-.card-head {
-  padding: 8px 48px 0 0;
-}
-
-/* A move's price, limit and instance, as one group. */
-.facts {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-
-.facts > div {
-  padding: 10px 14px;
-}
-
-.facts > div + div {
-  border-top: 1px solid var(--border);
-}
-
-.facts dt {
-  color: var(--text-dim);
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.facts dd {
-  margin-top: 2px;
-}
-
-/* A question's answers: read, not picked; the step's own is marked. */
-.answers {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.answers > li {
-  display: grid;
-  gap: 2px;
-  padding: 12px 14px;
-}
-
-.answers > li + li {
-  border-top: 1px solid var(--border);
-}
-
-.answers > li.on {
-  background: var(--accent-soft);
-}
-
-.answer-text {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-weight: 600;
-}
-
-.answer-check {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  color: var(--accent);
-}
-
-/* Stories that offer a move, named in a card. */
-.replays {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 16px;
-}
-
-.replays a,
-.replays strong {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
 }

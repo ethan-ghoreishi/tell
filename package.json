@@ -1,9 +1,9 @@
 {
   "name": "tell",
   "private": true,
-  "version": "4.1.0",
+  "version": "5.0.0",
   "type": "module",
-  "description": "Short stories to play, a small language for choices under uncertainty, and a way to bring a real choice. Local-first PWA: no accounts, no runtime AI, nothing leaves the device.",
+  "description": "A game of ideas that stay with you: short researched rounds to play, and a Book of the ideas worth keeping, connected. Local-first PWA: no accounts, no runtime AI, nothing leaves the device.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

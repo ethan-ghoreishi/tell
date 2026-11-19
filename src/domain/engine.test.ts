@@ -1,187 +1,161 @@
 import { describe, expect, it } from 'vitest';
-import { SAMPLE, everything } from '../../tests/sample';
-import { emptyState, examples, fresh, keyed, localDay, markSeen, pairs, playView, playedWith, recordChoice, recordPlay, recordText, removeChoice, setNote, setTrying } from './engine';
-import { LANGUAGE, type Shape } from './language';
-import { SITUATIONS } from './situations';
-import type { Answers, Situation, TellState } from './types';
+import tell41 from '../../tests/fixtures/tell-4.1.json';
+import { ANSWERS } from '../../tests/answers';
+import { ROUNDS, roundById } from '../content';
+import { archiveText } from './archive';
+import { amount, answerProblem, bookOrder, bookText, connections, editIdea, emptyState, hasPlayed, ideaOf, keep, nextUp, recordPlay, relationWord, removeIdea, scrambled, search, skip } from './engine';
+import type { TellState } from './types';
+import { archive } from './validate';
 
-const at = (h: number) => new Date(2026, 9, 1, h, 0, 0);
-const play = (s: TellState, id: string, answers: Answers = SAMPLE[id], h = 9) => recordPlay(s, SITUATIONS, id, answers, at(h));
-const oak = (pick: string, opened: string[] = []): Answers => ({ look: { kind: 'uncover', opened }, act: { kind: 'choose', pick, asked: false } });
-const boat = (pick: string, asked = false): Answers => ({ keep: { kind: 'choose', pick, asked } });
-const beans = (old: number): Answers => ({ rows: { kind: 'allocate', amounts: { old, usual: 10 - old } } });
-const HARD: Shape = { undo: 'no', know: ['check', 'after'], wait: 'closes', bad: 'hard' };
+const now = new Date(2026, 10, 19, 9);
+const r = (id: string) => roundById(id)!;
+const play = (s: TellState, id: string) => recordPlay(s, r(id), ANSWERS[id], now);
 
-describe('a play', () => {
-  it('snapshots the story as shown, with the language it was described in, and numbers replays', () => {
-    let s = play(emptyState(), 'oak');
-    s = play(s, 'oak', oak('fell'), 10);
-    expect(s.plays.map((p) => [p.situation, p.v, p.language, p.replay, p.day])).toEqual([
-      ['oak', 3, LANGUAGE, 0, localDay(at(9))],
-      ['oak', 3, LANGUAGE, 1, localDay(at(10))],
+describe('what Play offers next', () => {
+  it('goes through the collection in order, then says there is nothing new', () => {
+    let s = emptyState();
+    for (const round of ROUNDS) {
+      expect(nextUp(s, ROUNDS)?.id).toBe(round.id);
+      s = play(s, round.id);
+    }
+    expect(nextUp(s, ROUNDS)).toBeNull();
+  });
+
+  it('never offers the round on screen again, and passes over skipped rounds until the rest are played', () => {
+    const [a, b, c] = ROUNDS;
+    expect(nextUp(emptyState(), ROUNDS, a.id)?.id).toBe(b.id);
+    const s = skip(skip(emptyState(), a.id), a.id);
+    expect(s.skipped).toEqual([a.id]);
+    expect(nextUp(s, ROUNDS)?.id).toBe(b.id);
+    const rest = ROUNDS.slice(1).reduce((x, round) => play(x, round.id), s);
+    expect(nextUp(rest, ROUNDS)?.id).toBe(a.id);
+    // Playing a skipped round clears its skip.
+    expect(play(s, a.id).skipped).toEqual([]);
+    expect(nextUp(play(emptyState(), a.id), ROUNDS, b.id)?.id).toBe(c.id);
+  });
+});
+
+describe('recording a play', () => {
+  it('records every round with a valid answer for each step, and refuses an invalid one', () => {
+    const s = ROUNDS.reduce((x, round) => play(x, round.id), emptyState());
+    expect(s.plays.map((p) => p.round)).toEqual(ROUNDS.map((x) => x.id));
+    expect(() => recordPlay(emptyState(), r('night-sky'), { why: 'nope', who: 'poe' }, now)).toThrow(/why: the answer is not one of the options/);
+    expect(() => recordPlay(emptyState(), r('night-sky'), { why: 'age' }, now)).toThrow(/who/);
+  });
+
+  it('checks each kind of answer', () => {
+    const steps = ROUNDS.flatMap((x) => x.steps);
+    const est = steps.find((s) => s.kind === 'estimate')!;
+    const ord = steps.find((s) => s.kind === 'order')!;
+    const qf = steps.find((s) => s.kind === 'quickfire')!;
+    if (est.kind !== 'estimate' || ord.kind !== 'order' || qf.kind !== 'quickfire') throw new Error('kinds');
+    expect(answerProblem(est, est.max + 1)).toMatch(/range/);
+    expect(answerProblem(est, Number.NaN)).toMatch(/range/);
+    expect(answerProblem(ord, ord.items.slice(1).map((i) => i.id))).toMatch(/every item/);
+    expect(answerProblem(ord, [...ord.items.map((i) => i.id).slice(1), ord.items[1].id])).toMatch(/every item/);
+    expect(answerProblem(qf, qf.items.map(() => 2))).toMatch(/every item/);
+    expect(answerProblem(qf, qf.items.map(() => 1))).toBeNull();
+  });
+
+  it('keeps only the answers the round asks for', () => {
+    const s = recordPlay(emptyState(), r('night-sky'), { ...ANSWERS['night-sky'], extra: 'x' }, now);
+    expect(Object.keys(s.plays[0].answers)).toEqual(['why', 'who']);
+    expect(hasPlayed(s, 'night-sky')).toBe(true);
+  });
+});
+
+describe('the Book', () => {
+  it('keeps an idea once, in the round’s words or the player’s', () => {
+    const sky = r('night-sky');
+    const s = keep(emptyState(), sky, now);
+    expect(ideaOf(s, sky.id)).toEqual({ round: sky.id, title: sky.title, kind: sky.takeaway.kind, text: sky.takeaway.text, original: sky.takeaway.text, at: now.toISOString() });
+    expect(keep(s, sky, now, 'Another')).toBe(s);
+    const mine = keep(emptyState(), sky, now, '  My   words ');
+    expect(ideaOf(mine, sky.id)).toMatchObject({ text: 'My words', edited: now.toISOString() });
+    expect(keep(emptyState(), sky, now, '   ')).toEqual(emptyState());
+    // A saying keeps its author.
+    expect(ideaOf(keep(emptyState(), r('rats'), now), 'rats')?.by).toMatch(/Strathern/);
+  });
+
+  it('edits, restores the original wording and removes', () => {
+    const sky = r('night-sky');
+    const s = keep(emptyState(), sky, now);
+    const edited = editIdea(s, sky.id, 'Mine', now);
+    expect(ideaOf(edited, sky.id)).toMatchObject({ text: 'Mine', edited: now.toISOString() });
+    expect(editIdea(edited, sky.id, '', now)).toBe(edited);
+    expect(editIdea(edited, sky.id, 'Mine', now)).toBe(edited);
+    const restored = editIdea(edited, sky.id, sky.takeaway.text, now);
+    expect(ideaOf(restored, sky.id)).toEqual(ideaOf(s, sky.id));
+    expect(removeIdea(restored, sky.id).book).toEqual([]);
+    expect(removeIdea(emptyState(), sky.id)).toEqual(emptyState());
+  });
+
+  it('lists newest first and searches words, rounds and topics', () => {
+    const s = keep(keep(keep(emptyState(), r('night-sky'), now), r('rats'), now), r('ship'), now);
+    expect(bookOrder(s).map((i) => i.round)).toEqual(['ship', 'rats', 'night-sky']);
+    expect(search(s.book, ROUNDS, 'measure target').map((i) => i.round)).toEqual(['rats']);
+    expect(search(s.book, ROUNDS, 'PHILOSOPHY').map((i) => i.round)).toEqual(['ship']);
+    expect(search(s.book, ROUNDS, 'night').map((i) => i.round)).toEqual(['night-sky']);
+    expect(search(s.book, ROUNDS, '   ')).toEqual(s.book);
+    expect(search(s.book, ROUNDS, 'zebra')).toEqual([]);
+  });
+
+  it('writes itself out as plain text, connections between kept ideas included', () => {
+    const s = keep(keep(emptyState(), r('earth'), now), r('night-sky'), now);
+    const text = bookText(s, ROUNDS);
+    expect(text).toContain(r('earth').takeaway.text);
+    expect(text).toContain('Supported by “Measuring the Earth with a shadow”');
+    expect(text).toContain('Supports “Why is the night dark?”');
+    expect(bookText(emptyState(), ROUNDS)).toContain('Nothing kept yet.');
+  });
+});
+
+describe('connections', () => {
+  it('reads a link from either end, kept ideas first, then played rounds', () => {
+    let s = emptyState();
+    const from = connections(s, ROUNDS, 'night-sky');
+    expect(from.map((c) => [c.other.id, c.how, c.outward])).toEqual([
+      ['earth', 'supports', false],
+      ['stones', 'supports', true],
     ]);
-    expect(s.plays[0].shown).toEqual(SITUATIONS.find((x) => x.id === 'oak'));
-    expect(s.plays[0].shown).not.toBe(SITUATIONS.find((x) => x.id === 'oak'));
-  });
-
-  it.each<[string, string, Answers, RegExp]>([
-    ['an option it didn’t offer', 'oak', oak('burn'), /didn’t offer/],
-    ['the asked-for option without asking', 'boat', boat('club'), /didn’t offer/],
-    ['asking where nothing can be asked', 'oak', { look: { kind: 'uncover', opened: [] }, act: { kind: 'choose', pick: 'fell', asked: true } }, /nothing to ask/],
-    ['more than the budget', 'oak', oak('fell', ['scan', 'photos', 'climb']), /more than/],
-    ['a fact opened twice', 'oak', oak('fell', ['climb', 'climb']), /facts/],
-    ['a share that doesn’t add up', 'beans', { rows: { kind: 'allocate', amounts: { old: 3, usual: 3 } } }, /doesn’t share all/],
-    ['a negative share', 'beans', { rows: { kind: 'allocate', amounts: { old: -1, usual: 11 } } }, /wrong things/],
-    ['a day the week doesn’t have', 'harvest', { pick: { kind: 'days', day: 5 } }, /day/],
-    ['a missing step', 'loaf', { plan: { kind: 'choose', pick: 'shelf', asked: false } }, /different number of steps/],
-    ['an answer of the wrong kind', 'harvest', { pick: { kind: 'choose', pick: 'mon', asked: false } }, /no answer for “pick”/],
-  ])('refuses %s', (_, id, answers, error) => {
-    expect(() => play(emptyState(), id, answers)).toThrow(error);
-  });
-
-  it('refuses a story that doesn’t exist', () => {
-    expect(() => play(emptyState(), 'nowhere', {})).toThrow(/no story/);
-  });
-
-  it('ends with fixed sentences from the record, each with the moves it made, and the closing for the path taken', () => {
-    const s = everything(at(9));
-    const view = (id: string) => playView(s.plays.find((p) => p.situation === id)!);
-    expect(view('oak')).toMatchObject({
-      did: [
-        { line: 'Spent 3 of 4 weeks finding out: “Have the trunk scanned”.', moves: ['look'], costs: 'weeks closer to the storms', risks: 'facts that still don’t settle it' },
-        { line: 'Chose “Take a third of the weight off the crown”.', moves: ['guard'], costs: 'a third of the crown, for good', risks: 'rot in the cuts, or a fall anyway' },
-      ],
-      closing: expect.stringMatching(/^The tree surgeon spends two days in the crown/),
-      unmade: ['hold', 'commit'],
-    });
-    expect(view('harvest').did).toMatchObject([{ line: '“Pick today” on Wednesday.', moves: ['wait-for-it'] }]);
-    // Asking is a move of its own, made before the option it brought.
-    expect(view('boat').did).toMatchObject([{ line: 'Asked at the sailing club, then chose “Lend her to the club for the season”.', moves: ['another', 'hand-over'] }]);
-    expect(view('beans').did).toMatchObject([{ line: 'The old beans: 2 rows. Your usual vegetables: 8 rows.', moves: ['small', 'by-using'] }]);
-    expect(view('take').did).toMatchObject([{ line: 'Asked the camera operator, then chose “Another take of the scene”.', moves: ['look', 'spare'] }]);
-    // The same option, under a different shape, is a different move: keeping the boat for the summer.
-    expect(view('boat-spring').did).toMatchObject([{ line: 'Chose “Keep her for the summer, then decide”.', moves: ['small'] }]);
-    // The film's endings stop before the lab, so neither take is shown right in hindsight.
-    expect(view('take').closing).toMatch(/On Thursday the lab will show/);
-    expect(playView(play(emptyState(), 'harvest', { pick: { kind: 'days', day: 4 } }).plays[0]).did).toEqual([
-      { line: '“Wait for the storm to pass” on Thursday.', moves: ['wait-for-it'], costs: 'nothing yet', risks: 'half the crop' },
-    ]);
-    // Holding off with nothing done makes no move, and says so by naming none; it still costs and risks something.
-    expect(playView(play(emptyState(), 'oak', oak('fence')).plays[0]).did[0]).toEqual({ line: 'Decided without spending time finding out.', moves: [], costs: 'no time at all', risks: 'acting on a lean and some fungus alone' });
-    expect(playView(play(emptyState(), 'beans', beans(0)).plays[0]).did[0].moves).toEqual([]);
-    expect(playView(play(emptyState(), 'beans', beans(6)).plays[0]).did[0].moves).toEqual(['split', 'by-using']);
-    expect(playView(play(emptyState(), 'beans', beans(10)).plays[0]).closing).toMatch(/whole plot/);
-  });
-
-  it('shows what follows from an earlier answer before the next step', () => {
-    const l = SITUATIONS.find((x) => x.id === 'loaf')!;
-    const next = l.steps[1];
-    if (next.kind !== 'choose' || !next.before) throw new Error('the loaf’s second step follows its first');
-    expect(keyed(next.before, l, { plan: { kind: 'choose', pick: 'regulars', asked: false } })).toMatch(/^Two of them love it/);
-  });
-
-  it('keeps showing what it showed, moves included, after the content changes', () => {
-    const s = play(emptyState(), 'oak', oak('fence', ['scan']));
-    const before = playView(s.plays[0]);
-    const exBefore = examples(s);
-    const edited: Situation[] = SITUATIONS.map((x) =>
-      x.id === 'oak' ? { ...x, v: 4, ending: { ...x.ending, others: 'Rewritten.' }, steps: x.steps.map((st) => (st.kind === 'choose' ? { ...st, options: st.options.map((o) => ({ ...o, moves: ['commit' as const] })) } : st)) } : x,
-    );
-    const later = recordPlay(s, edited, 'oak', oak('fence'), at(10));
-    expect(playView(later.plays[0])).toEqual(before);
-    expect(playView(later.plays[1]).others).toBe('Rewritten.');
-    expect(playView(later.plays[1]).did[1].moves).toEqual(['commit']);
-    // The first play's moves are its own, whatever the story says today.
-    expect(examples(later).find((e) => e.id === 'hold')).toEqual(exBefore.find((e) => e.id === 'hold'));
-  });
-});
-
-describe('what the record holds', () => {
-  it('lists every move the player has made, in the language’s order, with each step that made it', () => {
-    let s = play(emptyState(), 'oak', oak('fence', ['photos']));
-    s = play(s, 'loaf', SAMPLE.loaf, 10);
-    s = play(s, 'oak', oak('fell'), 11);
-    expect(examples(s).map((e) => [e.id, e.examples.map((x) => `${x.play.shown.title}${x.play.replay ? ' again' : ''}: ${x.line}`)])).toEqual([
-      ['look', ['The old oak: Spent 1 of 4 weeks finding out: “Find old photographs of the green”.']],
-      ['small', ['The new loaf: Chose “Put twelve on the shelf on Saturday”.']],
-      ['hold', ['The old oak: Chose “Leave it, and fence off the path”.']],
-      ['guard', ['The old oak: Chose “Leave it, and fence off the path”.']],
-      ['commit', ['The new loaf: Chose “Bake it every Saturday”.', 'The old oak again: Chose “Fell it”.']],
+    expect(from.map(relationWord)).toEqual(['Supported by', 'Supports']);
+    s = keep(play(play(s, 'stones'), 'earth'), r('earth'), now);
+    const after = connections(s, ROUNDS, 'night-sky');
+    expect(after.map((c) => [c.other.id, !!c.kept, c.played])).toEqual([
+      ['earth', true, true],
+      ['stones', false, true],
     ]);
   });
 
-  it('sets a story and its variant side by side once both are played, latest plays first, with the question they differ on', () => {
-    let s = play(emptyState(), 'harvest');
-    expect(pairs(s)).toEqual([]);
-    s = play(s, 'harvest-blind', SAMPLE['harvest-blind'], 10);
-    s = play(s, 'oak', oak('fell'), 11);
-    expect(pairs(s).map((p) => [p.base.situation, p.variant.situation, p.differ])).toEqual([['harvest', 'harvest-blind', ['know']]]);
-    s = play(s, 'harvest', { pick: { kind: 'days', day: 0 } }, 12);
-    expect(pairs(s)[0].base.replay).toBe(1);
-    // A variant played alone has nothing beside it.
-    expect(pairs(play(emptyState(), 'boat-spring'))).toEqual([]);
-  });
-
-  it('names the played steps that had an answer, from the plays’ own snapshots', () => {
-    let s = play(emptyState(), 'oak');
-    expect(playedWith(s, 'undo', 'no')).toEqual(['felling the oak']);
-    expect(playedWith(s, 'undo', 'easily')).toEqual([]);
-    s = play(s, 'harvest', SAMPLE.harvest, 10);
-    s = play(s, 'harvest-blind', SAMPLE['harvest-blind'], 11);
-    expect(playedWith(s, 'undo', 'no')).toEqual(['felling the oak', 'picking the grapes']);
-    expect(playedWith(s, 'know', 'after')).toEqual(['felling the oak', 'picking the grapes']);
-  });
-
-  it('marks a move New until an ending has shown it, and keeps the first sighting', () => {
-    let s = play(emptyState(), 'oak', oak('fence', ['scan']));
-    expect(fresh(s, s.plays[0])).toEqual(['look', 'hold', 'guard']);
-    s = markSeen(s, fresh(s, s.plays[0]), at(9));
-    s = play(s, 'loaf', SAMPLE.loaf, 10);
-    expect(fresh(s, s.plays[1])).toEqual(['small', 'commit']);
-    expect(fresh(s, s.plays[0])).toEqual([]);
-    const seen = markSeen(s, ['look', 'small'], at(11)).seen;
-    expect(seen).toEqual({ look: at(9).toISOString(), hold: at(9).toISOString(), guard: at(9).toISOString(), small: at(11).toISOString() });
-    expect(markSeen(s, ['look'], at(12))).toBe(s);
+  it('gives every round at least one connection', () => {
+    for (const round of ROUNDS) expect(connections(emptyState(), ROUNDS, round.id).length, round.id).toBeGreaterThan(0);
   });
 });
 
-describe('a kept choice', () => {
-  it('keeps the answers and the moves exactly as shown, with nothing read from the label', () => {
-    const s = recordChoice(emptyState(), '  Open-source my app ', HARD, at(9));
-    const [c] = s.choices;
-    expect(c).toMatchObject({ label: 'Open-source my app', language: LANGUAGE, day: localDay(at(9)), shape: HARD, trying: [], note: '' });
-    expect(c.shown.map((l) => l.name)).toEqual(['Find out first', 'Soften the step', 'Keep it open', 'Limit the harm', 'Find another way', 'Settle it']);
-    expect(c.shown[0].moves[0]).toMatchObject({ id: 'look', name: 'Look first', because: 'Because you said there’s something to check or ask first.' });
-    expect(recordChoice(emptyState(), 'Something else entirely', HARD, at(9)).choices[0].shown).toEqual(c.shown);
+describe('small helpers', () => {
+  it('scrambles the same way every time, never into the answer', () => {
+    const items = ['a', 'b', 'c', 'd'].map((id) => ({ id }));
+    expect(scrambled(items)).toEqual(scrambled(items));
+    expect(scrambled(items).map((i) => i.id)).not.toEqual(['a', 'b', 'c', 'd']);
+    expect(scrambled(items.slice(0, 2)).map((i) => i.id)).toEqual(['b', 'a']);
   });
 
-  it('refuses answers the questions don’t have', () => {
-    expect(() => recordChoice(emptyState(), '', { ...HARD, wait: 'soon' }, at(9))).toThrow(/doesn’t answer “If you wait/);
-  });
-
-  it('can mark moves as being tried, carry a note, and be removed, by the player alone', () => {
-    let s = recordChoice(emptyState(), '', HARD, at(9));
-    const id = s.choices[0].id;
-    s = setTrying(s, id, 'small', true);
-    s = setTrying(s, id, 'small', true);
-    s = setTrying(s, id, 'tripwire', true);
-    s = setTrying(s, id, 'tripwire', false);
-    s = setNote(s, id, 'A beta for five friends first.');
-    expect(s.choices[0]).toMatchObject({ trying: ['small'], note: 'A beta for five friends first.' });
-    expect(removeChoice(s, id).choices).toEqual([]);
+  it('formats amounts with their units', () => {
+    expect(amount(2, '%')).toBe('2%');
+    expect(amount(250000, 'stadia')).toBe('250,000 stadia');
   });
 });
 
-describe('plain text', () => {
-  it('carries every kept choice and every play, with its shape, moves and what each answer cost and risked', () => {
-    let s = everything(at(9));
-    s = recordChoice(s, 'Open-source my app', HARD, at(16));
-    s = setTrying(s, s.choices[0].id, 'small', true);
-    s = setNote(s, s.choices[0].id, 'One module first.');
-    const text = recordText(s);
-    expect(text).toContain('Choice: Open-source my app, 1 Oct\n  If you take it, can it be undone? No.');
-    expect(text).toContain('  Trying: Try it small.\n  Note: One module first.');
-    for (const x of SITUATIONS) expect(text).toContain(`${x.title}, 1 Oct\n${x.whatIf ? `  ${x.whatIf}\n` : ''}  Unknown: ${x.uncertain}\n  About ${x.turnsOn}: If you take it, can it be undone?`);
-    expect(text).toContain('Chose “Take a third of the weight off the crown”. Moves: Guard. Costs a third of the crown, for good; risks rot in the cuts, or a fall anyway.');
+describe('an archived Tell 4.1 record as plain text', () => {
+  it('names the kept choice, its moves, what was being tried and the note, and the stories played', () => {
+    const a = archive(tell41 as unknown as Record<string, unknown>, now).archive.at(-1)!;
+    const text = archiveText(a);
+    expect(text).toContain('Move flat this spring');
+    expect(text).toContain('Note: Ask the landlord about a break clause.');
+    expect(text).toContain('(trying this)');
+    expect(text).toContain('The old oak');
+    // Defensive: a record missing everything still prints.
+    expect(archiveText({ schema: 6, at: now.toISOString(), doc: {} })).toContain('No kept choices.');
   });
 });
+

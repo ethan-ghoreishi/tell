@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 // Colour is checked by a test, not by eye, against the SHIPPED stylesheet.
 // The pairs are written out so an omission is visible. Text needs 4.5:1
-// (WCAG AA); the plot and the day marks are graphics and need 3:1.
+// (WCAG AA); marks and markers are graphics and need 3:1.
 
 const CSS = readFileSync(new URL('../src/styles/global.css', import.meta.url), 'utf8');
 const darkAt = CSS.indexOf('@media (prefers-color-scheme: dark)');
@@ -51,26 +51,25 @@ const GRAPHIC = 3;
 
 const PAIRS: { fg: string; bg: string; over?: string; min: number; where: string }[] = [
   { fg: 'text', bg: 'bg', min: TEXT, where: 'body text on the page' },
-  { fg: 'text', bg: 'surface', min: TEXT, where: 'options, tiles and fields in a .card' },
-  { fg: 'text', bg: 'surface-2', min: TEXT, where: '.card-quiet (Reread the story, archive)' },
+  { fg: 'text', bg: 'surface', min: TEXT, where: 'options, reveals, the idea, rows and fields' },
+  { fg: 'text', bg: 'surface-2', min: TEXT, where: '.card-quiet (earlier records in About)' },
   { fg: 'text-dim', bg: 'bg', min: TEXT, where: '.dim / .lede on the page' },
-  { fg: 'text-dim', bg: 'surface', min: TEXT, where: '.dim in a .card' },
-  { fg: 'text-dim', bg: 'surface-2', min: TEXT, where: '.dim in .card-quiet' },
-  { fg: 'text-faint', bg: 'bg', min: TEXT, where: '.eyebrow / .faint / tabs / day labels on the page' },
-  { fg: 'text-faint', bg: 'surface', min: TEXT, where: '.eyebrow in a .card' },
-  { fg: 'text-faint', bg: 'surface-2', min: TEXT, where: '.faint in .card-quiet' },
-  { fg: 'accent', bg: 'bg', min: TEXT, where: '.link / active tab / today’s day label' },
-  { fg: 'accent', bg: 'surface', min: TEXT, where: '.link in a .card' },
-  { fg: 'accent', bg: 'surface-2', min: TEXT, where: '.link in .card-quiet' },
-  { fg: 'text', bg: 'accent-soft', over: 'surface', min: TEXT, where: '.condition, and a pressed option or button, on a surface' },
-  { fg: 'text', bg: 'accent-soft', over: 'bg', min: TEXT, where: '.condition on the page (what was found, what asking said)' },
-  { fg: 'text', bg: 'accent-soft', over: 'surface-2', min: TEXT, where: 'a changed cell inside “Reread the story”' },
-  { fg: 'text-dim', bg: 'accent-soft', over: 'bg', min: TEXT, where: 'a changed cell’s label and “Was:”, and a pressed answer’s line, on the page' },
-  { fg: 'text-dim', bg: 'accent-soft', over: 'surface', min: TEXT, where: 'the same in the What-if .card or the card sheet' },
-  { fg: 'text-dim', bg: 'accent-soft', over: 'surface-2', min: TEXT, where: 'a changed cell’s label and “Was:” inside “Reread the story”' },
-  { fg: 'accent', bg: 'accent-soft', over: 'surface', min: TEXT, where: 'a variant’s link while pressed, the tick on a question card’s answer and on “Trying this”' },
-  { fg: 'accent-contrast', bg: 'accent', min: TEXT, where: '.btn-primary, and the New and Trying badges' },
-  { fg: 'accent', bg: 'bar-track', min: GRAPHIC, where: 'the plot’s cells and the day marks' },
+  { fg: 'text-dim', bg: 'surface', min: TEXT, where: '.dim, notes and answered options on a surface' },
+  { fg: 'text-dim', bg: 'surface-2', min: TEXT, where: 'tags, order numbers and statuses' },
+  { fg: 'text-faint', bg: 'bg', min: TEXT, where: '.eyebrow / tabs on the page' },
+  { fg: 'text-faint', bg: 'surface', min: TEXT, where: '.eyebrow and empty slots on a surface' },
+  { fg: 'accent', bg: 'bg', min: TEXT, where: '.link / the way back / the active tab' },
+  { fg: 'accent', bg: 'surface', min: TEXT, where: '.link and “Your answer” on a surface' },
+  { fg: 'text', bg: 'accent-soft', over: 'surface', min: TEXT, where: 'a picked option, a view' },
+  { fg: 'text', bg: 'accent-soft', over: 'bg', min: TEXT, where: 'a view on the page' },
+  { fg: 'text-dim', bg: 'accent-soft', over: 'surface', min: TEXT, where: 'a view’s label' },
+  { fg: 'accent', bg: 'accent-soft', over: 'surface', min: TEXT, where: 'a relation chip and “Your answer” on a picked option' },
+  { fg: 'text', bg: 'good-soft', over: 'surface', min: TEXT, where: 'the right option' },
+  { fg: 'good', bg: 'good-soft', over: 'surface', min: TEXT, where: 'an Established status' },
+  { fg: 'good', bg: 'surface', min: GRAPHIC, where: 'the ✓ mark, the right option’s border, the answer’s marker' },
+  { fg: 'bad', bg: 'surface', min: GRAPHIC, where: 'the ✗ mark' },
+  { fg: 'accent-contrast', bg: 'accent', min: TEXT, where: '.btn-primary' },
+  { fg: 'accent', bg: 'track', min: GRAPHIC, where: 'the guess on the estimate’s scale' },
 ];
 
 describe.each(Object.entries(PALETTES))('%s palette', (_, block) => {

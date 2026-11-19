@@ -45,7 +45,7 @@ export default defineConfig({
       manifest: {
         name: 'Tell',
         short_name: 'Tell',
-        description: 'Short stories to play, and the moves they teach, for a real choice when it comes.',
+        description: 'A game of ideas that stay with you: short rounds to play, and a Book of the ideas worth keeping.',
         lang: 'en-GB',
         theme_color: '#f4f1ea',
         background_color: '#f4f1ea',

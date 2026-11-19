@@ -4,9 +4,9 @@ import type { TellState } from '../domain/types';
 import { validateState } from '../domain/validate';
 
 // One JSON document in localStorage, the source of truth on this device.
-// ponytail: localStorage caps out around 5 MB; each play snapshots its story
-// (about 6 KB), so roughly 800 plays. Store each story version once, or move
-// to IndexedDB, if a player ever gets near that.
+// shortcut: localStorage caps out around 5 MB; a play is a few hundred bytes
+// and an archived earlier record tens of KB, so this lasts thousands of
+// rounds. Move to IndexedDB if a record ever gets near that.
 //
 // Data safety: a document that can't be read (not JSON, malformed, or from a
 // newer Tell) is REFUSED. Nothing is written over it; the app offers its raw

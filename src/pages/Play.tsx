@@ -1,284 +1,168 @@
-import { useEffect, useState } from 'react';
-import { earlierPlays, fresh, keyed, markSeen, playView, recordPlay, type Pair } from '../domain/engine';
-import { differs, question, shortText } from '../domain/language';
-import { SITUATIONS, situation as situationOf, variantOf } from '../domain/situations';
-import { capital } from '../domain/text';
-import type { Answers, Play, Situation, StepAnswer, TellState } from '../domain/types';
-import { MoveButtons, ShapeCells } from '../lens';
-import { Section, StepPlay, useFocus } from '../steps';
+import { useEffect, useRef, useState } from 'react';
+import { ROUNDS, roundById } from '../content';
+import { hasPlayed, ideaOf, nextUp, skip } from '../domain/engine';
+import type { TellState } from '../domain/types';
+import { restart, RoundView } from '../round';
 import { store } from '../store/store';
-import { shortDate } from '../ui';
+import { InfoIcon } from '../ui';
 
-// A story, played step by step, then its ending. The shape of the step it
-// turns on is there from the start, and every option shows its moves before
-// it's chosen. Only a finished play is recorded. The ending names the moves
-// the play made, marking New the first time the player is shown each, with
-// what they cost and risked here; and, where the story has a variant, offers
-// it, or sets the two plays side by side.
+// Play opens straight into a round: the next one in the collection, playable
+// where it stands. Moving on is one tap; passing over a round is one tap; when
+// every round has been played, Play says so plainly and offers them all again.
 
-export function SituationPage({ state, id }: { state: TellState; id: string }) {
-  const s = situationOf(id);
-  const [answers, setAnswers] = useState<Answers>({});
-  const [moved, setMoved] = useState(false);
-  if (!s) return <Missing what="That story" />;
-  const index = s.steps.findIndex((step) => !answers[step.id]);
-  const step = s.steps[index];
-  const before = state.plays.filter((p) => p.situation === s.id);
-  const base = s.of ? situationOf(s.of) : undefined;
-  const shape = <ShapeCells shape={s.shape} label={`The step: ${s.turnsOn}`} was={base?.shape} />;
-
-  function answer(a: StepAnswer) {
-    const next = { ...answers, [step.id]: a };
-    if (index < s!.steps.length - 1) return setAnswers(next);
-    try {
-      if (state.plays.length === 0) navigator.storage?.persist?.().catch(() => undefined);
-    } catch {
-      // Persistence is a request, not a promise.
-    }
-    let recorded = '';
-    store.update((x) => {
-      const after = recordPlay(x, SITUATIONS, s!.id, next, new Date());
-      recorded = after.plays.at(-1)!.id;
-      return after;
-    });
-    location.hash = `#/play/${recorded}`;
-  }
-
-  return (
-    <article className="stack-lg">
-      <header className="stack-tight">
-        <p className="eyebrow">{s.place}</p>
-        <h1 className="title">{s.title}</h1>
-      </header>
-      {index === 0 && !moved ? (
-        <>
-          {before.length > 0 && (
-            <p className="notice">
-              You played this on {shortDate(before[0].day)}. Playing again keeps every play.
-            </p>
-          )}
-          {s.whatIf && <p className="condition">{s.whatIf}</p>}
-          <p className="scene">{s.setup}</p>
-          {shape}
-        </>
-      ) : (
-        <>
-          <details className="disclosure">
-            <summary>Reread the story</summary>
-            <div className="stack">
-              <p>{s.setup}</p>
-              {shape}
-            </div>
-          </details>
-          {/* What was found out stays in view for what comes next. */}
-          {s.steps.slice(0, index).map((x) => {
-            const a = answers[x.id];
-            if (x.kind !== 'uncover' || a.kind !== 'uncover' || !a.opened.length) return null;
-            return (
-              <ul key={x.id} className="condition stack-tight">
-                {a.opened.map((id) => {
-                  const fact = x.facts.find((f) => f.id === id)!;
-                  return <li key={id}>{fact.text}</li>;
-                })}
-              </ul>
-            );
-          })}
-        </>
-      )}
-      <StepPlay key={step.id} step={step} before={step.kind === 'choose' && step.before ? keyed(step.before, s, answers) : undefined} onAnswer={answer} onMove={() => setMoved(true)} />
-    </article>
-  );
-}
-
-/**
- * The ending of a recorded play: how the story closes; what was done, the
- * moves it made and what each cost and risked here, under the step's shape;
- * the variant, or both plays side by side; and other ways through.
- */
-export function PlayPage({ state, id }: { state: TellState; id: string }) {
-  const p = state.plays.find((x) => x.id === id);
-  const ref = useFocus<HTMLHeadingElement>(id);
-  const isNew = useFresh(state, p);
-  if (!p) return <Missing what="That play" />;
-  const v = playView(p);
-  const earlier = earlierPlays(state, p);
-  const variant = p.shown.of ? undefined : variantOf(p.situation);
-  const base = p.shown.of ? state.plays.filter((x) => x.situation === p.shown.of).at(-1) : undefined;
-
-  return (
-    <article className="stack-xl reveal">
-      <header className="stack">
-        <p className="eyebrow">
-          {p.shown.place}
-          {p.replay ? ` · replay ${p.replay}` : ''}
-        </p>
-        <h1 className="title" ref={ref} tabIndex={-1}>
-          {p.shown.title}
-        </h1>
-        <p className="scene">{v.closing}</p>
-      </header>
-
-      <Section title="What you did" id="did">
-        <ShapeCells shape={p.shown.shape} label={`The step: ${p.shown.turnsOn}`} />
-        <ul className="group did">
-          {v.did.map((d) => (
-            <li key={d.line} className="stack-tight">
-              <span>{d.line}</span>
-              <MoveButtons ids={d.moves} fresh={isNew} />
-              <dl className="cost-risk small">
-                <div>
-                  <dt>Cost</dt>
-                  <dd>{capital(d.costs)}</dd>
-                </div>
-                <div>
-                  <dt>Risk</dt>
-                  <dd>{capital(d.risks)}</dd>
-                </div>
-              </dl>
-            </li>
-          ))}
-        </ul>
-        {earlier.length > 0 && (
-          <p className="small dim">
-            Before: {earlier.map((x) => `${shortDate(x.day)}, ${playView(x).did.map((d) => d.line).join(' ')}`).join(' ')}
-          </p>
-        )}
-      </Section>
-
-      {variant && (
-        <section className="card stack" aria-labelledby="whatif">
-          <h2 className="section-title" id="whatif">
-            {variant.whatIf}
-          </h2>
-          <ShapeCells shape={variant.shape} was={p.shown.shape} />
-          <a className="btn btn-primary btn-block" href={`#/situation/${variant.id}`}>
-            Play it that way
-          </a>
-        </section>
-      )}
-
-      {p.shown.of && (
-        <Section title="Both ways" id="both">
-          {base ? (
-            <PairView pair={{ base, variant: p, differ: differs(base.shown.shape, p.shown.shape) }} />
-          ) : (
-            <a className="link" href={`#/situation/${p.shown.of}`}>
-              Play {situationOf(p.shown.of)?.title ?? 'the story'} as it was
-            </a>
-          )}
-        </Section>
-      )}
-
-      <Section title="Other ways through" id="others">
-        <p>{v.others}</p>
-        {v.unmade.length > 0 && (
-          <div className="stack-tight">
-            <p className="small dim">Other moves in this story:</p>
-            <MoveButtons ids={v.unmade} />
-          </div>
-        )}
-      </Section>
-
-      {p.shown.real && <Real s={p.shown} />}
-
-      <div className="stack">
-        <a className={`btn btn-block${variant ? '' : ' btn-primary'}`} href="#/">
-          Back to the stories
-        </a>
-        <a className="btn btn-ghost btn-block" href={`#/situation/${p.situation}`}>
-          Play it again
-        </a>
-      </div>
-    </article>
-  );
-}
-
-/** A story and its variant, played: each play under the answer that differs, with its moves; then when that question's moves are worth something. Never explained. */
-export function PairView({ pair }: { pair: Pair }) {
-  return (
-    <div className="stack">
-      {pair.differ.map((q) => (
-        <p key={q} className="question">
-          {question(q).ask}
-        </p>
-      ))}
-      <ul className="group">
-        {[pair.base, pair.variant].map((p) => (
-          <li key={p.id} className="pair stack-tight">
-            <span className="pair-head">
-              <a className="link" href={`#/play/${p.id}`}>
-                {p.shown.title}
-              </a>
-              <span className="cell-value">{pair.differ.map((q) => shortText(p.shown.shape, q)).join('; ')}</span>
-            </span>
-            {playView(p).did.map((d) => (
-              <span key={d.line} className="stack-tight">
-                <span className="small">{d.line}</span>
-                <MoveButtons ids={d.moves} />
-              </span>
-            ))}
-          </li>
-        ))}
-      </ul>
-      {pair.differ.map((q) => (
-        <p key={q} className="small dim">
-          {question(q).principle}
-        </p>
-      ))}
-    </div>
-  );
-}
-
-/**
- * The moves this play made that the player hadn't been shown as new when the
- * screen opened. Held for the life of the screen, so marking them seen doesn't
- * take the label away while it's being read.
- */
-function useFresh(state: TellState, play: Play | undefined) {
-  const [shown] = useState(() => new Set(play ? fresh(state, play) : []));
-  const key = [...shown].join();
+export function PlayTab({ state, current, setCurrent }: { state: TellState; current: string | null; setCurrent: (id: string | null) => void }) {
+  const round = current ? roundById(current) : undefined;
+  const next = () => {
+    // Read the store, not the render's state: a pass-over has just been recorded.
+    const snap = store.get();
+    const after = nextUp(snap.status === 'ready' ? snap.state : state, ROUNDS, current ?? undefined);
+    if (after) restart(after.id);
+    setCurrent(after?.id ?? null);
+  };
+  const others = ROUNDS.some((r) => r.id !== current && !hasPlayed(state, r.id));
+  // A new round in place (next, skip, at random) starts at the top, its title focused, as a new screen does.
+  const mounted = useRef(false);
   useEffect(() => {
-    if (key) store.update((s) => markSeen(s, key.split(','), new Date()));
-  }, [key]);
-  return shown;
-}
-
-/** What a story takes from the real world, with sources, and what it invents. */
-function Real({ s }: { s: Situation }) {
-  return (
-    <details className="disclosure">
-      <summary>What’s real in this story</summary>
-      <div className="stack small">
-        {s.real!.facts.map((f) => (
-          <p key={f.fact}>
-            {f.fact}{' '}
-            <span className="dim">
-              (
-              {f.sources.map((src, i) => (
-                <span key={src.url}>
-                  {i > 0 && '; '}
-                  <a className="link" href={src.url} target="_blank" rel="noreferrer">
-                    {src.name}
-                  </a>
-                </span>
-              ))}
-              )
-            </span>
-          </p>
-        ))}
-        <p className="dim">{s.real!.invented}</p>
-      </div>
-    </details>
-  );
-}
-
-export function Missing({ what }: { what: string }) {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    toTop();
+  }, [current]);
   return (
     <div className="stack-lg">
-      <h1 className="title">{what} isn’t here</h1>
-      <a className="link" href="#/">
-        Back to the stories
-      </a>
+      <header className="masthead">
+        <span className="wordmark">Tell</span>
+        <span className="masthead-actions">
+          <a className="masthead-link" href="#/rounds">
+            All rounds
+          </a>
+          <a className="icon-btn" href="#/about" aria-label="About">
+            <InfoIcon />
+          </a>
+        </span>
+      </header>
+      {/* For a first visit, until the first round is over and moved on from. */}
+      {(state.plays.length === 0 || (state.plays.length === 1 && state.plays[0].round === current)) && <p className="intro">Short rounds of puzzles, true stories and thought experiments. Keep the ideas worth keeping; over time they start to connect.</p>}
+      {round ? (
+        <RoundView
+          key={round.id}
+          round={round}
+          state={state}
+          onNext={next}
+          nextLabel={others ? 'Next round' : 'Done'}
+          onSkip={
+            others && !hasPlayed(state, round.id)
+              ? () => {
+                  store.update((s) => skip(s, round.id));
+                  next();
+                }
+              : undefined
+          }
+        />
+      ) : (
+        <AllPlayed state={state} onPick={(id) => setCurrent(id)} />
+      )}
     </div>
+  );
+}
+
+function AllPlayed({ state, onPick }: { state: TellState; onPick: (id: string) => void }) {
+  return (
+    <section className="stack-lg" aria-labelledby="all-played">
+      <div className="stack">
+        <h1 className="title" id="all-played" tabIndex={-1}>
+          You’ve played every round
+        </h1>
+        <p className="lede">New rounds arrive with updates to Tell. Any round can be played again, and your Book keeps what you kept.</p>
+      </div>
+      <button
+        className="btn btn-primary btn-block"
+        onClick={() => {
+          const r = ROUNDS[Math.floor(Math.random() * ROUNDS.length)];
+          restart(r.id);
+          onPick(r.id);
+        }}
+      >
+        Play one again, at random
+      </button>
+      <a className="btn btn-block" href="#/book">
+        Open my Book
+      </a>
+      <RoundList state={state} />
+    </section>
+  );
+}
+
+/** Every round in the collection, played or not, with no count of what's left. */
+function RoundList({ state }: { state: TellState }) {
+  return (
+    <ul className="rounds">
+      {ROUNDS.map((r) => (
+        <li key={r.id}>
+          <a className="round-row" href={`#/round/${r.id}`}>
+            <span className="eyebrow">
+              {r.topic} · {r.form}
+            </span>
+            <span className="row-title">{r.title}</span>
+            <span className="small dim">{r.hook}</span>
+            {(hasPlayed(state, r.id) || ideaOf(state, r.id)) && (
+              <span className="tags">
+                {hasPlayed(state, r.id) && <span className="tag">Played</span>}
+                {ideaOf(state, r.id) && <span className="tag">In my Book</span>}
+              </span>
+            )}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function RoundsPage({ state }: { state: TellState }) {
+  return (
+    <div className="stack-lg">
+      <header className="stack">
+        <h1 className="title" tabIndex={-1}>
+          All rounds
+        </h1>
+        <p className="lede">Play any of them, in any order, as often as you like.</p>
+      </header>
+      <RoundList state={state} />
+    </div>
+  );
+}
+
+function toTop() {
+  const main = document.querySelector('main');
+  main?.scrollTo(0, 0);
+  main?.querySelector<HTMLElement>('h1[tabindex="-1"]')?.focus({ preventScroll: true });
+}
+
+/** A round opened from the list, the Book or a connection. */
+export function RoundPage({ state, id }: { state: TellState; id: string }) {
+  const round = roundById(id);
+  const [run, setRun] = useState(0);
+  if (!round)
+    return (
+      <div className="stack">
+        <h1 className="title">This round isn’t in Tell any more</h1>
+        <a className="link" href="#/rounds">
+          See all rounds
+        </a>
+      </div>
+    );
+  return (
+    <RoundView
+      key={`${round.id}-${run}`}
+      round={round}
+      state={state}
+      nextLabel="Play it again"
+      onNext={() => {
+        restart(round.id);
+        setRun((n) => n + 1);
+        requestAnimationFrame(toTop);
+      }}
+    />
   );
 }
